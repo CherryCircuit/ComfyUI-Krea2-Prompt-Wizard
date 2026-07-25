@@ -116,6 +116,7 @@
 
     /* --- Master presets --- */
     const masterSelect = buildMasterPresets();
+    const quickStart = buildQuickStartPanel();
 
     /* --- Layout: collapsible categories --- */
     const categoryBody = el("div", { class: "krea2-wizard-categories" });
@@ -123,6 +124,7 @@
 
     root.appendChild(topBar);
     root.appendChild(basePrompt);
+    root.appendChild(quickStart);
     root.appendChild(masterSelect);
     root.appendChild(addConcept);
     root.appendChild(categoryBody);
@@ -281,6 +283,39 @@
         sel.appendChild(el("option", { value: m.id, title: m.description || "" }, m.label));
       }
       return sel;
+    }
+
+    function buildQuickStartPanel() {
+      function addPresetChip(label, presetId, category) {
+        return el("button", {
+          type: "button",
+          class: "krea2-wizard-chip",
+          onClick: function () {
+            const preset = library.find(function (p) { return p.id === presetId; });
+            if (!preset) return;
+            const row = presetToRow(preset, state);
+            row.category = category;
+            state.rows.push(row);
+            state.selected_category = category;
+            markDirty();
+            render();
+          },
+        }, label);
+      }
+
+      return el("div", { class: "krea2-wizard-quickstart" }, [
+        el("div", { class: "krea2-wizard-quickstart-title" }, "Quick start"),
+        el("div", { class: "krea2-wizard-quickstart-text" },
+          "Pick a starter concept, or use the Library and + Add Concept for the full dropdown search."),
+        el("div", { class: "krea2-wizard-quickstart-buttons" }, [
+          addPresetChip("Shock", "emotion.shock", "emotion"),
+          addPresetChip("Sadness", "emotion.sadness", "emotion"),
+          addPresetChip("Rim lighting", "lighting_direction.rim_lighting", "lighting_direction"),
+          addPresetChip("24mm wide", "lens.24mm_wide", "lens"),
+          addPresetChip("Dutch angle", "angle.dutch_angle", "angle"),
+          addPresetChip("Cinematic still", "style.cinematic_film_still", "style"),
+        ]),
+      ]);
     }
 
     function buildLivePreview() {

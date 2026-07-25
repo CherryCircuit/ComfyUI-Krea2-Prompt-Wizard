@@ -21,7 +21,7 @@
   function loadScript(name) {
     return new Promise(function (resolve, reject) {
       const s = document.createElement("script");
-      s.src = "/extensions/krea2_prompt_wizard/" + name;
+      s.src = new URL(name, baseUrl).href;
       s.async = false;
       s.onload = function () { resolve(); };
       s.onerror = function () { reject(new Error("Failed to load " + name)); };
@@ -33,9 +33,12 @@
     const link = document.createElement("link");
     link.rel = "stylesheet";
     link.type = "text/css";
-    link.href = "/extensions/krea2_prompt_wizard/" + name;
+    link.href = new URL(name, baseUrl).href;
     document.head.appendChild(link);
   }
+
+  const currentScript = document.currentScript;
+  const baseUrl = currentScript && currentScript.src ? new URL("./", currentScript.src) : new URL("./", window.location.href);
 
   let installationError = null;
   const SCRIPTS = [

@@ -93,6 +93,46 @@
   gap: 4px;
 }
 
+.krea2-wizard-quickstart {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--krea2-border);
+  border-radius: var(--krea2-radius);
+  background: var(--krea2-bg);
+}
+
+.krea2-wizard-quickstart-title {
+  font-weight: 600;
+}
+
+.krea2-wizard-quickstart-text {
+  color: var(--krea2-text-dim);
+  line-height: 1.3;
+}
+
+.krea2-wizard-quickstart-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.krea2-wizard-chip {
+  background: var(--krea2-bg-strong);
+  color: var(--krea2-text);
+  border: 1px solid var(--krea2-border);
+  border-radius: 999px;
+  padding: 4px 9px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.krea2-wizard-chip:hover {
+  background: var(--krea2-accent);
+  color: #fff;
+}
+
 .krea2-wizard-preview-buttons button {
   background: var(--krea2-bg);
   border: 1px solid var(--krea2-border);
