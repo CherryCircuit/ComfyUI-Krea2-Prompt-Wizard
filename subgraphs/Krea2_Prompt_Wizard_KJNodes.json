@@ -1,0 +1,197 @@
+{
+  "id": "8a4f72d6-2f1c-4b21-9d8a-1c3e7f9b4a01",
+  "revision": 1,
+  "last_node_id": 12,
+  "last_link_id": 6,
+  "nodes": [],
+  "links": [],
+  "groups": [],
+  "definitions": {
+    "subgraphs": [
+      {
+        "id": "e9c5b7d3-1a4f-4b86-92c5-7d3e8f1a2b09",
+        "version": 1,
+        "state": {
+          "lastGroupId": 0,
+          "lastNodeId": 11,
+          "lastLinkId": 6,
+          "lastRerouteId": 0
+        },
+        "revision": 0,
+        "config": {},
+        "name": "Krea2 Wizard — KJNodes integration",
+        "inputNode": {
+          "id": -10,
+          "bounding": [
+            -80,
+            220,
+            120,
+            60
+          ]
+        },
+        "outputNode": {
+          "id": -20,
+          "bounding": [
+            1200,
+            220,
+            120,
+            60
+          ]
+        },
+        "inputs": [
+          {
+            "id": "i0",
+            "name": "wizard_state_json",
+            "type": "STRING",
+            "linkIds": [
+              1
+            ],
+            "pos": [
+              20,
+              230
+            ]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "o0",
+            "name": "FINAL_PROMPT",
+            "type": "STRING",
+            "linkIds": [
+              6
+            ],
+            "pos": [
+              1220,
+              230
+            ]
+          }
+        ],
+        "widgets": [],
+        "nodes": [
+          {
+            "id": 10,
+            "type": "Krea2PromptWizard",
+            "pos": [
+              60,
+              80
+            ],
+            "size": [
+              300,
+              200
+            ],
+            "flags": {},
+            "order": 0,
+            "mode": 0,
+            "inputs": [
+              {
+                "name": "wizard_state_json",
+                "type": "STRING",
+                "widget": {
+                  "name": "wizard_state_json"
+                },
+                "link": 1
+              }
+            ],
+            "outputs": [
+              {
+                "name": "FINAL_PROMPT",
+                "type": "STRING",
+                "links": [
+                  2
+                ]
+              }
+            ],
+            "properties": {
+              "cnr_id": "comfyui-krea2-prompt-wizard",
+              "ver": "1.0.0"
+            },
+            "widgets_values": [
+              "{\"schema_version\": 1, \"base_prompt\": \"\", \"model_profile\": \"generic\", \"interface_mode\": \"simple\", \"show_work\": false, \"rows\": [], \"master_preset_id\": null, \"selected_category\": \"emotion\"}"
+            ]
+          },
+          {
+            "id": 11,
+            "type": "Krea2PromptWeight",
+            "pos": [
+              400,
+              80
+            ],
+            "size": [
+              300,
+              200
+            ],
+            "flags": {},
+            "order": 1,
+            "mode": 0,
+            "inputs": [
+              {
+                "name": "text",
+                "type": "STRING",
+                "link": 2
+              }
+            ],
+            "outputs": [
+              {
+                "name": "model",
+                "type": "MODEL",
+                "links": []
+              },
+              {
+                "name": "conditioning",
+                "type": "CONDITIONING",
+                "links": [
+                  5
+                ]
+              }
+            ],
+            "properties": {
+              "cnr_id": "comfyui-kj-nodes",
+              "ver": "1.4.7"
+            },
+            "widgets_values": [
+              "",
+              1.0
+            ]
+          }
+        ],
+        "groups": [],
+        "links": [
+          {
+            "id": 5,
+            "origin_id": 11,
+            "origin_slot": 1,
+            "target_id": -20,
+            "target_slot": 0,
+            "type": "STRING"
+          },
+          {
+            "id": 2,
+            "origin_id": 10,
+            "origin_slot": 0,
+            "target_id": 11,
+            "target_slot": 0,
+            "type": "STRING"
+          },
+          {
+            "id": 6,
+            "origin_id": 11,
+            "origin_slot": 1,
+            "target_id": -20,
+            "target_slot": 0,
+            "type": "STRING"
+          }
+        ],
+        "extra": {
+          "frontendVersion": "1.42.8",
+          "workflowRendererVersion": "LG"
+        }
+      }
+    ]
+  },
+  "config": {},
+  "extra": {
+    "frontendVersion": "1.42.8",
+    "workflowRendererVersion": "LG"
+  },
+  "version": 0.4
+}

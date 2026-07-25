@@ -1,0 +1,522 @@
+{
+  "schema_version": 1,
+  "master_presets": [
+    {
+      "id": "master.cinematic_portrait",
+      "label": "Cinematic Portrait",
+      "description": "Classic cinematic close-up with Rembrandt lighting.",
+      "rows": [
+        {
+          "preset_id": "framing.close_up",
+          "intensity": 70
+        },
+        {
+          "preset_id": "lighting_setup.rembrandt_lighting",
+          "intensity": 60
+        },
+        {
+          "preset_id": "face.upper_eyelid_raiser",
+          "intensity": 55
+        },
+        {
+          "preset_id": "aperture.shallow_depth_of_field",
+          "intensity": 75
+        },
+        {
+          "preset_id": "lens.85mm_portrait",
+          "intensity": 55
+        },
+        {
+          "preset_id": "film_color.kodak_vision3_250d",
+          "intensity": 50
+        },
+        {
+          "preset_id": "composition.symmetrical_composition",
+          "intensity": 50
+        }
+      ]
+    },
+    {
+      "id": "master.dynamic_action",
+      "label": "Dynamic Action",
+      "description": "Wide establishing freeze-frame with motion blur.",
+      "rows": [
+        {
+          "preset_id": "framing.wide_establishing_shot",
+          "intensity": 60
+        },
+        {
+          "preset_id": "subject_movement.frozen_action",
+          "intensity": 70
+        },
+        {
+          "preset_id": "subject_movement.strong_motion_blur",
+          "intensity": 60
+        },
+        {
+          "preset_id": "camera_movement.handheld_camera",
+          "intensity": 50
+        },
+        {
+          "preset_id": "aperture.deep_focus",
+          "intensity": 55
+        },
+        {
+          "preset_id": "lens.24mm_wide",
+          "intensity": 50
+        },
+        {
+          "preset_id": "composition.diagonal_composition",
+          "intensity": 55
+        }
+      ]
+    },
+    {
+      "id": "master.fashion_editorial",
+      "label": "Fashion Editorial",
+      "description": "Studio beauty shot with flash and saturated grade.",
+      "rows": [
+        {
+          "preset_id": "framing.medium_close_up",
+          "intensity": 65
+        },
+        {
+          "preset_id": "lighting_setup.direct_frontal_flash",
+          "intensity": 65
+        },
+        {
+          "preset_id": "lighting_setup.beauty_dish_lighting",
+          "intensity": 55
+        },
+        {
+          "preset_id": "aperture.shallow_depth_of_field",
+          "intensity": 60
+        },
+        {
+          "preset_id": "film_color.rich_saturated_palette",
+          "intensity": 55
+        },
+        {
+          "preset_id": "style.fashion_editorial",
+          "intensity": 65
+        },
+        {
+          "preset_id": "gaze.looking_directly_into_the_camera",
+          "intensity": 60
+        }
+      ]
+    },
+    {
+      "id": "master.quiet_documentary",
+      "label": "Quiet Documentary",
+      "description": "Soft natural light, observational distance.",
+      "rows": [
+        {
+          "preset_id": "framing.medium_shot",
+          "intensity": 60
+        },
+        {
+          "preset_id": "lighting_setup.window_lighting",
+          "intensity": 60
+        },
+        {
+          "preset_id": "lighting_setup.overcast_natural_lighting",
+          "intensity": 55
+        },
+        {
+          "preset_id": "lens.35mm_documentary",
+          "intensity": 60
+        },
+        {
+          "preset_id": "film_color.kodak_portra_400",
+          "intensity": 55
+        },
+        {
+          "preset_id": "style.documentary_photography",
+          "intensity": 60
+        },
+        {
+          "preset_id": "gaze.looking_slightly_off_camera",
+          "intensity": 50
+        }
+      ]
+    },
+    {
+      "id": "master.direct_flash_snapshot",
+      "label": "Direct-Flash Snapshot",
+      "description": "Disposable-camera look with hard direct flash.",
+      "rows": [
+        {
+          "preset_id": "framing.medium_close_up",
+          "intensity": 60
+        },
+        {
+          "preset_id": "lighting_setup.direct_frontal_flash",
+          "intensity": 75
+        },
+        {
+          "preset_id": "lighting_setup.on_camera_flash",
+          "intensity": 50
+        },
+        {
+          "preset_id": "lens.28mm_wide",
+          "intensity": 55
+        },
+        {
+          "preset_id": "film_color.faded_vintage_colour",
+          "intensity": 55
+        },
+        {
+          "preset_id": "style.direct_flash_snapshot",
+          "intensity": 70
+        },
+        {
+          "preset_id": "camera_body.disposable_35mm_camera",
+          "intensity": 50
+        }
+      ]
+    },
+    {
+      "id": "master.luminous_fantasy",
+      "label": "Luminous Fantasy",
+      "description": "Volumetric, glowing fantasy atmosphere.",
+      "rows": [
+        {
+          "preset_id": "lighting_effect.volumetric_light",
+          "intensity": 70
+        },
+        {
+          "preset_id": "lighting_effect.god_rays",
+          "intensity": 65
+        },
+        {
+          "preset_id": "lighting_effect.cinematic_light_halation",
+          "intensity": 60
+        },
+        {
+          "preset_id": "atmosphere.dense_cinematic_fog",
+          "intensity": 60
+        },
+        {
+          "preset_id": "lighting_setup.soft_diffused_lighting",
+          "intensity": 55
+        },
+        {
+          "preset_id": "style.matte_painting",
+          "intensity": 55
+        }
+      ]
+    },
+    {
+      "id": "master.moody_film_still",
+      "label": "Moody Film Still",
+      "description": "Low-key dramatic middle shot reminiscent of a 70s film.",
+      "rows": [
+        {
+          "preset_id": "framing.medium_shot",
+          "intensity": 60
+        },
+        {
+          "preset_id": "lighting_setup.low_key_lighting",
+          "intensity": 65
+        },
+        {
+          "preset_id": "lighting_setup.chiaroscuro",
+          "intensity": 60
+        },
+        {
+          "preset_id": "lighting_direction.rim_lighting",
+          "intensity": 55
+        },
+        {
+          "preset_id": "film_color.kodak_vision3_500t",
+          "intensity": 55
+        },
+        {
+          "preset_id": "film_color.bleach_bypass",
+          "intensity": 55
+        },
+        {
+          "preset_id": "style.cinematic_film_still",
+          "intensity": 65
+        }
+      ]
+    },
+    {
+      "id": "master.product_hero",
+      "label": "Product Hero",
+      "description": "Clean commercial product presentation.",
+      "rows": [
+        {
+          "preset_id": "framing.medium_close_up",
+          "intensity": 65
+        },
+        {
+          "preset_id": "lighting_setup.large_softbox_lighting",
+          "intensity": 65
+        },
+        {
+          "preset_id": "lighting_setup.three_point_lighting",
+          "intensity": 55
+        },
+        {
+          "preset_id": "aperture.shallow_depth_of_field",
+          "intensity": 55
+        },
+        {
+          "preset_id": "composition.centered_composition",
+          "intensity": 55
+        },
+        {
+          "preset_id": "texture.smooth_clean_digital_texture",
+          "intensity": 55
+        },
+        {
+          "preset_id": "style.commercial_product_photography",
+          "intensity": 65
+        }
+      ]
+    },
+    {
+      "id": "master.atmospheric_landscape",
+      "label": "Atmospheric Landscape",
+      "description": "Wide shot with golden-hour haze and backlight.",
+      "rows": [
+        {
+          "preset_id": "framing.extreme_wide_shot",
+          "intensity": 65
+        },
+        {
+          "preset_id": "lighting_setup.golden_hour_lighting",
+          "intensity": 70
+        },
+        {
+          "preset_id": "lighting_direction.strong_backlighting",
+          "intensity": 65
+        },
+        {
+          "preset_id": "lighting_direction.rim_lighting",
+          "intensity": 55
+        },
+        {
+          "preset_id": "atmosphere.light_haze",
+          "intensity": 55
+        },
+        {
+          "preset_id": "lens.21mm_wide",
+          "intensity": 55
+        },
+        {
+          "preset_id": "composition.dense_edge_to_edge_composition",
+          "intensity": 55
+        }
+      ]
+    },
+    {
+      "id": "master.dense_fantasy_environment",
+      "label": "Dense Fantasy Environment",
+      "description": "Painterly fantasy scene with rich detail.",
+      "rows": [
+        {
+          "preset_id": "composition.dense_edge_to_edge_composition",
+          "intensity": 65
+        },
+        {
+          "preset_id": "detail.intricate_detail",
+          "intensity": 65
+        },
+        {
+          "preset_id": "lighting_setup.mixed_colour_practical_lighting",
+          "intensity": 55
+        },
+        {
+          "preset_id": "lighting_effect.glowing_practical_lights",
+          "intensity": 55
+        },
+        {
+          "preset_id": "style.matte_painting",
+          "intensity": 55
+        },
+        {
+          "preset_id": "style.concept_art",
+          "intensity": 55
+        }
+      ]
+    },
+    {
+      "id": "master.analog_street_photography",
+      "label": "Analog Street Photography",
+      "description": "Candid street scene with grain and warm tone.",
+      "rows": [
+        {
+          "preset_id": "framing.medium_shot",
+          "intensity": 60
+        },
+        {
+          "preset_id": "lens.35mm_documentary",
+          "intensity": 60
+        },
+        {
+          "preset_id": "film_color.kodak_portra_400",
+          "intensity": 55
+        },
+        {
+          "preset_id": "texture.fine_film_grain",
+          "intensity": 55
+        },
+        {
+          "preset_id": "style.street_photography",
+          "intensity": 65
+        },
+        {
+          "preset_id": "style.analog_35mm_photography",
+          "intensity": 55
+        },
+        {
+          "preset_id": "camera_movement.handheld_camera",
+          "intensity": 50
+        }
+      ]
+    },
+    {
+      "id": "master.dramatic_low_angle_character",
+      "label": "Dramatic Low-Angle Character",
+      "description": "Heroic low-angle with rim lighting.",
+      "rows": [
+        {
+          "preset_id": "angle.low_angle",
+          "intensity": 60
+        },
+        {
+          "preset_id": "angle.extreme_low_angle",
+          "intensity": 65
+        },
+        {
+          "preset_id": "lighting_direction.rim_lighting",
+          "intensity": 60
+        },
+        {
+          "preset_id": "lighting_setup.low_key_lighting",
+          "intensity": 55
+        },
+        {
+          "preset_id": "body.shoulders_pulled_back",
+          "intensity": 55
+        },
+        {
+          "preset_id": "gaze.looking_directly_into_the_camera",
+          "intensity": 60
+        },
+        {
+          "preset_id": "composition.dense_edge_to_edge_composition",
+          "intensity": 55
+        }
+      ]
+    },
+    {
+      "id": "master.macro_nature",
+      "label": "Macro Nature",
+      "description": "Extreme close-up nature photography.",
+      "rows": [
+        {
+          "preset_id": "framing.macro_close_up",
+          "intensity": 70
+        },
+        {
+          "preset_id": "lens.105mm_macro",
+          "intensity": 60
+        },
+        {
+          "preset_id": "aperture.foreground_bokeh",
+          "intensity": 65
+        },
+        {
+          "preset_id": "aperture.creamy_bokeh",
+          "intensity": 55
+        },
+        {
+          "preset_id": "lighting_direction.dappled_light_through_leaves",
+          "intensity": 60
+        },
+        {
+          "preset_id": "lighting_direction.light_from_above_and_behind",
+          "intensity": 55
+        },
+        {
+          "preset_id": "style.macro_photography",
+          "intensity": 60
+        }
+      ]
+    },
+    {
+      "id": "master.horror_chiaroscuro",
+      "label": "Horror Chiaroscuro",
+      "description": "Hard shadows, low key, distressed atmosphere.",
+      "rows": [
+        {
+          "preset_id": "lighting_setup.chiaroscuro",
+          "intensity": 75
+        },
+        {
+          "preset_id": "lighting_setup.hard_directional_lighting",
+          "intensity": 60
+        },
+        {
+          "preset_id": "lighting_direction.underlighting",
+          "intensity": 65
+        },
+        {
+          "preset_id": "lighting_effect.hard_graphic_shadows",
+          "intensity": 60
+        },
+        {
+          "preset_id": "lighting_effect.underexposed_shadows",
+          "intensity": 55
+        },
+        {
+          "preset_id": "film_color.high_contrast_black_and_white",
+          "intensity": 60
+        },
+        {
+          "preset_id": "atmosphere.dense_cinematic_fog",
+          "intensity": 55
+        }
+      ]
+    },
+    {
+      "id": "master.soft_romantic_portrait",
+      "label": "Soft Romantic Portrait",
+      "description": "Soft warm portrait with vintage character.",
+      "rows": [
+        {
+          "preset_id": "framing.close_up",
+          "intensity": 65
+        },
+        {
+          "preset_id": "lighting_setup.soft_diffused_lighting",
+          "intensity": 65
+        },
+        {
+          "preset_id": "lighting_setup.window_lighting",
+          "intensity": 55
+        },
+        {
+          "preset_id": "aperture.shallow_depth_of_field",
+          "intensity": 60
+        },
+        {
+          "preset_id": "lens.85mm_portrait",
+          "intensity": 55
+        },
+        {
+          "preset_id": "film_color.warm_golden_palette",
+          "intensity": 55
+        },
+        {
+          "preset_id": "lens_family.soft_focus_portrait_lens",
+          "intensity": 50
+        }
+      ]
+    }
+  ]
+}

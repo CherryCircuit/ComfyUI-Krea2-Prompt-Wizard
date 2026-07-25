@@ -1,0 +1,113 @@
+{
+  "id": "5b3a81d2-4c19-4b27-8c3d-9a2f4e6b1d02",
+  "revision": 1,
+  "last_node_id": 12,
+  "last_link_id": 4,
+  "nodes": [
+    {
+      "id": 10,
+      "type": "Krea2PromptWizard",
+      "pos": [
+        -200,
+        -100
+      ],
+      "size": [
+        500,
+        480
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "FINAL_PROMPT",
+          "type": "STRING",
+          "links": [
+            1
+          ]
+        },
+        {
+          "name": "TRACE_JSON",
+          "type": "STRING",
+          "links": [
+            2
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-krea2-prompt-wizard",
+        "ver": "1.0.0"
+      },
+      "widgets_values": [
+        "{\"schema_version\": 1, \"base_prompt\": \"A candid portrait\", \"model_profile\": \"generic\", \"interface_mode\": \"simple\", \"show_work\": false, \"rows\": [{\"id\": \"r1\", \"category\": \"emotion\", \"preset_id\": \"emotion.happiness\", \"label\": \"Happiness\", \"phrase\": \"happiness\", \"control_mode\": \"scalar\", \"intensity\": 60, \"enabled\": true, \"verification\": \"general visual vocabulary\"}, {\"id\": \"r2\", \"category\": \"emotion\", \"preset_id\": \"emotion.shock\", \"label\": \"Shock\", \"phrase\": \"shocked expression\", \"control_mode\": \"scalar\", \"intensity\": 85, \"enabled\": true, \"verification\": \"general visual vocabulary\"}, {\"id\": \"r3\", \"category\": \"face\", \"preset_id\": \"face.outer_brow_raiser\", \"label\": \"Outer brow raiser\", \"phrase\": \"outer brow raiser\", \"control_mode\": \"scalar\", \"intensity\": 70, \"enabled\": true, \"verification\": \"general visual vocabulary\"}], \"master_preset_id\": null, \"selected_category\": \"emotion\"}"
+      ]
+    },
+    {
+      "id": 11,
+      "type": "Krea2PromptInspector",
+      "pos": [
+        380,
+        -100
+      ],
+      "size": [
+        400,
+        380
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "trace_json",
+          "type": "STRING",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "report",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-krea2-prompt-wizard",
+        "ver": "1.0.0"
+      },
+      "widgets_values": [
+        "",
+        "",
+        ""
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      10,
+      0,
+      12,
+      0,
+      "STRING"
+    ],
+    [
+      2,
+      10,
+      13,
+      11,
+      0,
+      "STRING"
+    ]
+  ],
+  "groups": [],
+  "definitions": {
+    "subgraphs": []
+  },
+  "config": {},
+  "extra": {
+    "frontendVersion": "1.42.8",
+    "workflowRendererVersion": "LG"
+  },
+  "version": 0.4
+}

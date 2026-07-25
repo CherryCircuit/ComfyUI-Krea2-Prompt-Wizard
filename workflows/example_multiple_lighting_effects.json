@@ -1,0 +1,51 @@
+{
+  "id": "d4a7f9c2-1e5b-4a31-83d6-9a2b4c5d8e0f",
+  "revision": 1,
+  "last_node_id": 10,
+  "last_link_id": 1,
+  "nodes": [
+    {
+      "id": 10,
+      "type": "Krea2PromptWizard",
+      "pos": [
+        0,
+        0
+      ],
+      "size": [
+        500,
+        480
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "LIGHTING_PROMPT",
+          "type": "STRING",
+          "links": [
+            1
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-krea2-prompt-wizard",
+        "ver": "1.0.0"
+      },
+      "widgets_values": [
+        "{\"schema_version\": 1, \"base_prompt\": \"A dramatic interior\", \"model_profile\": \"generic\", \"interface_mode\": \"simple\", \"show_work\": false, \"rows\": [{\"id\": \"r1\", \"category\": \"lighting_setup\", \"preset_id\": \"lighting_setup.soft_diffused_lighting\", \"label\": \"Soft diffused lighting\", \"phrase\": \"soft diffused lighting\", \"control_mode\": \"scalar\", \"intensity\": 30, \"enabled\": true, \"verification\": \"general visual vocabulary\"}, {\"id\": \"r2\", \"category\": \"lighting_direction\", \"preset_id\": \"lighting_direction.strong_backlighting\", \"label\": \"Strong backlighting\", \"phrase\": \"strong backlighting\", \"control_mode\": \"scalar\", \"intensity\": 70, \"enabled\": true, \"verification\": \"general visual vocabulary\"}, {\"id\": \"r3\", \"category\": \"lighting_direction\", \"preset_id\": \"lighting_direction.rim_lighting\", \"label\": \"Rim lighting\", \"phrase\": \"rim lighting\", \"control_mode\": \"scalar\", \"intensity\": 45, \"enabled\": true, \"verification\": \"general visual vocabulary\"}, {\"id\": \"r4\", \"category\": \"lighting_effect\", \"preset_id\": \"lighting_effect.cinematic_light_halation\", \"label\": \"Cinematic halation\", \"phrase\": \"cinematic light halation\", \"control_mode\": \"scalar\", \"intensity\": 55, \"enabled\": true, \"verification\": \"general visual vocabulary\"}, {\"id\": \"r5\", \"category\": \"atmosphere\", \"preset_id\": \"atmosphere.dense_cinematic_fog\", \"label\": \"Dense cinematic fog\", \"phrase\": \"dense cinematic fog\", \"control_mode\": \"scalar\", \"intensity\": 20, \"enabled\": true, \"verification\": \"general visual vocabulary\"}], \"master_preset_id\": null, \"selected_category\": \"emotion\"}"
+      ]
+    }
+  ],
+  "links": [],
+  "groups": [],
+  "definitions": {
+    "subgraphs": []
+  },
+  "config": {},
+  "extra": {
+    "frontendVersion": "1.42.8",
+    "workflowRendererVersion": "LG"
+  },
+  "version": 0.4
+}

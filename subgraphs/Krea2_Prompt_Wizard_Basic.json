@@ -1,0 +1,138 @@
+{
+  "id": "8a4f72d6-2f1c-4b21-9d8a-1c3e7f9b4a01",
+  "revision": 1,
+  "last_node_id": 12,
+  "last_link_id": 6,
+  "nodes": [],
+  "links": [],
+  "groups": [],
+  "definitions": {
+    "subgraphs": [
+      {
+        "id": "b3d8a1f2-4c2e-4b5d-9c8a-1e3f7b2d4a01",
+        "version": 1,
+        "state": {
+          "lastGroupId": 0,
+          "lastNodeId": 1,
+          "lastLinkId": 1,
+          "lastRerouteId": 0
+        },
+        "revision": 0,
+        "config": {},
+        "name": "Krea2 Wizard — Basic",
+        "inputNode": {
+          "id": -10,
+          "bounding": [
+            -80,
+            100,
+            120,
+            60
+          ]
+        },
+        "outputNode": {
+          "id": -20,
+          "bounding": [
+            380,
+            100,
+            120,
+            60
+          ]
+        },
+        "inputs": [
+          {
+            "id": "i0",
+            "name": "wizard_state_json",
+            "type": "STRING",
+            "linkIds": [
+              1
+            ],
+            "pos": [
+              20,
+              110
+            ]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "o0",
+            "name": "FINAL_PROMPT",
+            "type": "STRING",
+            "linkIds": [
+              2
+            ],
+            "localized_name": "FINAL_PROMPT",
+            "pos": [
+              400,
+              110
+            ]
+          }
+        ],
+        "widgets": [],
+        "nodes": [
+          {
+            "id": 1,
+            "type": "Krea2PromptWizard",
+            "pos": [
+              60,
+              60
+            ],
+            "size": [
+              300,
+              200
+            ],
+            "flags": {},
+            "order": 0,
+            "mode": 0,
+            "inputs": [
+              {
+                "name": "wizard_state_json",
+                "type": "STRING",
+                "widget": {
+                  "name": "wizard_state_json"
+                },
+                "link": 1
+              }
+            ],
+            "outputs": [
+              {
+                "name": "FINAL_PROMPT",
+                "type": "STRING",
+                "links": [
+                  2
+                ]
+              }
+            ],
+            "properties": {
+              "cnr_id": "comfyui-krea2-prompt-wizard",
+              "ver": "1.0.0"
+            },
+            "widgets_values": [
+              "{\"schema_version\": 1, \"base_prompt\": \"\", \"model_profile\": \"generic\", \"interface_mode\": \"simple\", \"show_work\": false, \"rows\": [], \"master_preset_id\": null, \"selected_category\": \"emotion\"}"
+            ]
+          }
+        ],
+        "groups": [],
+        "links": [
+          {
+            "id": 2,
+            "origin_id": 1,
+            "origin_slot": 0,
+            "target_id": -20,
+            "target_slot": 0,
+            "type": "STRING"
+          }
+        ],
+        "extra": {
+          "frontendVersion": "1.42.8",
+          "workflowRendererVersion": "LG"
+        }
+      }
+    ]
+  },
+  "config": {},
+  "extra": {
+    "frontendVersion": "1.42.8",
+    "workflowRendererVersion": "LG"
+  },
+  "version": 0.4
+}

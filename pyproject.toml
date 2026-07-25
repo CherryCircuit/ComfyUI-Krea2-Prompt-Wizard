@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "comfyui-krea2-prompt-wizard"
+version = "1.0.0"
+description = "A transparent, database-driven visual prompt builder for Krea 2 image generation inside ComfyUI."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "GPL-3.0-or-later" }
+authors = [
+    { name = "ComfyUI-Krea2-Prompt-Wizard Contributors" }
+]
+keywords = ["comfyui", "krea2", "prompt", "wizard", "krea-2", "qwen3-vl"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+[project.urls]
+Homepage = "https://github.com/ComfyUI-Krea2-Prompt-Wizard/ComfyUI-Krea2-Prompt-Wizard"
+"Wizard Homepage" = "https://github.com/ComfyUI-Krea2-Prompt-Wizard/ComfyUI-Krea2-Prompt-Wizard"
+"Bug Tracker" = "https://github.com/ComfyUI-Krea2-Prompt-Wizard/ComfyUI-Krea2-Prompt-Wizard/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["krea2_prompt_wizard*"]
+
+[tool.setuptools.package-data]
+krea2_prompt_wizard = ["py.typed"]
+
+[tool.setuptools]
+include-package-data = true
+zip-safe = false
