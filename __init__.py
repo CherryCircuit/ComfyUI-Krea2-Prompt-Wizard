@@ -31,14 +31,14 @@ Project layout (Python side):
 Web side (loaded automatically because the package exposes ``WEB_DIRECTORY``):
 
     web/
-        js/extension.js
-        js/wizard_widget.js
-        js/preset_row.js
-        js/searchable_selector.js
-        js/library_editor.js
-        js/materialize.js
-        js/inspector.js
-        js/state.js
+        extension.js
+        js/wizard_widget.mjs
+        js/preset_row.mjs
+        js/searchable_selector.mjs
+        js/library_editor.mjs
+        js/materialize.mjs
+        js/inspector.mjs
+        js/state.mjs
         css/wizard.css
 """
 from __future__ import annotations
@@ -63,9 +63,15 @@ WEB_DIRECTORY = "./web" if os.path.isdir(WEB_DIR) else None
 
 
 from src import nodes as _nodes
+from src.api import register_routes
 
 NODE_CLASS_MAPPINGS = _nodes.NODE_CLASS_MAPPINGS
 NODE_DISPLAY_NAME_MAPPINGS = _nodes.NODE_DISPLAY_NAME_MAPPINGS
+try:
+    register_routes()
+except ModuleNotFoundError:
+    # Allows backend modules and tests to run outside a ComfyUI process.
+    pass
 
 
 __all__ = [

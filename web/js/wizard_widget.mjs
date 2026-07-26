@@ -47,22 +47,7 @@
     valueWidget.computeSize = function () { return [0, -4]; };
     const stateString = valueWidget.value || "";
     let state = coerceState(parseState(stateString));
-    if (!state.rows || state.rows.length === 0) {
-      state.rows = [
-        {
-          id: uniqueRowId(state),
-          category: "emotion",
-          preset_id: "emotion.shock",
-          label: "Shock",
-          phrase: "shocked expression",
-          control_mode: "scalar",
-          intensity: 75,
-          enabled: true,
-          aliases: ["shocked"],
-          verification: "general visual vocabulary",
-        },
-      ];
-    }
+    if (!Array.isArray(state.rows)) state.rows = [];
 
     const library = [];
     let masterPresets = [];
@@ -327,7 +312,18 @@
 
     function render() {
       categoryBody.innerHTML = "";
-      for (const cat of CATEGORIES) {
+      const simpleCategories = [
+        "body", "emotion", "face", "framing", "angle", "lens",
+        "composition", "lighting_setup", "lighting_direction",
+        "lighting_effect", "atmosphere", "style",
+      ];
+      const visibleCategories = state.interface_mode === "advanced"
+        ? CATEGORIES
+        : CATEGORIES.filter(function (cat) {
+            return simpleCategories.includes(cat)
+              || state.rows.some(function (row) { return row.category === cat; });
+          });
+      for (const cat of visibleCategories) {
         const rows = state.rows.filter(function (r) { return r.category === cat; });
         const section = el("section", { class: "krea2-wizard-category" });
         const header = el("div", { class: "krea2-wizard-category-header" }, [

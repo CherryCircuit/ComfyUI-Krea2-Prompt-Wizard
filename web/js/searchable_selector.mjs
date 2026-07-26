@@ -110,14 +110,12 @@
         });
         item.dataset.idx = String(idx);
         const label = el("div", { class: "krea2-searchable-title" }, p.label || p.id);
-        const id = el("div", { class: "krea2-searchable-subtitle" }, p.id || "");
         const meta = el("div", { class: "krea2-searchable-meta" }, [
           el("span", { class: "krea2-searchable-cat" }, CATEGORY_LABELS[p.category] || p.category),
           el("span", { class: "krea2-searchable-phrase" }, p.phrase || ""),
           el("span", { class: "krea2-searchable-ver" }, p.verification || "general visual vocabulary"),
         ]);
         item.appendChild(label);
-        item.appendChild(id);
         item.appendChild(meta);
         listEl.appendChild(item);
       });

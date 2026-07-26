@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "GPL-3.0-or-later" }
 authors = [
-    { name = "ComfyUI-Krea2-Prompt-Wizard Contributors" }
+    { name = "CherryCircuit" }
 ]
 keywords = ["comfyui", "krea2", "prompt", "wizard", "krea-2", "qwen3-vl"]
 classifiers = [
@@ -28,9 +28,14 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/ComfyUI-Krea2-Prompt-Wizard/ComfyUI-Krea2-Prompt-Wizard"
-"Wizard Homepage" = "https://github.com/ComfyUI-Krea2-Prompt-Wizard/ComfyUI-Krea2-Prompt-Wizard"
-"Bug Tracker" = "https://github.com/ComfyUI-Krea2-Prompt-Wizard/ComfyUI-Krea2-Prompt-Wizard/issues"
+Repository = "https://github.com/CherryCircuit/ComfyUI-Krea2-Prompt-Wizard"
+Homepage = "https://github.com/CherryCircuit/ComfyUI-Krea2-Prompt-Wizard"
+"Bug Tracker" = "https://github.com/CherryCircuit/ComfyUI-Krea2-Prompt-Wizard/issues"
+
+[tool.comfy]
+PublisherId = "cherrycircuit"
+DisplayName = "Krea2 Prompt Wizard"
+Icon = ""
 
 [tool.setuptools.packages.find]
 where = ["src"]

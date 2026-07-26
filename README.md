@@ -20,7 +20,9 @@ prompt plus a structured trace JSON you can inspect.
 
 ### ComfyUI Manager
 
-Search for *Krea2 Prompt Wizard* in the ComfyUI Manager and install.
+Registry publication is still pending. Until the pack is published, install
+or update it manually from GitHub. Manager cannot reliably attribute workflow
+nodes to an unpublished pack.
 
 ### Manual
 
@@ -29,7 +31,7 @@ Drop the `ComfyUI-Krea2-Prompt-Wizard` directory into your
 
 ```
 cd ComfyUI/custom_nodes
-git clone https://github.com/ComfyUI-Krea2-Prompt-Wizard/ComfyUI-Krea2-Prompt-Wizard
+git clone https://github.com/CherryCircuit/ComfyUI-Krea2-Prompt-Wizard
 ```
 
 Restart ComfyUI. The wizard's frontend extension loads automatically

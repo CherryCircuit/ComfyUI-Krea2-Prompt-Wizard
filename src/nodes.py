@@ -179,7 +179,7 @@ class Krea2WeightedPhrase:
     RETURN_TYPES = ("STRING", "STRING", "FLOAT", "STRING", "STRING")
     RETURN_NAMES = ("weighted_phrase", "plain_phrase", "mapped_weight", "trace_json", "warnings")
     FUNCTION = "build"
-    CATEGORY = "Krea2/Wizard"
+    CATEGORY = "_Krea2 Prompt Wizard"
     DESCRIPTION = "Transparent primitive that renders a single weighted phrase from a slider value."
     SEARCH_ALIASES = ["weighted phrase", "krea2 phrase", "prompt weighting"]
 
@@ -358,7 +358,7 @@ class Krea2PromptAssembler:
         "warnings",
     )
     FUNCTION = "assemble"
-    CATEGORY = "Krea2/Wizard"
+    CATEGORY = "_Krea2 Prompt Wizard"
     DESCRIPTION = "Joins a base prompt with a list of dynamic fragments and returns category-grouped outputs."
     SEARCH_ALIASES = ["prompt assembler", "prompt joiner", "krea2 assembler"]
 
@@ -464,7 +464,7 @@ class Krea2PromptWizard:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("Prompt Output",)
     FUNCTION = "build"
-    CATEGORY = "Krea2/Wizard"
+    CATEGORY = "_Krea2 Prompt Wizard"
     DESCRIPTION = "Visual prompt builder for Krea 2. The frontend owns the editor; the backend compiles the state to one prompt."
     SEARCH_ALIASES = ["krea2 wizard", "prompt wizard", "visual prompt builder", "krea2 prompt builder"]
 
@@ -508,7 +508,7 @@ class Krea2PromptInspector:
     RETURN_TYPES = ("STRING", "STRING", "STRING")
     RETURN_NAMES = ("report", "warnings", "normalized_trace_json")
     FUNCTION = "inspect"
-    CATEGORY = "Krea2/Wizard"
+    CATEGORY = "_Krea2 Prompt Wizard"
     DESCRIPTION = "Inspects a trace/state JSON and produces a formatted report."
     SEARCH_ALIASES = ["prompt inspector", "show work", "krea2 inspector"]
 

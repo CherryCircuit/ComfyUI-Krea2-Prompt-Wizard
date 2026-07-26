@@ -100,10 +100,9 @@ ComfyUI-Krea2-Prompt-Wizard/
 ## Backend
 
 The backend is a single Python package. The top-level `__init__.py`
-imports the lazy `NODE_CLASS_MAPPINGS` and `NODE_DISPLAY_NAME_MAPPINGS`
-from `src.nodes`. The `WEB_DIRECTORY` constant is the basename of the
-`web/` directory, which is how ComfyUI mounts the static extension
-folder (`nodes.EXTENSION_WEB_DIRS`).
+imports `NODE_CLASS_MAPPINGS` and `NODE_DISPLAY_NAME_MAPPINGS` from
+`src.nodes`. The `WEB_DIRECTORY` constant points to `./web`, which is
+how ComfyUI mounts the static extension folder.
 
 `src/nodes.py` defines four node classes. Each class uses the V3
 node API pattern (subclassing nothing, declaring `INPUT_TYPES` /
@@ -117,11 +116,13 @@ can be exercised in unit tests without the ComfyUI runtime.
 
 ## Frontend
 
-The frontend is plain JavaScript. The extension entry point
-`web/js/extension.js` is loaded by ComfyUI at startup. It sequentially
-loads the other JS modules (state, selector, row, library editor,
-materialize, inspector, widget). The wizard's visual interface is
-rendered by `wizard_widget.js`, which reads and writes the
+The frontend uses one auto-discovered JavaScript entry point,
+`web/extension.js`. Its helper files use the `.mjs` extension so
+ComfyUI's recursive `*.js` extension scan does not execute them out of
+order. The entry point awaits the state, selector, row, library editor,
+materialize, inspector, and widget modules before registering the
+extension. The wizard's visual interface is
+rendered by `wizard_widget.mjs`, which reads and writes the
 `wizard_state_json` STRING widget value of the `Krea2 Prompt Wizard`
 node.
 

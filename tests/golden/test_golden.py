@@ -54,6 +54,13 @@ def _normalize(prompt):
     return " ".join(prompt.split())
 
 
+def _assert_golden(test_case, name, result):
+    with open(os.path.join(GOLDEN_DIR, name), "r", encoding="utf-8") as f:
+        expected = json.load(f)
+    test_case.assertEqual(result.final_prompt, expected["final_prompt"])
+    test_case.assertEqual(result.plain_prompt, expected["plain_prompt"])
+
+
 class HappyAndShockedTest(unittest.TestCase):
     """The first golden test from the spec.
 
@@ -74,9 +81,7 @@ class HappyAndShockedTest(unittest.TestCase):
         }
         state, lib = _state_from_spec(spec)
         result = compile_state(state, lib)
-        out_path = os.path.join(GOLDEN_DIR, "happy_and_shocked.json")
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump(result.to_dict(), f, indent=2)
+        _assert_golden(self, "happy_and_shocked.json", result)
         self.assertIn("(happiness:", result.final_prompt)
         self.assertIn("(shocked expression:", result.final_prompt)
         self.assertIn("(outer brow raiser:", result.final_prompt)
@@ -103,9 +108,7 @@ class SadAndAngryTest(unittest.TestCase):
         }
         state, lib = _state_from_spec(spec)
         result = compile_state(state, lib)
-        out_path = os.path.join(GOLDEN_DIR, "sad_and_angry.json")
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump(result.to_dict(), f, indent=2)
+        _assert_golden(self, "sad_and_angry.json", result)
         self.assertIn("(sadness:", result.final_prompt)
         self.assertIn("(anger:", result.final_prompt)
         self.assertIn("(brow lowerer:", result.final_prompt)
@@ -126,9 +129,7 @@ class MultipleLightingEffectsTest(unittest.TestCase):
         }
         state, lib = _state_from_spec(spec)
         result = compile_state(state, lib)
-        out_path = os.path.join(GOLDEN_DIR, "lighting.json")
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump(result.to_dict(), f, indent=2)
+        _assert_golden(self, "lighting.json", result)
         self.assertIn("soft diffused lighting", result.final_prompt)
         self.assertIn("strong backlighting", result.final_prompt)
         self.assertIn("rim lighting", result.final_prompt)
@@ -153,9 +154,7 @@ class CameraConfigurationTest(unittest.TestCase):
         }
         state, lib = _state_from_spec(spec)
         result = compile_state(state, lib)
-        out_path = os.path.join(GOLDEN_DIR, "camera.json")
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump(result.to_dict(), f, indent=2)
+        _assert_golden(self, "camera.json", result)
         self.assertIn("close-up", result.final_prompt)
         self.assertIn("low angle", result.final_prompt)
         self.assertIn("forced perspective", result.final_prompt)
