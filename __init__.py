@@ -54,7 +54,7 @@ if _PACKAGE_DIR not in sys.path:
 from src.package_paths import CONFLICTS_PATH, DEFAULT_LIBRARY_PATH, MASTER_PRESETS_PATH, WEB_DIR
 
 # ComfyUI loads frontend extensions from this directory.
-WEB_DIRECTORY = "./web/js" if os.path.isdir(WEB_DIR) else None
+WEB_DIRECTORY = "./web" if os.path.isdir(WEB_DIR) else None
 
 
 # ---------------------------------------------------------------------------

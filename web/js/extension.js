@@ -1,5 +1,3 @@
-import { app } from "../../scripts/app.js";
-
 /* Krea2 Prompt Wizard frontend extension. */
 (function () {
   "use strict";
@@ -29,7 +27,8 @@ import { app } from "../../scripts/app.js";
     document.head.appendChild(link);
   }
 
-  const baseUrl = new URL("./", import.meta.url);
+  const currentScript = document.currentScript;
+  const baseUrl = currentScript && currentScript.src ? new URL("./", currentScript.src) : new URL("./", window.location.href);
 
   let installationError = null;
   const SCRIPTS = [
@@ -47,7 +46,7 @@ import { app } from "../../scripts/app.js";
       installationError = "state.js failed to load";
       return;
     }
-    if (!app || !app.registerExtension) {
+    if (!window.app || !window.app.registerExtension) {
       installationError = "ComfyUI app.registerExtension not available";
       return;
     }
@@ -105,7 +104,7 @@ import { app } from "../../scripts/app.js";
       },
     };
 
-    app.registerExtension(extension);
+    window.app.registerExtension(extension);
   }
 
   function boot() {
