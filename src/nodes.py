@@ -19,6 +19,7 @@ V3 base class is not available.
 from __future__ import annotations
 
 import json
+import re
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from .package_paths import CONFLICTS_PATH, DEFAULT_LIBRARY_PATH, MASTER_PRESETS_PATH
@@ -58,6 +59,7 @@ from . import migrations as migration_module
 # ---------------------------------------------------------------------------
 
 _LIBRARY_CACHE: Dict[str, Any] = {"library": None}
+_MASTER_PRESETS_CACHE: Dict[str, Any] = {"data": None}
 
 
 def get_library() -> Library:
@@ -71,6 +73,52 @@ def reload_library() -> Library:
     """Force a reload of the bundled and user library and update the cache."""
     _LIBRARY_CACHE["library"] = load_library()
     return _LIBRARY_CACHE["library"]
+
+
+def get_master_presets() -> List[Dict[str, Any]]:
+    """Return the bundled master presets."""
+    if _MASTER_PRESETS_CACHE["data"] is None:
+        try:
+            with open(MASTER_PRESETS_PATH, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+            presets = payload.get("master_presets", []) if isinstance(payload, dict) else []
+            _MASTER_PRESETS_CACHE["data"] = [p for p in presets if isinstance(p, dict)]
+        except Exception:
+            _MASTER_PRESETS_CACHE["data"] = []
+    return list(_MASTER_PRESETS_CACHE["data"])
+
+
+def _choice_label(preset: Dict[str, Any]) -> str:
+    return f"{preset.get('label', preset.get('id', ''))} [{preset.get('id', '')}]"
+
+
+def _extract_preset_id(selection: str) -> str:
+    if not selection or selection == "None":
+        return ""
+    match = re.search(r"\[([^\]]+)\]\s*$", selection)
+    if match:
+        return match.group(1)
+    return selection
+
+
+def _choice_list_for_categories(categories: Sequence[str], *, prefix: str = "") -> List[str]:
+    library = get_library()
+    choices = ["None"]
+    for category in categories:
+        for preset in library.by_category(category):
+            label = _choice_label(preset)
+            if prefix:
+                choices.append(f"{prefix}{label}")
+            else:
+                choices.append(label)
+    return choices
+
+
+def _find_preset(selection: str) -> Optional[Dict[str, Any]]:
+    preset_id = _extract_preset_id(selection)
+    if not preset_id:
+        return None
+    return get_library().find(preset_id)
 
 
 # ---------------------------------------------------------------------------
@@ -407,22 +455,41 @@ class Krea2PromptWizard:
 
     @classmethod
     def INPUT_TYPES(cls):
+        master_choices = ["None"] + [_choice_label(p) for p in get_master_presets()]
         return {
             "required": {
+                "base_prompt": (
+                    "STRING",
+                    {
+                        "default": "subject, scene, emotion, lighting, camera, composition, style",
+                        "multiline": True,
+                        "tooltip": "Plain-language starter template.",
+                    },
+                ),
+                "master_preset": (
+                    master_choices,
+                    {"default": "None", "tooltip": "Optional starter recipe."},
+                ),
+            },
+            "optional": {
+                "emotion_preset": (_choice_list_for_categories(["emotion"]), {"default": "None", "tooltip": "Optional emotion preset."}),
+                "face_preset": (_choice_list_for_categories(["face"]), {"default": "None", "tooltip": "Optional face preset."}),
+                "lighting_preset": (_choice_list_for_categories(["lighting_setup", "lighting_direction", "lighting_effect"], prefix="lighting: "), {"default": "None", "tooltip": "Optional lighting preset."}),
+                "camera_preset": (_choice_list_for_categories(["framing", "angle", "perspective", "lens", "aperture", "camera_body", "lens_family"], prefix="camera: "), {"default": "None", "tooltip": "Optional camera preset."}),
+                "composition_preset": (_choice_list_for_categories(["composition"]), {"default": "None", "tooltip": "Optional composition preset."}),
+                "style_preset": (_choice_list_for_categories(["style"]), {"default": "None", "tooltip": "Optional style preset."}),
+                "model_profile": (
+                    [PROFILE_GENERIC, PROFILE_KREA_TURBO, PROFILE_KREA_RAW],
+                    {"default": PROFILE_GENERIC, "tooltip": "Model profile. Currently affects warnings only; the prompt format is universal."},
+                ),
                 "wizard_state_json": (
                     "STRING",
                     {
                         "default": json.dumps(wizard_helpers.empty_state()),
                         "multiline": True,
-                        "tooltip": "The wizard state JSON. Usually driven by the frontend widget; can also be supplied directly via API workflows.",
+                        "advanced": True,
+                        "tooltip": "Advanced escape hatch: provide a complete wizard state JSON object.",
                     },
-                ),
-            },
-            "optional": {
-                "base_prompt_override": ("STRING", {"default": "", "multiline": True, "tooltip": "Optional override that replaces the base prompt embedded in the state."}),
-                "model_profile": (
-                    [PROFILE_GENERIC, PROFILE_KREA_TURBO, PROFILE_KREA_RAW],
-                    {"default": PROFILE_GENERIC, "tooltip": "Model profile. Currently affects warnings only; the prompt format is universal."},
                 ),
                 "expert_mode": ("BOOLEAN", {"default": False, "tooltip": "Permit raw negative weights to exceed the documented 3.0 ceiling."}),
             },
@@ -454,17 +521,25 @@ class Krea2PromptWizard:
 
     def build(
         self,
-        wizard_state_json: str,
-        base_prompt_override: str = "",
+        base_prompt: str,
+        master_preset: str = "None",
+        emotion_preset: str = "None",
+        face_preset: str = "None",
+        lighting_preset: str = "None",
+        camera_preset: str = "None",
+        composition_preset: str = "None",
+        style_preset: str = "None",
         model_profile: str = PROFILE_GENERIC,
+        wizard_state_json: str = "",
         expert_mode: bool = False,
     ) -> Tuple[str, ...]:
         # ------------------------------------------------------------------
         # Decode state
         # ------------------------------------------------------------------
+        default_state_json = json.dumps(wizard_helpers.empty_state())
         state: Dict[str, Any] = {}
         parse_warnings: List[str] = []
-        if wizard_state_json:
+        if wizard_state_json and wizard_state_json != default_state_json:
             try:
                 parsed = json.loads(wizard_state_json)
                 if isinstance(parsed, dict):
@@ -473,14 +548,25 @@ class Krea2PromptWizard:
                     parse_warnings.append("Wizard state JSON must be a JSON object.")
             except json.JSONDecodeError as e:
                 parse_warnings.append(f"Wizard state JSON could not be parsed: {e}")
+            state = wizard_helpers.coerce_state(state)
         else:
-            parse_warnings.append("Wizard state JSON is empty; using an empty state.")
-
-        state = wizard_helpers.coerce_state(state)
-
-        # Apply base prompt override when supplied.
-        if base_prompt_override and base_prompt_override.strip():
-            state["base_prompt"] = base_prompt_override.strip()
+            state = wizard_helpers.empty_state()
+            state["base_prompt"] = (base_prompt or "").strip()
+            if model_profile in (PROFILE_GENERIC, PROFILE_KREA_TURBO, PROFILE_KREA_RAW):
+                state["model_profile"] = model_profile
+            library = get_library()
+            if master_preset and master_preset != "None":
+                selected_master = None
+                for item in get_master_presets():
+                    if _choice_label(item) == master_preset:
+                        selected_master = item
+                        break
+                if selected_master is not None:
+                    state = wizard_helpers.apply_master_preset(state, selected_master, library)
+            for selection in [emotion_preset, face_preset, lighting_preset, camera_preset, composition_preset, style_preset]:
+                preset = _find_preset(selection)
+                if preset is not None:
+                    state = wizard_helpers.add_row(state, preset)
 
         # Apply model profile if user supplied one.
         if model_profile in (PROFILE_GENERIC, PROFILE_KREA_TURBO, PROFILE_KREA_RAW):

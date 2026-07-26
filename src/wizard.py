@@ -287,6 +287,24 @@ def rows_from_snapshot(snapshot: Sequence[Dict[str, Any]]) -> List[Dict[str, Any
     return [dict(s) for s in snapshot if isinstance(s, dict)]
 
 
+def apply_master_preset(state: Dict[str, Any], master_preset: Dict[str, Any], library: Any) -> Dict[str, Any]:
+    """Replace the state's rows with the rows from a master preset."""
+    state = coerce_state(state)
+    state["rows"] = []
+    state["master_preset_id"] = master_preset.get("id") if isinstance(master_preset, dict) else None
+    if not isinstance(master_preset, dict):
+        return state
+    for row in master_preset.get("rows", []):
+        if not isinstance(row, dict):
+            continue
+        preset_id = row.get("preset_id", "")
+        preset = library.find(preset_id) if library is not None and hasattr(library, "find") else None
+        if not preset:
+            continue
+        state = add_row(state, preset, intensity=row.get("intensity"))
+    return state
+
+
 def validate_or_raise(state: Dict[str, Any]) -> None:
     """Validate a state object and raise :class:`SchemaError` if errors exist."""
     from .validation import validate_state

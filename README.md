@@ -64,23 +64,18 @@ The wizard writes to no other locations on disk.
 ## Basic usage
 
 1. Add a `Krea2 Prompt Wizard` node.
-2. Open the wizard panel. Type a base scene description, then click
-   *+ Add Concept* to add a row.
-3. Pick a preset from the searchable library. The row's slider
-   defaults to the preset's recommended intensity.
-4. Adjust the slider (-100 to +100). The exact rendered fragment
-   updates in the row's preview.
-5. Repeat for as many concepts as you want. Combine emotions, lighting
-   effects, camera settings, and more — every concept is independent.
-6. Use `FINAL_PROMPT` (or any other channel) to feed the result into a
+2. Use the built-in dropdowns to pick a starter master preset and any
+   extra emotion, lighting, camera, composition, or style presets you
+   want.
+3. Edit the base prompt template text directly in the multiline box.
+4. Use `FINAL_PROMPT` (or any other channel) to feed the result into a
    `CLIPTextEncode` node.
 
 ### Combining multiple concepts
 
-There is no single-selection limit. You can combine *Happy + Shocked*,
-*Soft diffused lighting + Strong backlighting + Rim light + Cinematic
-halation*, or *24mm lens + Forced perspective + Dutch angle + Extreme
-close-up*. Each concept gets its own slider.
+You can combine a starter recipe with extra dropdown presets. For more
+advanced row-by-row control, use the `Krea2 Weighted Phrase` and
+`Krea2 Prompt Assembler` nodes.
 
 ### Slider behaviour
 
@@ -107,8 +102,8 @@ The wizard supports three modes per row:
 
 ### Library editor
 
-Click *Library* in the wizard header to open the full library editor.
-You can:
+If the optional frontend panel loads, the wizard header exposes a
+library editor. You can:
 
 - Add, edit, duplicate, and delete user presets.
 - Search, filter by category, show user / bundled / verified only.
