@@ -24,9 +24,8 @@
     phraseForRow,
     formatPhrase,
     formatWeight,
-    CATEGORY_LABELS,
   } = K.helpers;
-  const { MODES } = K.constants;
+  const { CATEGORY_LABELS, MODES } = K.constants;
   const searchable = K.searchableSelector;
 
   function renderRow(row, ctx) {

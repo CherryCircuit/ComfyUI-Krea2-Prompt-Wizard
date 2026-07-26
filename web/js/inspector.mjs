@@ -8,7 +8,8 @@
   "use strict";
 
   const K = window.KREA2;
-  const { el, escapeHtml, CATEGORY_LABELS } = K.helpers;
+  const { el, escapeHtml } = K.helpers;
+  const { CATEGORY_LABELS } = K.constants;
 
   function renderShowWork(state, compiled) {
     const wrap = el("div", { class: "krea2-show-work" });

@@ -13,7 +13,8 @@
   "use strict";
 
   const K = window.KREA2;
-  const { el, escapeHtml, debounce, CATEGORIES, CATEGORY_LABELS } = K.helpers;
+  const { el, escapeHtml, debounce } = K.helpers;
+  const { CATEGORIES, CATEGORY_LABELS } = K.constants;
 
   function openEditor(ctx) {
     const overlay = el("div", { class: "krea2-library-overlay", onClick: function (e) {

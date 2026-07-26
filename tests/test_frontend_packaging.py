@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import asyncio
+import shutil
+import subprocess
 import sys
 import types
 import unittest
@@ -95,6 +97,14 @@ class FrontendPackagingTests(unittest.TestCase):
         self.assertGreater(len(library_payload["presets"]), 500)
         self.assertGreater(len(masters_payload["master_presets"]), 10)
         api_module._ROUTES_REGISTERED = False
+
+    @unittest.skipUnless(shutil.which("node"), "Node.js is required for the DOM smoke test")
+    def test_wizard_dom_initializes(self):
+        subprocess.run(
+            [shutil.which("node"), str(ROOT / "tests" / "frontend_smoke.mjs")],
+            cwd=ROOT,
+            check=True,
+        )
 
 
 if __name__ == "__main__":

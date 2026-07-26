@@ -11,7 +11,8 @@
   "use strict";
 
   const K = window.KREA2;
-  const { el, escapeHtml, CATEGORIES, CATEGORY_LABELS } = K.helpers;
+  const { el, escapeHtml } = K.helpers;
+  const { CATEGORIES, CATEGORY_LABELS } = K.constants;
 
   function showSearchableSelector(opts) {
     const {

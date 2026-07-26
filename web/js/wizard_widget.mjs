@@ -14,10 +14,6 @@
     el,
     escapeHtml,
     debounce,
-    CATEGORIES,
-    CATEGORY_LABELS,
-    PROFILES,
-    MODES,
     emptyState,
     coerceState,
     uniqueRowId,
@@ -30,6 +26,7 @@
     fetchMasterPresets,
     showToast,
   } = K.helpers;
+  const { CATEGORIES, CATEGORY_LABELS } = K.constants;
   const { renderRow } = K.presetRow;
   const { show: showSearchableSelector } = K.searchableSelector;
   const { open: openLibraryEditor } = K.libraryEditor;
