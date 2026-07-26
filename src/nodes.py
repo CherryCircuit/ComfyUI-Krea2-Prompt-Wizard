@@ -440,226 +440,50 @@ class Krea2PromptAssembler:
 
 
 class Krea2PromptWizard:
-    """The main all-in-one visual prompt-building node.
-
-    The backend implementation is deliberately minimal: it accepts the
-    fully-built wizard state as a STRING input (and optionally as a
-    hidden widget) and returns the compiled prompt, the plain prompt,
-    the per-category outputs, the trace JSON, the state JSON, and the
-    warnings.
-
-    The visual builder itself runs in the frontend via
-    ``web/js/wizard_widget.js``. The backend is robust against
-    malformed or missing state.
-    """
+    """The main all-in-one visual prompt-building node."""
 
     @classmethod
     def INPUT_TYPES(cls):
-        master_choices = ["None"] + [_choice_label(p) for p in get_master_presets()]
         return {
             "required": {
-                "base_prompt": (
-                    "STRING",
-                    {
-                        "default": "subject, scene, emotion, lighting, camera, composition, style",
-                        "multiline": True,
-                        "tooltip": "Plain-language starter template.",
-                    },
-                ),
-                "master_preset": (
-                    master_choices,
-                    {"default": "None", "tooltip": "Optional starter recipe."},
-                ),
-            },
-            "optional": {
-                "emotion_preset": (_choice_list_for_categories(["emotion"]), {"default": "None", "tooltip": "Optional emotion preset."}),
-                "face_preset": (_choice_list_for_categories(["face"]), {"default": "None", "tooltip": "Optional face preset."}),
-                "lighting_preset": (_choice_list_for_categories(["lighting_setup", "lighting_direction", "lighting_effect"], prefix="lighting: "), {"default": "None", "tooltip": "Optional lighting preset."}),
-                "camera_preset": (_choice_list_for_categories(["framing", "angle", "perspective", "lens", "aperture", "camera_body", "lens_family"], prefix="camera: "), {"default": "None", "tooltip": "Optional camera preset."}),
-                "composition_preset": (_choice_list_for_categories(["composition"]), {"default": "None", "tooltip": "Optional composition preset."}),
-                "style_preset": (_choice_list_for_categories(["style"]), {"default": "None", "tooltip": "Optional style preset."}),
-                "model_profile": (
-                    [PROFILE_GENERIC, PROFILE_KREA_TURBO, PROFILE_KREA_RAW],
-                    {"default": PROFILE_GENERIC, "tooltip": "Model profile. Currently affects warnings only; the prompt format is universal."},
-                ),
                 "wizard_state_json": (
                     "STRING",
                     {
-                        "default": json.dumps(wizard_helpers.empty_state()),
+                        "default": "",
                         "multiline": True,
                         "advanced": True,
-                        "tooltip": "Advanced escape hatch: provide a complete wizard state JSON object.",
+                        "tooltip": "Advanced state payload written by the frontend wizard.",
                     },
                 ),
-                "expert_mode": ("BOOLEAN", {"default": False, "tooltip": "Permit raw negative weights to exceed the documented 3.0 ceiling."}),
+            },
+            "optional": {
+                "expert_mode": ("BOOLEAN", {"default": False, "tooltip": "Permit raw negative numerical weights."}),
             },
         }
 
-    RETURN_TYPES = ("STRING", "STRING", "STRING", "STRING", "STRING", "STRING", "STRING", "STRING", "STRING", "STRING", "STRING", "STRING", "STRING", "STRING", "STRING", "STRING")
-    RETURN_NAMES = (
-        "FINAL_PROMPT",
-        "PLAIN_PROMPT",
-        "BODY_PROMPT",
-        "EMOTION_PROMPT",
-        "FACE_PROMPT",
-        "CAMERA_PROMPT",
-        "COMPOSITION_PROMPT",
-        "LIGHTING_PROMPT",
-        "MOVEMENT_PROMPT",
-        "ATMOSPHERE_PROMPT",
-        "STYLE_PROMPT",
-        "DETAIL_PROMPT",
-        "CUSTOM_PROMPT",
-        "TRACE_JSON",
-        "STATE_JSON",
-        "WARNINGS",
-    )
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("Prompt Output",)
     FUNCTION = "build"
     CATEGORY = "Krea2/Wizard"
-    DESCRIPTION = "Visual prompt builder for Krea 2. Embeds the wizard state in the workflow and outputs final, plain, category, trace, state, and warnings."
+    DESCRIPTION = "Visual prompt builder for Krea 2. The frontend owns the editor; the backend compiles the state to one prompt."
     SEARCH_ALIASES = ["krea2 wizard", "prompt wizard", "visual prompt builder", "krea2 prompt builder"]
 
-    def build(
-        self,
-        base_prompt: str,
-        master_preset: str = "None",
-        emotion_preset: str = "None",
-        face_preset: str = "None",
-        lighting_preset: str = "None",
-        camera_preset: str = "None",
-        composition_preset: str = "None",
-        style_preset: str = "None",
-        model_profile: str = PROFILE_GENERIC,
-        wizard_state_json: str = "",
-        expert_mode: bool = False,
-    ) -> Tuple[str, ...]:
-        # ------------------------------------------------------------------
-        # Decode state
-        # ------------------------------------------------------------------
-        default_state_json = json.dumps(wizard_helpers.empty_state())
-        state: Dict[str, Any] = {}
-        parse_warnings: List[str] = []
-        if wizard_state_json and wizard_state_json != default_state_json:
-            try:
-                parsed = json.loads(wizard_state_json)
-                if isinstance(parsed, dict):
-                    state = parsed
-                else:
-                    parse_warnings.append("Wizard state JSON must be a JSON object.")
-            except json.JSONDecodeError as e:
-                parse_warnings.append(f"Wizard state JSON could not be parsed: {e}")
-            state = wizard_helpers.coerce_state(state)
-        else:
-            state = wizard_helpers.empty_state()
-            state["base_prompt"] = (base_prompt or "").strip()
-            if model_profile in (PROFILE_GENERIC, PROFILE_KREA_TURBO, PROFILE_KREA_RAW):
-                state["model_profile"] = model_profile
-            library = get_library()
-            if master_preset and master_preset != "None":
-                selected_master = None
-                for item in get_master_presets():
-                    if _choice_label(item) == master_preset:
-                        selected_master = item
-                        break
-                if selected_master is not None:
-                    state = wizard_helpers.apply_master_preset(state, selected_master, library)
-            for selection in [emotion_preset, face_preset, lighting_preset, camera_preset, composition_preset, style_preset]:
-                preset = _find_preset(selection)
-                if preset is not None:
-                    state = wizard_helpers.add_row(state, preset)
+    def build(self, wizard_state_json: str = "", expert_mode: bool = False) -> Tuple[str]:
+        try:
+            parsed = json.loads(wizard_state_json) if wizard_state_json else {}
+            state = parsed if isinstance(parsed, dict) else {}
+        except json.JSONDecodeError:
+            state = {}
 
-        # Apply model profile if user supplied one.
-        if model_profile in (PROFILE_GENERIC, PROFILE_KREA_TURBO, PROFILE_KREA_RAW):
-            state["model_profile"] = model_profile
-
-        # Apply preset migrations to the embedded rows so a workflow from
-        # an older version of the library keeps producing the same output.
+        state = wizard_helpers.coerce_state(state)
         if isinstance(state.get("rows"), list):
             state["rows"] = migration_module.apply_row_preset_migrations(state["rows"])
 
-        # ------------------------------------------------------------------
-        # Compile
-        # ------------------------------------------------------------------
-        library = get_library()
         try:
-            result = compiler_module.compile_state(state, library, expert=expert_mode)
-        except Exception as e:
-            # The backend must never blow up execution. Fall back to a
-            # minimal result with the base prompt only.
-            fallback = (state.get("base_prompt") or "").strip()
-            return (
-                fallback,
-                fallback,
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                "",
-                json.dumps({"schema_version": SCHEMA_VERSION, "error": str(e)}, ensure_ascii=False),
-                json.dumps(state, ensure_ascii=False),
-                f"Compile failed: {e}",
-            )
-
-        # Aggregate warnings.
-        warnings = list(result.warnings)
-        warnings.extend(parse_warnings)
-        if expert_mode:
-            warnings.append(
-                "Expert mode is enabled. Raw negative numerical weights are permitted."
-            )
-
-        # Compose the multi-line warning string for the output with severity.
-        if not warnings:
-            warnings_text = ""
-        else:
-            lines = []
-            for w in warnings:
-                if isinstance(w, dict):
-                    lines.append(f"[{w.get('severity', 'warning')}] {w.get('code', '')}: {w.get('message', '')}")
-                else:
-                    lines.append(str(w))
-            warnings_text = "\n".join(lines)
-
-        category_prompts = result.category_prompts
-
-        # Compose the camera / lighting / movement aggregated outputs.
-        camera_prompt = " ".join(
-            category_prompts.get(c, "")
-            for c in ("framing", "angle", "perspective", "lens", "aperture", "camera_body")
-        ).strip()
-        lighting_prompt = " ".join(
-            category_prompts.get(c, "")
-            for c in ("lighting_setup", "lighting_direction", "lighting_effect")
-        ).strip()
-        movement_prompt = " ".join(
-            category_prompts.get(c, "")
-            for c in ("subject_movement", "camera_movement", "environment_movement")
-        ).strip()
-
-        return (
-            result.final_prompt,
-            result.plain_prompt,
-            category_prompts.get("body", ""),
-            category_prompts.get("emotion", ""),
-            category_prompts.get("face", ""),
-            camera_prompt,
-            category_prompts.get("composition", ""),
-            lighting_prompt,
-            movement_prompt,
-            category_prompts.get("atmosphere", ""),
-            category_prompts.get("style", ""),
-            category_prompts.get("detail", ""),
-            category_prompts.get("custom", ""),
-            json.dumps(result.trace, ensure_ascii=False),
-            json.dumps(state, ensure_ascii=False),
-            warnings_text,
-        )
+            result = compiler_module.compile_state(state, get_library(), expert=expert_mode)
+            return (result.final_prompt,)
+        except Exception:
+            return ((state.get("base_prompt") or "").strip(),)
 
 
 # ---------------------------------------------------------------------------

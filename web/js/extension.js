@@ -1,14 +1,6 @@
-/* Krea2 Prompt Wizard — ComfyUI frontend extension
- *
- * Registers the wizard widget with the supported ComfyUI frontend APIs.
- * The extension entry point mounts the visual builder on the
- * "Krea2 Prompt Wizard" node and exposes library/master-preset fetch
- * helpers.
- *
- * Important: this extension never throws during registration. If a
- * feature is unavailable the wizard degrades gracefully and the user
- * can still drive the node through the wizard_state_json STRING input.
- */
+import { app } from "../../scripts/app.js";
+
+/* Krea2 Prompt Wizard frontend extension. */
 (function () {
   "use strict";
 
@@ -37,8 +29,7 @@
     document.head.appendChild(link);
   }
 
-  const currentScript = document.currentScript;
-  const baseUrl = currentScript && currentScript.src ? new URL("./", currentScript.src) : new URL("./", window.location.href);
+  const baseUrl = new URL("./", import.meta.url);
 
   let installationError = null;
   const SCRIPTS = [
@@ -56,7 +47,7 @@
       installationError = "state.js failed to load";
       return;
     }
-    if (!window.app || !window.app.registerExtension) {
+    if (!app || !app.registerExtension) {
       installationError = "ComfyUI app.registerExtension not available";
       return;
     }
@@ -114,7 +105,7 @@
       },
     };
 
-    window.app.registerExtension(extension);
+    app.registerExtension(extension);
   }
 
   function boot() {

@@ -42,6 +42,9 @@
       console.warn("[Krea2PromptWizard] No wizard_state_json widget found");
       return null;
     }
+    valueWidget.hidden = true;
+    valueWidget.type = "hidden";
+    valueWidget.computeSize = function () { return [0, -4]; };
     const stateString = valueWidget.value || "";
     let state = coerceState(parseState(stateString));
     if (!state.rows || state.rows.length === 0) {
@@ -75,9 +78,8 @@
 
     const root = el("div", { class: "krea2-wizard-root" });
 
-    /* --- Top section: base prompt, model profile, mode, library button --- */
+    /* --- Top section: base prompt, mode, library button --- */
     const basePrompt = buildBasePrompt(state);
-    const modelProfile = buildModelProfile(state);
     const modeSwitch = buildModeSwitch(state);
     const livePreview = buildLivePreview();
     const showWorkToggle = buildShowWorkToggle(state);
@@ -87,7 +89,6 @@
     const resetBtn = el("button", { type: "button", class: "krea2-wizard-btn", onClick: resetAll }, "Reset All");
 
     const topBar = el("div", { class: "krea2-wizard-top" }, [
-      modelProfile,
       modeSwitch,
       libraryBtn,
       materializeBtn,
@@ -203,29 +204,13 @@
       const ta = el("textarea", {
         class: "krea2-wizard-base",
         rows: "2",
-        placeholder: "Base scene description (optional)",
+        placeholder: "Describe the scene, subject, mood, lighting, camera, or style.",
         onInput: function (e) {
           state.base_prompt = e.target.value;
           markDirty();
         },
       }, state.base_prompt || "");
       return ta;
-    }
-
-    function buildModelProfile(state) {
-      const sel = el("select", {
-        class: "krea2-wizard-profile",
-        onChange: function (e) {
-          state.model_profile = e.target.value;
-          markDirty();
-        },
-      }, [
-        el("option", { value: PROFILES.GENERIC }, "Generic"),
-        el("option", { value: PROFILES.KREA_TURBO }, "Krea 2 Turbo"),
-        el("option", { value: PROFILES.KREA_RAW }, "Krea 2 Raw"),
-      ]);
-      sel.value = state.model_profile || PROFILES.GENERIC;
-      return sel;
     }
 
     function buildModeSwitch(state) {
@@ -306,7 +291,7 @@
       return el("div", { class: "krea2-wizard-quickstart" }, [
         el("div", { class: "krea2-wizard-quickstart-title" }, "Quick start"),
         el("div", { class: "krea2-wizard-quickstart-text" },
-          "Pick a starter concept, or use the Library and + Add Concept for the full dropdown search."),
+          "Pick a starter concept, then use + Add or the Library to add more."),
         el("div", { class: "krea2-wizard-quickstart-buttons" }, [
           addPresetChip("Shock", "emotion.shock", "emotion"),
           addPresetChip("Sadness", "emotion.sadness", "emotion"),

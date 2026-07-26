@@ -64,18 +64,16 @@ The wizard writes to no other locations on disk.
 ## Basic usage
 
 1. Add a `Krea2 Prompt Wizard` node.
-2. Use the built-in dropdowns to pick a starter master preset and any
-   extra emotion, lighting, camera, composition, or style presets you
-   want.
-3. Edit the base prompt template text directly in the multiline box.
-4. Use `FINAL_PROMPT` (or any other channel) to feed the result into a
-   `CLIPTextEncode` node.
+2. Use the on-node wizard panel to type a short prompt idea, then hit
+   the `+` buttons to add concepts.
+3. Adjust the sliders for each concept and choose a starter master
+   preset if you want one.
+4. Use `Prompt Output` to feed the result into a `CLIPTextEncode` node.
 
 ### Combining multiple concepts
 
-You can combine a starter recipe with extra dropdown presets. For more
-advanced row-by-row control, use the `Krea2 Weighted Phrase` and
-`Krea2 Prompt Assembler` nodes.
+You can combine any number of concepts. Add several emotions, lighting
+effects, camera settings, and style cues, each with its own slider.
 
 ### Slider behaviour
 
@@ -148,16 +146,11 @@ Every materialized node is a real ComfyUI node. You can:
 
 ## Outputs
 
-The `Krea2 Prompt Wizard` exposes 16 STRING outputs:
+The `Krea2 Prompt Wizard` exposes one STRING output:
 
 | Output | Description |
 |---|---|
-| `FINAL_PROMPT` | Weighted prompt in category order. |
-| `PLAIN_PROMPT` | Same prompt without `(phrase:weight)` syntax. |
-| `BODY_PROMPT`, `EMOTION_PROMPT`, `FACE_PROMPT`, `CAMERA_PROMPT`, `COMPOSITION_PROMPT`, `LIGHTING_PROMPT`, `MOVEMENT_PROMPT`, `ATMOSPHERE_PROMPT`, `STYLE_PROMPT`, `DETAIL_PROMPT`, `CUSTOM_PROMPT` | Per-category fragments. |
-| `TRACE_JSON` | Full trace JSON for the Inspector. |
-| `STATE_JSON` | The wizard state JSON, as persisted. |
-| `WARNINGS` | Aggregated warnings formatted as a multi-line string. |
+| `Prompt Output` | The compiled final prompt. |
 
 ## KJNodes integration (optional)
 
