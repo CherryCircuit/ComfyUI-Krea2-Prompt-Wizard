@@ -229,6 +229,7 @@ ROW_KEYS_REQUIRED: Tuple[str, ...] = (
 )
 ROW_KEYS_OPTIONAL: Tuple[str, ...] = (
     "label",
+    "strength",
     "aliases",
     "negative_phrase",
     "neutral_phrase",

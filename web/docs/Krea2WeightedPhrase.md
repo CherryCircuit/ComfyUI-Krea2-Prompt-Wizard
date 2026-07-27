@@ -10,7 +10,7 @@ read, edit, and learn from the wizard's components by looking at them.
 | Input | Type | Notes |
 |---|---|---|
 | `phrase` | STRING | Phrase to render. |
-| `enabled` | BOOLEAN | When false, the row is omitted. |
+| `enabled` | BOOLEAN | When false, the concept is omitted. |
 | `control_mode` | ENUM | scalar / bipolar / raw. |
 | `intensity` | INT | -100..100 slider. |
 | `positive_phrase` | STRING | Optional bipolar positive phrase. |

@@ -383,6 +383,19 @@ def validate_row(row: Any, *, path: str = "row") -> ValidationResult:
             path=f"{path}.intensity",
         )
 
+    if "strength" in row:
+        try:
+            strength = float(row["strength"])
+            if strength < -5 or strength > 5:
+                raise ValueError
+        except (TypeError, ValueError):
+            result.add(
+                "row.strength_out_of_range",
+                "Concept strength must be a number from -5 to +5",
+                severity="error",
+                path=f"{path}.strength",
+            )
+
     mode = _coerce_str(row.get("control_mode", MODE_SCALAR), MODE_SCALAR)
     if mode not in ALLOWED_MODES:
         result.add(

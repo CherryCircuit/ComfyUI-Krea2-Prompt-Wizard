@@ -244,6 +244,11 @@ def mode_for_row(row: dict) -> str:
 
 def weight_for_row(row: dict, expert: bool = False) -> float:
     """Resolve the weight for a row given its mode and intensity."""
+    if "strength" in row:
+        try:
+            return clamp_weight(float(row["strength"]), -5.0, 5.0)
+        except (TypeError, ValueError):
+            pass
     try:
         slider = int(row.get("intensity", SLIDER_DEFAULT))
     except (TypeError, ValueError):
@@ -264,7 +269,7 @@ def phrase_for_row(row: dict) -> str:
     """Return the phrase to render for a row, considering bipolar mode."""
     if mode_for_row(row) == MODE_BIPOLAR:
         try:
-            slider = int(row.get("intensity", SLIDER_DEFAULT))
+            slider = float(row.get("strength", row.get("intensity", SLIDER_DEFAULT)))
         except (TypeError, ValueError):
             slider = SLIDER_DEFAULT
         if slider > 0:

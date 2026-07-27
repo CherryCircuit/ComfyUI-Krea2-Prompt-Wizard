@@ -52,6 +52,7 @@ from . import assembler as assembler_module
 from . import inspector as inspector_module
 from . import user_paths
 from . import migrations as migration_module
+from .job_randomizer import has_job_randomization, randomize_enabled_groups
 
 
 # ---------------------------------------------------------------------------
@@ -149,7 +150,7 @@ class Krea2WeightedPhrase:
                 ),
                 "enabled": (
                     "BOOLEAN",
-                    {"default": True, "tooltip": "When false, the row is omitted from the assembled prompt."},
+                    {"default": True, "tooltip": "When false, the concept is omitted from the assembled prompt."},
                 ),
                 "control_mode": (
                     [MODE_SCALAR, MODE_BIPOLAR, MODE_RAW],
@@ -468,6 +469,16 @@ class Krea2PromptWizard:
     DESCRIPTION = "Visual prompt builder for Krea 2. The frontend owns the editor; the backend compiles the state to one prompt."
     SEARCH_ALIASES = ["krea2 wizard", "prompt wizard", "visual prompt builder", "krea2 prompt builder"]
 
+    @classmethod
+    def IS_CHANGED(cls, wizard_state_json: str = "", expert_mode: bool = False):
+        try:
+            parsed = json.loads(wizard_state_json) if wizard_state_json else {}
+        except json.JSONDecodeError:
+            parsed = {}
+        if isinstance(parsed, dict) and has_job_randomization(parsed):
+            return float("nan")
+        return wizard_state_json
+
     def build(self, wizard_state_json: str = "", expert_mode: bool = False) -> Tuple[str]:
         try:
             parsed = json.loads(wizard_state_json) if wizard_state_json else {}
@@ -478,6 +489,8 @@ class Krea2PromptWizard:
         state = wizard_helpers.coerce_state(state)
         if isinstance(state.get("rows"), list):
             state["rows"] = migration_module.apply_row_preset_migrations(state["rows"])
+        if has_job_randomization(state):
+            state = randomize_enabled_groups(state, get_library())
 
         try:
             result = compiler_module.compile_state(state, get_library(), expert=expert_mode)

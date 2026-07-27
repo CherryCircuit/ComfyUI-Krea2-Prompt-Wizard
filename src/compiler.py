@@ -147,7 +147,7 @@ def compile_state(
         cat = row.get("category", "custom")
         mode = mode_for_row(row)
         try:
-            intensity = int(row.get("intensity", SLIDER_DEFAULT))
+            intensity = float(row.get("strength", row.get("intensity", SLIDER_DEFAULT)))
         except (TypeError, ValueError):
             intensity = SLIDER_DEFAULT
         enabled = bool(row.get("enabled", True))

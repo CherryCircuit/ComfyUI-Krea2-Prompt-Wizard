@@ -138,8 +138,8 @@
       } else {
         actions.appendChild(makeBtn("Duplicate to User", function () { duplicateToUser(preset.id); }));
       }
-      actions.appendChild(makeBtn("Toggle Favourite", function () { toggleFavourite(preset.id); }));
       if (preset.origin === "user") {
+        actions.appendChild(makeBtn("Toggle Favourite", function () { toggleFavourite(preset.id); }));
         actions.appendChild(makeBtn(preset.disabled ? "Enable" : "Disable", function () { toggleDisabled(preset.id); }));
       }
       wrap.appendChild(title);
@@ -151,6 +151,20 @@
 
     function makeBtn(label, onClick) {
       return el("button", { type: "button", class: "krea2-library-btn-small", onClick: onClick }, label);
+    }
+
+    function commitLibrary(message, refreshLibrary) {
+      ctx.markDirty();
+      return Promise.resolve(ctx.saveUser()).then(function (payload) {
+        if (refreshLibrary && payload && Array.isArray(payload.presets)) {
+          ctx.library.splice(0, ctx.library.length, ...payload.presets);
+          window.KREA2._library = ctx.library;
+        }
+        if (message) status.textContent = message;
+        renderList();
+      }).catch(function (error) {
+        status.textContent = "Save failed: " + error.message;
+      });
     }
 
     function addPreset() {
@@ -167,10 +181,10 @@
         origin: "user",
       };
       ctx.library.push(preset);
-      ctx.markDirty();
       renderList();
       status.textContent = "Added. Edit the preset inline below.";
       editPreset(preset.id);
+      commitLibrary();
     }
 
     function editPreset(presetId) {
@@ -220,7 +234,7 @@
           if (f.type === "number") v = parseInt(v, 10) || 0;
           if (f.split && typeof v === "string") v = v.split(",").map(function (s) { return s.trim(); }).filter(Boolean);
           preset[f.key] = v;
-          ctx.markDirty();
+          commitLibrary();
         });
       }
       const closeBtn = el("button", { type: "button", class: "krea2-library-btn", onClick: closeForm }, "Done");
@@ -244,8 +258,7 @@
       copy.label = (copy.label || "Preset") + " (Copy)";
       copy.origin = "user";
       ctx.library.splice(idx + 1, 0, copy);
-      ctx.markDirty();
-      renderList();
+      commitLibrary("Preset duplicated.");
     }
 
     function duplicateToUser(presetId) {
@@ -255,8 +268,7 @@
       copy.id = "user." + (src.id || "preset") + "_" + Date.now().toString(16);
       copy.origin = "user";
       ctx.library.push(copy);
-      ctx.markDirty();
-      renderList();
+      commitLibrary("Preset copied to your library.");
     }
 
     function deletePreset(presetId) {
@@ -264,24 +276,21 @@
       if (idx < 0) return;
       if (!window.confirm("Delete preset '" + presetId + "'?")) return;
       ctx.library.splice(idx, 1);
-      ctx.markDirty();
-      renderList();
+      commitLibrary("Preset deleted.");
     }
 
     function toggleFavourite(presetId) {
       const p = ctx.library.find(function (pr) { return pr.id === presetId; });
       if (!p) return;
       p.favourite = !p.favourite;
-      ctx.markDirty();
-      renderList();
+      commitLibrary();
     }
 
     function toggleDisabled(presetId) {
       const p = ctx.library.find(function (pr) { return pr.id === presetId; });
       if (!p) return;
       p.disabled = !p.disabled;
-      ctx.markDirty();
-      renderList();
+      commitLibrary();
     }
 
     function openEditAsText() {
@@ -290,10 +299,9 @@
       const saveBtn = el("button", { type: "button", class: "krea2-library-btn", onClick: function () {
         try {
           const parsed = parseLibraryAsText(ta.value);
-          ctx.library = parsed.concat(ctx.library.filter(function (p) { return p.origin === "bundled"; }));
-          ctx.markDirty();
-          renderList();
-          status.textContent = "Imported " + parsed.length + " presets.";
+          ctx.library.splice(0, ctx.library.length, ...parsed);
+          commitLibrary("Saved " + parsed.length + " user presets.");
+          closeForm();
         } catch (e) {
           status.textContent = "Error: " + e.message;
         }
@@ -315,10 +323,9 @@
             const data = JSON.parse(reader.result);
             const incoming = Array.isArray(data) ? data : (data.presets || []);
             const userOnly = incoming.filter(function (p) { return p.origin !== "bundled"; });
-            ctx.library = ctx.library.concat(userOnly);
-            ctx.markDirty();
-            renderList();
-            status.textContent = "Imported " + userOnly.length + " presets.";
+            const currentUser = ctx.library.filter(function (p) { return p.origin === "user"; });
+            ctx.library.splice(0, ctx.library.length, ...currentUser, ...userOnly);
+            commitLibrary("Imported " + userOnly.length + " presets.");
           } catch (err) {
             status.textContent = "Import failed: " + err.message;
           }
@@ -342,10 +349,8 @@
 
     function restoreDefaults() {
       if (!window.confirm("Restore bundled defaults? Your user library will be backed up and replaced.")) return;
-      ctx.restoreBundledDefaults = true;
-      ctx.markDirty();
-      renderList();
-      status.textContent = "Bundled defaults restored. Changes apply on Save.";
+      ctx.library.splice(0, ctx.library.length);
+      commitLibrary("Bundled defaults restored.", true);
     }
 
     function close() {

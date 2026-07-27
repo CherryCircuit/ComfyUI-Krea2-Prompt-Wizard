@@ -152,6 +152,12 @@ class ModeResolutionTests(unittest.TestCase):
 
 
 class WeightForRowTests(unittest.TestCase):
+    def test_direct_quarter_step_strength_is_exact(self):
+        self.assertEqual(
+            weight_for_row({"strength": -1.25, "intensity": 75, "control_mode": "scalar"}),
+            -1.25,
+        )
+
     def test_scalar_row(self):
         self.assertAlmostEqual(weight_for_row({"intensity": 75, "control_mode": "scalar"}), 2.36, places=1)
 

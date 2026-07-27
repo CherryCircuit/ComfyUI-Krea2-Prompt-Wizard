@@ -87,6 +87,59 @@
     custom: "Custom",
   });
 
+  const GROUPS = Object.freeze([
+    "subject",
+    "expression",
+    "camera",
+    "lighting",
+    "environment",
+    "style_finish",
+  ]);
+
+  const GROUP_LABELS = Object.freeze({
+    subject: "Subject",
+    expression: "Expression & Pose",
+    camera: "Camera & Film",
+    lighting: "Lighting",
+    environment: "Environment",
+    style_finish: "Style & Finish",
+  });
+
+  const GROUP_CATEGORIES = Object.freeze({
+    subject: Object.freeze(["body", "subject_movement"]),
+    expression: Object.freeze(["emotion", "face", "gaze", "mouth"]),
+    camera: Object.freeze([
+      "framing", "angle", "perspective", "lens", "aperture",
+      "camera_body", "composition", "camera_movement", "lens_family",
+      "film_color",
+    ]),
+    lighting: Object.freeze([
+      "lighting_setup", "lighting_direction", "lighting_effect",
+    ]),
+    environment: Object.freeze(["environment_movement", "atmosphere"]),
+    style_finish: Object.freeze(["style", "texture", "detail", "custom"]),
+  });
+
+  const RANDOM_GROUP_CATEGORIES = Object.freeze({
+    subject: Object.freeze(["body", "subject_movement"]),
+    expression: Object.freeze(["emotion", "face", "gaze"]),
+    camera: Object.freeze(["framing", "angle", "lens", "composition", "film_color"]),
+    lighting: Object.freeze(["lighting_setup", "lighting_direction", "lighting_effect"]),
+    environment: Object.freeze(["atmosphere", "environment_movement"]),
+    style_finish: Object.freeze(["style", "texture", "detail"]),
+  });
+
+  const CATEGORY_GROUPS = Object.freeze(
+    GROUPS.reduce(function (mapping, group) {
+      for (const category of GROUP_CATEGORIES[group]) mapping[category] = group;
+      return mapping;
+    }, {}),
+  );
+
+  function groupForCategory(category) {
+    return CATEGORY_GROUPS[category] || "style_finish";
+  }
+
   const PROFILES = Object.freeze({
     GENERIC: "generic",
     KREA_TURBO: "krea2_turbo",
@@ -107,6 +160,9 @@
       rows: [],
       master_preset_id: null,
       selected_category: "emotion",
+      collapsed: {},
+      randomize_on_job: {},
+      creative_mode: "photo",
     };
   }
 
@@ -121,11 +177,21 @@
       "show_work",
       "master_preset_id",
       "selected_category",
+      "collapsed",
+      "randomize_on_job",
+      "creative_mode",
     ]) {
       if (key in raw) base[key] = raw[key];
     }
     if (Array.isArray(raw.rows)) {
-      base.rows = raw.rows.filter((r) => r && typeof r === "object");
+      base.rows = raw.rows.filter((r) => r && typeof r === "object").map(function (row) {
+        if (!Number.isFinite(Number(row.strength))) {
+          row.strength = Math.round(
+            Math.max(-5, Math.min(5, (Number(row.intensity) || 0) / 20)) * 4,
+          ) / 4;
+        }
+        return row;
+      });
     }
     return base;
   }
@@ -216,6 +282,9 @@
   }
 
   function defaultWeightForRow(row) {
+    if (Number.isFinite(Number(row.strength))) {
+      return Math.max(-5, Math.min(5, Number(row.strength)));
+    }
     if (row.control_mode === MODES.RAW) return sliderToWeightRaw(row.intensity);
     if (row.control_mode === MODES.BIPOLAR) return sliderToWeightBipolar(row.intensity);
     return sliderToWeightScalar(row.intensity);
@@ -223,8 +292,9 @@
 
   function phraseForRow(row) {
     if (row.control_mode === MODES.BIPOLAR) {
-      if (row.intensity > 0) return row.positive_phrase || row.phrase || "";
-      if (row.intensity < 0) return row.negative_phrase || row.phrase || "";
+      const direction = Number.isFinite(Number(row.strength)) ? Number(row.strength) : row.intensity;
+      if (direction > 0) return row.positive_phrase || row.phrase || "";
+      if (direction < 0) return row.negative_phrase || row.phrase || "";
       return row.neutral_phrase || "";
     }
     return stripWeighting(row.phrase || "");
@@ -366,6 +436,53 @@
     }
   }
 
+  async function fetchSavedPresets() {
+    try {
+      const api = (window.app && window.app.api) || null;
+      const url = (api && api.apiURL && api.apiURL("/krea2_prompt_wizard/saved_presets"))
+        || "/krea2_prompt_wizard/saved_presets";
+      const resp = await fetch(url, { cache: "no-store" });
+      if (!resp.ok) throw new Error("saved presets HTTP " + resp.status);
+      const data = await resp.json();
+      return Array.isArray(data.presets) ? data.presets : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  async function saveSavedPresets(presets) {
+    const api = (window.app && window.app.api) || null;
+    const url = (api && api.apiURL && api.apiURL("/krea2_prompt_wizard/saved_presets"))
+      || "/krea2_prompt_wizard/saved_presets";
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ presets: presets }),
+    });
+    const payload = await resp.json();
+    if (!resp.ok) {
+      throw new Error((payload.error && payload.error.message) || "Could not save presets.");
+    }
+    return Array.isArray(payload.presets) ? payload.presets : [];
+  }
+
+  async function fetchCompiledPreview(state) {
+    const api = (window.app && window.app.api) || null;
+    const url = (api && api.apiURL && api.apiURL("/krea2_prompt_wizard/preview"))
+      || "/krea2_prompt_wizard/preview";
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ state: state, expert: false }),
+    });
+    const payload = await resp.json();
+    if (!resp.ok) {
+      throw new Error((payload.warnings && payload.warnings[0] && payload.warnings[0].message)
+        || "Preview could not be compiled.");
+    }
+    return payload;
+  }
+
   /* ------------------- Compile helpers (frontend previews) ----------- */
   function compilePreview(state) {
     if (!state) state = emptyState();
@@ -455,6 +572,11 @@
     VERIFICATIONS,
     CATEGORIES,
     CATEGORY_LABELS,
+    GROUPS,
+    GROUP_LABELS,
+    GROUP_CATEGORIES,
+    RANDOM_GROUP_CATEGORIES,
+    CATEGORY_GROUPS,
     PROFILES,
   };
   KREA2.helpers = {
@@ -477,8 +599,12 @@
     formatWeight,
     stripWeighting,
     isAlreadyWeighted,
+    groupForCategory,
     fetchLibrary,
     fetchMasterPresets,
+    fetchSavedPresets,
+    saveSavedPresets,
+    fetchCompiledPreview,
     compilePreview,
   };
 })();

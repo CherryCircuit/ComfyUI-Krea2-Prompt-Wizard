@@ -13,7 +13,11 @@
         "glee"
       ],
       "tags": [
-        "emotion"
+        "emotion",
+        "smile",
+        "smiling",
+        "happy expression",
+        "positive emotion"
       ],
       "compatible_profiles": [
         "generic",
@@ -36,7 +40,11 @@
         "joyful"
       ],
       "tags": [
-        "emotion"
+        "emotion",
+        "smile",
+        "smiling",
+        "happy expression",
+        "positive emotion"
       ],
       "compatible_profiles": [
         "generic",
@@ -59,7 +67,12 @@
         "entertained"
       ],
       "tags": [
-        "emotion"
+        "emotion",
+        "smile",
+        "smiling",
+        "grin",
+        "laughter",
+        "positive emotion"
       ],
       "compatible_profiles": [
         "generic",
@@ -82,7 +95,11 @@
         "satisfied"
       ],
       "tags": [
-        "emotion"
+        "emotion",
+        "smile",
+        "soft smile",
+        "satisfied",
+        "positive emotion"
       ],
       "compatible_profiles": [
         "generic",
@@ -105,7 +122,11 @@
         "pumped"
       ],
       "tags": [
-        "emotion"
+        "emotion",
+        "smile",
+        "bright smile",
+        "enthusiasm",
+        "positive emotion"
       ],
       "compatible_profiles": [
         "generic",
@@ -128,7 +149,11 @@
         "exhilarated"
       ],
       "tags": [
-        "emotion"
+        "emotion",
+        "smile",
+        "beaming",
+        "delight",
+        "positive emotion"
       ],
       "compatible_profiles": [
         "generic",
@@ -151,7 +176,11 @@
         "at ease"
       ],
       "tags": [
-        "emotion"
+        "emotion",
+        "smile",
+        "relieved smile",
+        "release",
+        "positive emotion"
       ],
       "compatible_profiles": [
         "generic",
@@ -174,7 +203,10 @@
         "tranquil"
       ],
       "tags": [
-        "emotion"
+        "emotion",
+        "soft smile",
+        "peaceful expression",
+        "calm emotion"
       ],
       "compatible_profiles": [
         "generic",
@@ -197,7 +229,10 @@
         "tender warmth"
       ],
       "tags": [
-        "emotion"
+        "emotion",
+        "warm smile",
+        "loving expression",
+        "positive emotion"
       ],
       "compatible_profiles": [
         "generic",
@@ -220,7 +255,10 @@
         "soft-hearted"
       ],
       "tags": [
-        "emotion"
+        "emotion",
+        "gentle smile",
+        "soft expression",
+        "positive emotion"
       ],
       "compatible_profiles": [
         "generic",
@@ -243,7 +281,10 @@
         "accomplished"
       ],
       "tags": [
-        "emotion"
+        "emotion",
+        "proud smile",
+        "satisfied expression",
+        "positive emotion"
       ],
       "compatible_profiles": [
         "generic",
@@ -266,7 +307,10 @@
         "optimistic"
       ],
       "tags": [
-        "emotion"
+        "emotion",
+        "hopeful smile",
+        "optimistic expression",
+        "positive emotion"
       ],
       "compatible_profiles": [
         "generic",

@@ -1,145 +1,226 @@
-/* Searchable selector widget
- * Used by Add Concept buttons and by the in-row preset selector.
- *
- * Behaviour:
- * - Type to filter; matches label, phrase, aliases, and category.
- * - Mouse wheel cycles through the result list.
- * - Enter inserts the highlighted item; Esc closes.
- * - Categories can be filtered via the chip row above the search.
- */
+/* Searchable multi-select concept picker. */
 (function () {
   "use strict";
 
   const K = window.KREA2;
-  const { el, escapeHtml } = K.helpers;
-  const { CATEGORIES, CATEGORY_LABELS } = K.constants;
+  const { el, groupForCategory } = K.helpers;
+  const {
+    CATEGORIES,
+    GROUPS,
+    GROUP_LABELS,
+    GROUP_CATEGORIES,
+  } = K.constants;
 
   function showSearchableSelector(opts) {
     const {
-      anchor,
       presets,
       categories,
       onPick,
+      onToggle,
       onClose,
       initialQuery = "",
-      filterMode = "all",
+      initialPresetId = "",
+      multiSelect = false,
+      selectedIds = [],
+      title = multiSelect ? "Add concepts" : "Choose a concept",
     } = opts;
 
     const list = Array.isArray(presets) ? presets : [];
     if (!list.length) return null;
 
-    const cats = Array.isArray(categories) && categories.length
-      ? categories
-      : CATEGORIES.slice();
+    const allowedCategories = new Set(
+      Array.isArray(categories) && categories.length ? categories : CATEGORIES,
+    );
+    const availableGroups = GROUPS.filter(function (group) {
+      return GROUP_CATEGORIES[group].some(function (category) {
+        return allowedCategories.has(category);
+      });
+    });
+    const selected = new Set(selectedIds || []);
 
     const overlay = el("div", {
       class: "krea2-searchable-overlay",
-      onClick: function (e) {
-        if (e.target === overlay) close();
+      onClick: function (event) {
+        if (event.target === overlay) close();
       },
     });
+    const panel = el("div", {
+      class: "krea2-searchable-panel",
+      role: "dialog",
+      "aria-modal": "true",
+      "aria-label": title,
+    });
 
-    const panel = el("div", { class: "krea2-searchable-panel" });
-    overlay.appendChild(panel);
+    const heading = el("div", { class: "krea2-searchable-header" }, [
+      el("strong", null, title),
+      el("div", { class: "krea2-searchable-header-actions" }, [
+        multiSelect
+          ? el("button", {
+              type: "button",
+              class: "krea2-searchable-done",
+              onClick: close,
+            }, "Done")
+          : null,
+        el("button", {
+          type: "button",
+          class: "krea2-searchable-close",
+          title: "Close",
+          "aria-label": "Close",
+          onClick: close,
+        }, "×"),
+      ]),
+    ]);
 
     const search = el("input", {
       type: "text",
       class: "krea2-searchable-query",
-      placeholder: "Search presets by label, phrase, alias, or category...",
+      placeholder: "Search by idea, meaning, or visual effect...",
       value: initialQuery,
     });
 
     const chipRow = el("div", { class: "krea2-searchable-chips" });
-    let activeCategory = "__all__";
+    let activeGroup = "__all__";
+
     function makeChip(label, value) {
       const chip = el("button", {
         type: "button",
         class: "krea2-searchable-chip",
+        dataset: { value: value },
         onClick: function () {
-          activeCategory = value;
-          for (const c of chipRow.querySelectorAll(".krea2-searchable-chip")) {
-            c.classList.toggle("is-active", c.dataset.value === value);
+          activeGroup = value;
+          for (const current of chipRow.querySelectorAll(".krea2-searchable-chip")) {
+            current.classList.toggle("is-active", current.dataset.value === value);
           }
           renderResults();
         },
       }, label);
-      chip.dataset.value = value;
-      if (value === activeCategory) chip.classList.add("is-active");
+      if (value === activeGroup) chip.classList.add("is-active");
       return chip;
     }
-    chipRow.appendChild(makeChip("All", "__all__"));
-    for (const c of cats) {
-      chipRow.appendChild(makeChip(CATEGORY_LABELS[c] || c, c));
+
+    if (availableGroups.length > 1) {
+      chipRow.appendChild(makeChip("All", "__all__"));
+    } else if (availableGroups.length === 1) {
+      activeGroup = availableGroups[0];
+    }
+    for (const group of availableGroups) {
+      chipRow.appendChild(makeChip(GROUP_LABELS[group], group));
     }
 
-    const listEl = el("div", { class: "krea2-searchable-list", tabIndex: "0" });
-    const empty = el("div", { class: "krea2-searchable-empty" }, "No presets match your search.");
-    listEl.appendChild(empty);
+    const selectedCount = el("span", { class: "krea2-searchable-selected-count" }, "");
+    const listEl = el("div", {
+      class: "krea2-searchable-list",
+      tabIndex: "0",
+    });
+    const empty = el(
+      "div",
+      { class: "krea2-searchable-empty" },
+      "No concepts match. Try a related word or broader idea.",
+    );
 
+    panel.appendChild(heading);
     panel.appendChild(search);
     panel.appendChild(chipRow);
+    panel.appendChild(selectedCount);
     panel.appendChild(listEl);
+    overlay.appendChild(panel);
 
     let highlighted = -1;
     let currentResults = [];
 
+    function searchableText(preset) {
+      return [
+        preset.label || "",
+        preset.phrase || "",
+        (preset.aliases || []).join(" "),
+        (preset.tags || []).join(" "),
+        preset.category || "",
+        GROUP_LABELS[groupForCategory(preset.category)] || "",
+        preset.id || "",
+      ].join(" ").toLowerCase();
+    }
+
     function renderResults() {
       listEl.innerHTML = "";
-      const q = (search.value || "").trim().toLowerCase();
-      currentResults = list.filter((p) => {
-        if (activeCategory !== "__all__" && p.category !== activeCategory) return false;
-        if (!q) return true;
-        const hay = [
-          p.label || "",
-          p.phrase || "",
-          (p.aliases || []).join(" "),
-          p.category || "",
-          p.id || "",
-        ].join(" ").toLowerCase();
-        return hay.includes(q);
-      }).slice(0, 200);
+      const query = (search.value || "").trim().toLowerCase();
+      currentResults = list.filter(function (preset) {
+        if (preset.disabled || !allowedCategories.has(preset.category)) return false;
+        if (activeGroup !== "__all__" && groupForCategory(preset.category) !== activeGroup) {
+          return false;
+        }
+        return !query || searchableText(preset).includes(query);
+      }).slice(0, 240);
+      if (highlighted < 0 && initialPresetId) {
+        highlighted = currentResults.findIndex(function (preset) {
+          return preset.id === initialPresetId;
+        });
+      }
 
-      if (currentResults.length === 0) {
+      selectedCount.textContent = multiSelect
+        ? selected.size + (selected.size === 1 ? " concept selected" : " concepts selected")
+        : "";
+
+      if (!currentResults.length) {
         listEl.appendChild(empty);
+        highlighted = -1;
         return;
       }
-      currentResults.forEach((p, idx) => {
-        const item = el("div", {
-          class: "krea2-searchable-item",
-          onClick: function () { pick(idx); },
-          onMouseEnter: function () { setHighlight(idx); },
-        });
-        item.dataset.idx = String(idx);
-        const label = el("div", { class: "krea2-searchable-title" }, p.label || p.id);
-        const meta = el("div", { class: "krea2-searchable-meta" }, [
-          el("span", { class: "krea2-searchable-cat" }, CATEGORY_LABELS[p.category] || p.category),
-          el("span", { class: "krea2-searchable-phrase" }, p.phrase || ""),
-          el("span", { class: "krea2-searchable-ver" }, p.verification || "general visual vocabulary"),
+
+      currentResults.forEach(function (preset, index) {
+        const isSelected = selected.has(preset.id);
+        const item = el("button", {
+          type: "button",
+          class: "krea2-searchable-item" + (isSelected ? " is-selected" : ""),
+          dataset: { idx: String(index), presetId: preset.id },
+          title: preset.phrase || preset.label || preset.id,
+          onClick: function () { choose(index); },
+          onMouseEnter: function () { setHighlight(index); },
+        }, [
+          el("span", { class: "krea2-searchable-check" }, isSelected ? "✓" : ""),
+          el("span", { class: "krea2-searchable-title" }, preset.label || preset.id),
+          el(
+            "span",
+            { class: "krea2-searchable-group" },
+            GROUP_LABELS[groupForCategory(preset.category)],
+          ),
         ]);
-        item.appendChild(label);
-        item.appendChild(meta);
         listEl.appendChild(item);
       });
-      setHighlight(0);
+      setHighlight(Math.max(0, Math.min(highlighted, currentResults.length - 1)));
     }
 
-    function setHighlight(idx) {
-      if (idx < 0) idx = currentResults.length - 1;
-      if (idx >= currentResults.length) idx = 0;
-      highlighted = idx;
-      const items = listEl.querySelectorAll(".krea2-searchable-item");
-      items.forEach((it, i) => it.classList.toggle("is-active", i === highlighted));
-      const active = items[highlighted];
-      if (active && active.scrollIntoView) {
-        active.scrollIntoView({ block: "nearest" });
+    function setHighlight(index) {
+      if (!currentResults.length) {
+        highlighted = -1;
+        return;
       }
+      highlighted = Math.max(0, Math.min(index, currentResults.length - 1));
+      const items = listEl.querySelectorAll(".krea2-searchable-item");
+      items.forEach(function (item, itemIndex) {
+        item.classList.toggle("is-active", itemIndex === highlighted);
+      });
+      const active = items[highlighted];
+      if (active && active.scrollIntoView) active.scrollIntoView({ block: "nearest" });
     }
 
-    function pick(idx) {
-      const p = currentResults[idx];
-      if (!p) return;
-      close();
-      if (onPick) onPick(p);
+    function choose(index) {
+      const preset = currentResults[index];
+      if (!preset) return;
+      if (!multiSelect) {
+        if (onPick) onPick(preset);
+        close();
+        return;
+      }
+
+      const willSelect = !selected.has(preset.id);
+      if (willSelect) selected.add(preset.id);
+      else selected.delete(preset.id);
+
+      // Paint the selection state before the wizard performs its heavier
+      // concept-card render. This also leaves the picker correct if the
+      // parent callback encounters an unrelated rendering problem.
+      renderResults();
+      if (onToggle) onToggle(preset, willSelect);
     }
 
     function close() {
@@ -148,45 +229,27 @@
       if (onClose) onClose();
     }
 
-    function onKey(e) {
-      if (e.key === "Escape") {
-        e.preventDefault();
+    function onKey(event) {
+      if (event.key === "Escape") {
+        event.preventDefault();
         close();
-      } else if (e.key === "ArrowDown") {
-        e.preventDefault();
+      } else if (event.key === "ArrowDown") {
+        event.preventDefault();
         setHighlight(highlighted + 1);
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
         setHighlight(highlighted - 1);
-      } else if (e.key === "Enter") {
-        e.preventDefault();
-        pick(highlighted);
-      } else if (e.key === "Tab") {
-        e.preventDefault();
-        setHighlight(highlighted + (e.shiftKey ? -1 : 1));
+      } else if (event.key === "Enter" && highlighted >= 0) {
+        event.preventDefault();
+        choose(highlighted);
       }
     }
 
-    listEl.addEventListener("wheel", function (e) {
-      if (currentResults.length === 0) return;
-      e.preventDefault();
-      setHighlight(highlighted + (e.deltaY > 0 ? 1 : -1));
-    }, { passive: false });
-
-    search.addEventListener("input", function () {
-      renderResults();
-    });
-
+    search.addEventListener("input", renderResults);
     document.addEventListener("keydown", onKey, true);
-
+    document.body.appendChild(overlay);
     renderResults();
     setTimeout(function () { search.focus(); search.select(); }, 0);
-
-    if (anchor && anchor.parentNode) {
-      anchor.parentNode.appendChild(overlay);
-    } else {
-      document.body.appendChild(overlay);
-    }
 
     return { close: close };
   }

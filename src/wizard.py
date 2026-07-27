@@ -58,6 +58,9 @@ def empty_state() -> Dict[str, Any]:
         "rows": [],
         "master_preset_id": None,
         "selected_category": "emotion",
+        "randomize_on_job": {},
+        "creative_mode": "photo",
+        "collapsed": {},
     }
 
 
@@ -78,11 +81,24 @@ def coerce_state(raw: Any) -> Dict[str, Any]:
         "show_work",
         "master_preset_id",
         "selected_category",
+        "randomize_on_job",
+        "creative_mode",
+        "collapsed",
     ):
         if key in raw:
             state[key] = raw[key]
     if isinstance(raw.get("rows"), list):
         state["rows"] = [row for row in raw["rows"] if isinstance(row, dict)]
+        for row in state["rows"]:
+            if "strength" not in row:
+                try:
+                    legacy = max(
+                        -5.0,
+                        min(5.0, float(row.get("intensity", 0)) / 20.0),
+                    )
+                    row["strength"] = round(legacy * 4) / 4
+                except (TypeError, ValueError):
+                    row["strength"] = 0.0
     return state
 
 

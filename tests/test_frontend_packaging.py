@@ -45,6 +45,33 @@ class FrontendPackagingTests(unittest.TestCase):
         for helper in helpers:
             self.assertTrue((ROOT / "web" / "js" / helper).is_file(), helper)
 
+    def test_picker_paints_selection_before_parent_render(self):
+        source = (ROOT / "web" / "js" / "searchable_selector.mjs").read_text(
+            encoding="utf-8"
+        )
+        choose_body = source[source.index("function choose(index)") :]
+        self.assertLess(
+            choose_body.index("renderResults();"),
+            choose_body.index("onToggle(preset, willSelect)"),
+        )
+
+    def test_prompt_editor_has_no_nested_scroll_or_resize(self):
+        stylesheet = (ROOT / "web" / "css" / "wizard.css").read_text(
+            encoding="utf-8"
+        )
+        editor_block = stylesheet[
+            stylesheet.index(".krea2-wizard-editor")
+            : stylesheet.index(".krea2-wizard-prompt-field")
+        ]
+        base_block = stylesheet[
+            stylesheet.index(".krea2-wizard-base {")
+            : stylesheet.index(".krea2-wizard-preview {")
+        ]
+        self.assertNotIn("max-height", editor_block)
+        self.assertIn("overflow: visible", editor_block)
+        self.assertIn("resize: none", base_block)
+        self.assertIn("overflow: hidden", base_block)
+
     def test_wizard_has_one_prompt_output(self):
         self.assertEqual(Krea2PromptWizard.RETURN_TYPES, ("STRING",))
         self.assertEqual(Krea2PromptWizard.RETURN_NAMES, ("Prompt Output",))
@@ -68,12 +95,22 @@ class FrontendPackagingTests(unittest.TestCase):
         class FakeRoutes:
             def get(self, path):
                 def decorator(handler):
-                    handlers[path] = handler
+                    handlers[("GET", path)] = handler
                     return handler
 
                 return decorator
 
-        fake_web = types.SimpleNamespace(json_response=lambda payload: payload, Response=object)
+            def post(self, path):
+                def decorator(handler):
+                    handlers[("POST", path)] = handler
+                    return handler
+
+                return decorator
+
+        fake_web = types.SimpleNamespace(
+            json_response=lambda payload, status=200: {"body": payload, "status": status},
+            Response=object,
+        )
         fake_aiohttp = types.SimpleNamespace(web=fake_web)
         fake_server = types.SimpleNamespace(
             PromptServer=types.SimpleNamespace(
@@ -88,20 +125,61 @@ class FrontendPackagingTests(unittest.TestCase):
         self.assertEqual(
             set(handlers),
             {
-                "/krea2_prompt_wizard/library",
-                "/krea2_prompt_wizard/master_presets",
+                ("GET", "/krea2_prompt_wizard/library"),
+                ("POST", "/krea2_prompt_wizard/library"),
+                ("GET", "/krea2_prompt_wizard/master_presets"),
+                ("GET", "/krea2_prompt_wizard/saved_presets"),
+                ("POST", "/krea2_prompt_wizard/saved_presets"),
+                ("POST", "/krea2_prompt_wizard/preview"),
             },
         )
-        library_payload = asyncio.run(handlers["/krea2_prompt_wizard/library"](None))
-        masters_payload = asyncio.run(handlers["/krea2_prompt_wizard/master_presets"](None))
-        self.assertGreater(len(library_payload["presets"]), 500)
-        self.assertGreater(len(masters_payload["master_presets"]), 10)
+        library_payload = asyncio.run(handlers[("GET", "/krea2_prompt_wizard/library")](None))
+        masters_payload = asyncio.run(handlers[("GET", "/krea2_prompt_wizard/master_presets")](None))
+        self.assertGreater(len(library_payload["body"]["presets"]), 500)
+        self.assertGreater(len(masters_payload["body"]["master_presets"]), 10)
+
+        class FakeRequest:
+            async def json(self):
+                return {
+                    "presets": [
+                        {
+                            "id": "user.test",
+                            "category": "custom",
+                            "label": "Test preset",
+                            "phrase": "test phrase",
+                            "default_strength": 0,
+                            "control_mode": "scalar",
+                            "aliases": [],
+                            "verification": "general visual vocabulary",
+                            "schema_version": 1,
+                        }
+                    ]
+                }
+
+        reloaded = types.SimpleNamespace(presets=[{"id": "user.test", "origin": "user"}])
+        with patch.object(api_module, "save_user_library") as save, patch.object(
+            api_module, "reload_library", return_value=reloaded
+        ):
+            saved_payload = asyncio.run(
+                handlers[("POST", "/krea2_prompt_wizard/library")](FakeRequest())
+            )
+        save.assert_called_once()
+        self.assertEqual(saved_payload["status"], 200)
+        self.assertEqual(saved_payload["body"]["presets"], reloaded.presets)
         api_module._ROUTES_REGISTERED = False
 
     @unittest.skipUnless(shutil.which("node"), "Node.js is required for the DOM smoke test")
     def test_wizard_dom_initializes(self):
         subprocess.run(
             [shutil.which("node"), str(ROOT / "tests" / "frontend_smoke.mjs")],
+            cwd=ROOT,
+            check=True,
+        )
+
+    @unittest.skipUnless(shutil.which("node"), "Node.js is required for the frontend state contract")
+    def test_frontend_state_contract(self):
+        subprocess.run(
+            [shutil.which("node"), str(ROOT / "tests" / "frontend_state_contract.mjs")],
             cwd=ROOT,
             check=True,
         )

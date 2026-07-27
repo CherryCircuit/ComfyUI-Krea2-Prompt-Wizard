@@ -686,6 +686,21 @@ BIPOLAR_PRESETS = [
 # Builder
 # ---------------------------------------------------------------------------
 
+SEMANTIC_TAGS_BY_LABEL = {
+    "Joy": ["smile", "smiling", "happy expression", "positive emotion"],
+    "Happiness": ["smile", "smiling", "happy expression", "positive emotion"],
+    "Amusement": ["smile", "smiling", "grin", "laughter", "positive emotion"],
+    "Contentment": ["smile", "soft smile", "satisfied", "positive emotion"],
+    "Excitement": ["smile", "bright smile", "enthusiasm", "positive emotion"],
+    "Elation": ["smile", "beaming", "delight", "positive emotion"],
+    "Relief": ["smile", "relieved smile", "release", "positive emotion"],
+    "Serenity": ["soft smile", "peaceful expression", "calm emotion"],
+    "Affection": ["warm smile", "loving expression", "positive emotion"],
+    "Tenderness": ["gentle smile", "soft expression", "positive emotion"],
+    "Pride": ["proud smile", "satisfied expression", "positive emotion"],
+    "Hope": ["hopeful smile", "optimistic expression", "positive emotion"],
+}
+
 
 def _slug(label: str) -> str:
     s = label.lower().replace(" ", "_").replace("-", "_").replace("'", "")
@@ -703,6 +718,8 @@ def build_preset(
     source: str = "curated visual vocabulary",
     tags: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
+    semantic_tags = list(tags or [category])
+    semantic_tags.extend(SEMANTIC_TAGS_BY_LABEL.get(label, []))
     return {
         "id": f"{category}.{_slug(label)}",
         "category": category,
@@ -711,7 +728,7 @@ def build_preset(
         "default_strength": default_strength,
         "control_mode": MODE_SCALAR,
         "aliases": aliases,
-        "tags": tags or [category],
+        "tags": list(dict.fromkeys(semantic_tags)),
         "compatible_profiles": [PROFILE_GENERIC, PROFILE_KREA_TURBO, PROFILE_KREA_RAW],
         "source": source,
         "verification": verification,

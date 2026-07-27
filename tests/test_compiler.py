@@ -27,6 +27,22 @@ def _by_id(lib):
 
 
 class CompilerTests(unittest.TestCase):
+    def test_direct_negative_strength_is_emitted_exactly(self):
+        state = empty_state()
+        state["rows"] = [{
+            "id": "direct_strength",
+            "category": "custom",
+            "preset_id": "custom.direct",
+            "label": "Direct",
+            "phrase": "soft rim light",
+            "intensity": 0,
+            "strength": -1.25,
+            "control_mode": "scalar",
+            "enabled": True,
+        }]
+        result = compile_state(state, _lib())
+        self.assertEqual(result.final_prompt, "(soft rim light:-1.25)")
+
     def test_empty_state(self):
         state = empty_state()
         lib = _lib()

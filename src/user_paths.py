@@ -93,6 +93,11 @@ def user_library_path(create: bool = True) -> str:
     return path
 
 
+def user_saved_presets_path(create: bool = True) -> str:
+    """Return the canonical location of full-prompt and group presets."""
+    return os.path.join(package_user_dir(create=create), "saved_presets.json")
+
+
 def atomic_write(path: str, data: bytes) -> None:
     """Replace ``path`` atomically with ``data``.
 

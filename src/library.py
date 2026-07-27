@@ -87,7 +87,7 @@ class Library:
         return self.index_by_id().get(preset_id)
 
     def search(self, needle: str) -> List[Dict[str, Any]]:
-        """Case-insensitive search over label, phrase and aliases."""
+        """Case-insensitive search over visible text and semantic metadata."""
         n = (needle or "").lower().strip()
         if not n:
             return list(self.presets)
@@ -95,6 +95,7 @@ class Library:
         for p in self.presets:
             haystacks = [str(p.get("label", "")), str(p.get("phrase", ""))]
             haystacks.extend(str(a) for a in (p.get("aliases") or []))
+            haystacks.extend(str(tag) for tag in (p.get("tags") or []))
             if any(n in h.lower() for h in haystacks):
                 out.append(p)
         return out

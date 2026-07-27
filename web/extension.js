@@ -44,15 +44,18 @@ app.registerExtension({
           {
             serialize: false,
             hideOnZoom: false,
-            getMinHeight: () => 560,
+            getMinHeight: () => 600,
           },
         );
         wizard.domWidget = domWidget;
-        domWidget.computeSize = () => [Math.max(this.size?.[0] || 520, 520), 620];
+        domWidget.computeSize = () => [
+          Math.max(this.size?.[0] || 700, 700),
+          Math.max(wizard.root.scrollHeight || 0, 650),
+        ];
         this.resizable = true;
         this.setSize([
-          Math.max(this.size?.[0] || 0, 520),
-          Math.max(this.size?.[1] || 0, 680),
+          Math.max(this.size?.[0] || 0, 700),
+          Math.max(this.size?.[1] || 0, 720),
         ]);
       } catch (error) {
         console.error("[Krea2PromptWizard] widget creation failed", error);

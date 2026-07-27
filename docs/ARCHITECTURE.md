@@ -22,6 +22,7 @@ ComfyUI-Krea2-Prompt-Wizard/
         inspector.py                # trace formatter
         weight_mapping.py           # slider -> weight math
         library.py                  # library + user file IO
+        saved_presets.py            # full-prompt and group preset IO
         validation.py               # pure validation routines
         schemas.py                  # constants and version
         migrations.py               # preset migrations
@@ -132,7 +133,7 @@ The frontend uses only documented ComfyUI APIs:
 - `nodeType.prototype.onNodeCreated` (mounts the widget).
 - `nodeType.prototype.onRemoved` (cleanup).
 - `node.addDOMWidget` (registers a DOM widget).
-- `app.api.storeUserData` / `app.api.getUserData` (saves the user library).
+- Scoped local HTTP routes (loads, validates, saves, and previews the library state).
 - `LiteGraph.createNode` (materialize-to-nodes).
 - `graph.convertToSubgraph` (subgraph creation, when available).
 
@@ -166,6 +167,7 @@ The state shape is:
       "phrase": "<phrase>",
       "control_mode": "scalar" | "bipolar" | "raw",
       "intensity": -100..100,
+      "strength": -5..5,
       "enabled": true,
       "aliases": [...],
       "verification": "...",
@@ -190,6 +192,10 @@ by the `Library` class in `src/library.py`, which merges them with a
 stable priority (user presets win). Library writes use atomic
 replacement with timestamped backups.
 
+User-saved full prompts and concept groups are stored separately at
+`<user_directory>/Krea2PromptWizard/saved_presets.json`. Their concept
+snapshots include enabled states and exact intensity values.
+
 ## Preset snapshots
 
 Every selected row carries a snapshot of the preset data needed to
@@ -199,6 +205,10 @@ render the prompt without consulting the library: `preset_id`,
 `verification`, `source`. This means a workflow from an older version
 of the library continues to render the same prompt even if the user
 library changes or the preset is renamed.
+
+`strength` is the Wizard's direct prompt value and supports quarter
+steps. `intensity` remains in saved rows for backward compatibility
+with older workflows and the standalone weighted-phrase node.
 
 Migrations are defined in `src/migrations.py` and are applied to every
 row before compilation. Renamed or removed presets produce a new row

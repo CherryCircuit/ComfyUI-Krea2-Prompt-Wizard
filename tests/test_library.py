@@ -103,6 +103,13 @@ class LibraryTests(unittest.TestCase):
         results = lib.search("shocked")
         self.assertGreater(len(results), 0)
 
+    def test_search_finds_semantic_tags(self):
+        lib = load_library(bundled_path=self.bundled, user_path=self.user)
+        results = lib.search("smile")
+        labels = {preset.get("label") for preset in results}
+        self.assertIn("Joy", labels)
+        self.assertIn("Happiness", labels)
+
     def test_search_includes_label(self):
         lib = load_library(bundled_path=self.bundled, user_path=self.user)
         first = lib.presets[0]

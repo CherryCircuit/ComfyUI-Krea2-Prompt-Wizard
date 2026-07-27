@@ -46,8 +46,8 @@ cd ComfyUI/custom_nodes/ComfyUI-Krea2-Prompt-Wizard
 git pull
 ```
 
-Your user library (`<user_directory>/Krea2PromptWizard/user_library.json`)
-is preserved across updates.
+Your user library and saved prompt presets in
+`<user_directory>/Krea2PromptWizard/` are preserved across updates.
 
 ### Uninstall
 
@@ -68,8 +68,8 @@ The wizard writes to no other locations on disk.
 1. Add a `Krea2 Prompt Wizard` node.
 2. Use the on-node wizard panel to type a short prompt idea, then hit
    the `+` buttons to add concepts.
-3. Adjust the sliders for each concept and choose a starter master
-   preset if you want one.
+3. Adjust each concept with its slider or exact numeric value. Use the
+   eye to temporarily hide it or the delete button to remove it.
 4. Use `Prompt Output` to feed the result into a `CLIPTextEncode` node.
 
 ### Combining multiple concepts
@@ -77,16 +77,39 @@ The wizard writes to no other locations on disk.
 You can combine any number of concepts. Add several emotions, lighting
 effects, camera settings, and style cues, each with its own slider.
 
-### Slider behaviour
+Concepts are organized into six practical groups: Subject, Expression
+& Pose, Camera & Film, Lighting, Environment, and Style & Finish. Each
+group can be randomized independently, or you can randomize all groups.
+Randomize chooses between two and six concepts. Use the Photography /
+Artwork switch to keep incompatible style and camera choices out of the
+picker and randomizer.
 
-The slider is always -100 to +100. In *Standard emphasis* mode:
+### Saved presets
 
-- 0 emits the plain phrase (e.g. `shocked expression`).
-- +100 emits `(phrase:3.0)`.
-- -100 emits `(phrase:0.1)`.
+Use **Save Full Prompt** to store the description, concepts, enabled
+states, and exact strengths together. Use **Save preset** inside a
+group to store only that group's concepts and strengths. Saved presets
+remain available after restarting ComfyUI.
+
+Each group has its own **Load preset** menu beside Save and Randomize.
+Enable **Each job** for any group that should receive a fresh random
+combination every time a queued job runs. This deliberately makes the
+Wizard node execute again instead of returning a cached prompt.
+
+### Strength behaviour
+
+Every concept uses a direct -5 to +5 strength in 0.25 steps:
+
+- 0 emits `(phrase:0)`, while 1 emits the plain phrase.
+- -1.25 emits `(phrase:-1.25)` and +3.5 emits `(phrase:3.5)`.
+
+Hovering a concept connects it visually to its phrase in Live Preview.
+Click a concept name to replace it. Click a concept inside Live Preview
+to expand and locate its editable card.
+- -5 applies maximum de-emphasis.
 
 Negative values **de-emphasise** the concept. To express a *different*
-emotion, add a separate row (e.g. *Sadness*).
+emotion, add a separate concept (e.g. *Sadness*).
 
 ### Weighting modes
 
