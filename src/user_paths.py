@@ -98,6 +98,11 @@ def user_saved_presets_path(create: bool = True) -> str:
     return os.path.join(package_user_dir(create=create), "saved_presets.json")
 
 
+def user_concept_colors_path(create: bool = True) -> str:
+    """Return the durable, user-wide concept-star colour file."""
+    return os.path.join(package_user_dir(create=create), "concept_colors.json")
+
+
 def atomic_write(path: str, data: bytes) -> None:
     """Replace ``path`` atomically with ``data``.
 

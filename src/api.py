@@ -9,6 +9,7 @@ from .library import Library, load_library, save_user_library
 from .nodes import reload_library
 from .package_paths import MASTER_PRESETS_PATH
 from .saved_presets import load_saved_presets, save_saved_presets
+from .user_paths import atomic_write, user_concept_colors_path
 from .validation import validate_user_library
 
 _ROUTES_REGISTERED = False
@@ -96,6 +97,28 @@ def register_routes() -> None:
                 },
                 status=400,
             )
+
+    @routes.get("/krea2_prompt_wizard/concept_colors")
+    async def get_concept_colors(_request: Any) -> web.Response:
+        try:
+            with open(user_concept_colors_path(create=False), "r", encoding="utf-8") as handle:
+                colors = json.load(handle)
+        except (OSError, json.JSONDecodeError):
+            colors = {}
+        return web.json_response({"colors": colors if isinstance(colors, dict) else {}})
+
+    @routes.post("/krea2_prompt_wizard/concept_colors")
+    async def save_concept_colors(request: Any) -> web.Response:
+        try:
+            payload = await request.json()
+            colors = payload.get("colors", {}) if isinstance(payload, dict) else {}
+            if not isinstance(colors, dict):
+                raise ValueError("Concept colors must be an object.")
+            clean = {str(key): str(value) for key, value in colors.items() if str(value) in {"red", "orange", "yellow", "green", "blue", "pink"}}
+            atomic_write(user_concept_colors_path(), json.dumps(clean, ensure_ascii=False, indent=2).encode("utf-8"))
+            return web.json_response({"colors": clean})
+        except Exception as exc:
+            return web.json_response({"error": str(exc)}, status=400)
 
     @routes.post("/krea2_prompt_wizard/preview")
     async def compile_preview(request: Any) -> web.Response:

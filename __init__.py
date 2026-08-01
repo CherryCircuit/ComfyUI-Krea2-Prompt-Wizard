@@ -31,7 +31,7 @@ Project layout (Python side):
 Web side (loaded automatically because the package exposes ``WEB_DIRECTORY``):
 
     web/
-        extension.js
+        krea2_prompt_wizard_v3.js
         js/wizard_widget.mjs
         js/preset_row.mjs
         js/searchable_selector.mjs

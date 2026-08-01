@@ -246,7 +246,7 @@ def weight_for_row(row: dict, expert: bool = False) -> float:
     """Resolve the weight for a row given its mode and intensity."""
     if "strength" in row:
         try:
-            return clamp_weight(float(row["strength"]), -5.0, 5.0)
+            return clamp_weight(float(row["strength"]), -3.0, 3.0)
         except (TypeError, ValueError):
             pass
     try:

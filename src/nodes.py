@@ -460,9 +460,15 @@ class Krea2PromptWizard:
             "optional": {
                 "expert_mode": ("BOOLEAN", {"default": False, "tooltip": "Permit raw negative numerical weights."}),
             },
+            "hidden": {
+                "extra_pnginfo": "EXTRA_PNGINFO",
+            },
         }
 
     RETURN_TYPES = ("STRING",)
+    # A wizard with Each job enabled must run for every queue item.  Marking it
+    # as an output node prevents ComfyUI from reusing a previous prompt.
+    OUTPUT_NODE = True
     RETURN_NAMES = ("Prompt Output",)
     FUNCTION = "build"
     CATEGORY = "_Krea2 Prompt Wizard"
@@ -476,27 +482,43 @@ class Krea2PromptWizard:
         except json.JSONDecodeError:
             parsed = {}
         if isinstance(parsed, dict) and has_job_randomization(parsed):
+            # ComfyUI's execution cache treats NaN as changed on every queue
+            # item; integer time values may be normalized by its cache layer.
             return float("nan")
         return wizard_state_json
 
-    def build(self, wizard_state_json: str = "", expert_mode: bool = False) -> Tuple[str]:
-        try:
-            parsed = json.loads(wizard_state_json) if wizard_state_json else {}
-            state = parsed if isinstance(parsed, dict) else {}
-        except json.JSONDecodeError:
-            state = {}
+    def build(
+        self,
+        wizard_state_json: str = "",
+        expert_mode: bool = False,
+        extra_pnginfo: dict | None = None,
+    ):
+        parsed = json.loads(wizard_state_json) if wizard_state_json else {}
+        if not isinstance(parsed, dict):
+            raise ValueError("Wizard state must be a JSON object.")
+        state = parsed
 
         state = wizard_helpers.coerce_state(state)
         if isinstance(state.get("rows"), list):
             state["rows"] = migration_module.apply_row_preset_migrations(state["rows"])
-        if has_job_randomization(state):
+        # Always hand a state with job flags to the randomizer.  The helper
+        # itself decides which groups are enabled; a separate gate here was
+        # intermittently skipping otherwise valid flags during execution.
+        if isinstance(state.get("randomize_on_job"), dict):
             state = randomize_enabled_groups(state, get_library())
 
-        try:
-            result = compiler_module.compile_state(state, get_library(), expert=expert_mode)
-            return (result.final_prompt,)
-        except Exception:
-            return ((state.get("base_prompt") or "").strip(),)
+        result = compiler_module.compile_state(state, get_library(), expert=expert_mode)
+        if state.get("embed_prompt_metadata", True) and isinstance(extra_pnginfo, dict):
+            extra_pnginfo["krea2_prompt"] = result.final_prompt
+        # Return the resolved random choices to the frontend as well as the
+        # prompt.  This keeps the visible cards honest after Each job runs.
+        return {
+            "ui": {
+                "krea2_resolved_state": [json.dumps(state, ensure_ascii=False)],
+                "krea2_prompt_output": [result.final_prompt],
+            },
+            "result": (result.final_prompt,),
+        }
 
 
 # ---------------------------------------------------------------------------

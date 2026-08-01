@@ -88,27 +88,24 @@
   });
 
   const GROUPS = Object.freeze([
-    "subject",
-    "expression",
-    "camera",
+    "subject_expression",
+    "camera_film",
     "lighting",
     "environment",
     "style_finish",
   ]);
 
   const GROUP_LABELS = Object.freeze({
-    subject: "Subject",
-    expression: "Expression & Pose",
-    camera: "Camera & Film",
-    lighting: "Lighting",
-    environment: "Environment",
-    style_finish: "Style & Finish",
+    subject_expression: "👤 Subject & Expression",
+    camera_film: "📷 Camera & Film",
+    lighting: "💡 Lighting",
+    environment: "🌍 Environment",
+    style_finish: "✨ Style & Finish",
   });
 
   const GROUP_CATEGORIES = Object.freeze({
-    subject: Object.freeze(["body", "subject_movement"]),
-    expression: Object.freeze(["emotion", "face", "gaze", "mouth"]),
-    camera: Object.freeze([
+    subject_expression: Object.freeze(["body", "subject_movement", "emotion", "gaze", "mouth", "face"]),
+    camera_film: Object.freeze([
       "framing", "angle", "perspective", "lens", "aperture",
       "camera_body", "composition", "camera_movement", "lens_family",
       "film_color",
@@ -121,9 +118,8 @@
   });
 
   const RANDOM_GROUP_CATEGORIES = Object.freeze({
-    subject: Object.freeze(["body", "subject_movement"]),
-    expression: Object.freeze(["emotion", "face", "gaze"]),
-    camera: Object.freeze(["framing", "angle", "lens", "composition", "film_color"]),
+    subject_expression: Object.freeze(["body", "subject_movement", "emotion", "face", "gaze"]),
+    camera_film: Object.freeze(["framing", "angle", "lens", "composition", "film_color"]),
     lighting: Object.freeze(["lighting_setup", "lighting_direction", "lighting_effect"]),
     environment: Object.freeze(["atmosphere", "environment_movement"]),
     style_finish: Object.freeze(["style", "texture", "detail"]),
@@ -162,7 +158,21 @@
       selected_category: "emotion",
       collapsed: {},
       randomize_on_job: {},
+      random_strength_min: 0,
+      random_strength_max: 3,
+      settings_open: false,
+      embed_prompt_metadata: true,
       creative_mode: "photo",
+      concept_colors: {},
+      loaded_preset_id: null,
+      loaded_preset_label: null,
+      loaded_group_presets: {},
+      characters: [],
+      selected_character_id: null,
+      character_presets: [],
+      setting: { enabled: false, name: "", description: "" },
+      setting_presets: [],
+      setting_random_pool: [],
     };
   }
 
@@ -179,7 +189,21 @@
       "selected_category",
       "collapsed",
       "randomize_on_job",
+      "random_strength_min",
+      "random_strength_max",
+      "settings_open",
+      "embed_prompt_metadata",
       "creative_mode",
+      "concept_colors",
+      "loaded_preset_id",
+      "loaded_preset_label",
+      "loaded_group_presets",
+      "characters",
+      "selected_character_id",
+      "character_presets",
+      "setting",
+      "setting_presets",
+      "setting_random_pool",
     ]) {
       if (key in raw) base[key] = raw[key];
     }
@@ -187,12 +211,35 @@
       base.rows = raw.rows.filter((r) => r && typeof r === "object").map(function (row) {
         if (!Number.isFinite(Number(row.strength))) {
           row.strength = Math.round(
-            Math.max(-5, Math.min(5, (Number(row.intensity) || 0) / 20)) * 4,
+            Math.max(-3, Math.min(3, (Number(row.intensity) || 0) / 20)) * 4,
           ) / 4;
         }
         return row;
       });
     }
+    if (!Array.isArray(base.characters)) base.characters = [];
+    base.characters = base.characters.filter(function (item) {
+      return item && typeof item === "object";
+    });
+    if (!Array.isArray(base.character_presets)) base.character_presets = [];
+    if (!base.setting || typeof base.setting !== "object" || Array.isArray(base.setting)) {
+      base.setting = { enabled: false, name: "", description: "" };
+    }
+    if (!Array.isArray(base.setting_presets)) base.setting_presets = [];
+    if (!Array.isArray(base.setting_random_pool)) base.setting_random_pool = [];
+    base.random_strength_min = Number.isFinite(Number(base.random_strength_min))
+      ? Math.max(-3, Math.min(3, Math.round(Number(base.random_strength_min) * 4) / 4))
+      : 0;
+    base.random_strength_max = Number.isFinite(Number(base.random_strength_max))
+      ? Math.max(-3, Math.min(3, Math.round(Number(base.random_strength_max) * 4) / 4))
+      : 3;
+    if (base.random_strength_min > base.random_strength_max) {
+      const swap = base.random_strength_min;
+      base.random_strength_min = base.random_strength_max;
+      base.random_strength_max = swap;
+    }
+    base.settings_open = !!base.settings_open;
+    base.embed_prompt_metadata = base.embed_prompt_metadata !== false;
     return base;
   }
 
@@ -277,13 +324,12 @@
     const text = (phrase || "").trim();
     if (!text) return "";
     if (!isFinite(weight)) return text;
-    if (weight === 1.0) return text;
     return "(" + text + ":" + formatWeight(weight) + ")";
   }
 
   function defaultWeightForRow(row) {
     if (Number.isFinite(Number(row.strength))) {
-      return Math.max(-5, Math.min(5, Number(row.strength)));
+      return Math.max(-3, Math.min(3, Number(row.strength)));
     }
     if (row.control_mode === MODES.RAW) return sliderToWeightRaw(row.intensity);
     if (row.control_mode === MODES.BIPOLAR) return sliderToWeightBipolar(row.intensity);
@@ -466,6 +512,20 @@
     return Array.isArray(payload.presets) ? payload.presets : [];
   }
 
+  async function fetchConceptColors() {
+    const response = await fetch("/krea2_prompt_wizard/concept_colors");
+    const payload = await response.json();
+    return payload && typeof payload.colors === "object" ? payload.colors : {};
+  }
+
+  async function saveConceptColors(colors) {
+    await fetch("/krea2_prompt_wizard/concept_colors", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ colors: colors || {} }),
+    });
+  }
+
   async function fetchCompiledPreview(state) {
     const api = (window.app && window.app.api) || null;
     const url = (api && api.apiURL && api.apiURL("/krea2_prompt_wizard/preview"))
@@ -540,8 +600,10 @@
       byCat[cat].push(fragment);
       plain[cat].push(phrase);
     }
+    const structured = structuredPromptParts(state);
     const body = [];
     if (state.base_prompt && state.base_prompt.trim()) body.push(state.base_prompt.trim());
+    body.push(...structured);
     for (const c of CATEGORY_ORDER) {
       const text = byCat[c].join(" ").trim();
       if (text) body.push(text);
@@ -549,6 +611,7 @@
     const final = body.join(", ").replace(/\s+/g, " ").trim();
     const plainBody = [];
     if (state.base_prompt && state.base_prompt.trim()) plainBody.push(state.base_prompt.trim());
+    plainBody.push(...structured);
     for (const c of CATEGORY_ORDER) {
       const t = plain[c].join(" ").trim();
       if (t) plainBody.push(t);
@@ -560,6 +623,34 @@
       category_prompts: byCat,
       fragments: seeFragments,
     };
+  }
+
+  function structuredPromptParts(state) {
+    const fields = [
+      ["identity", "identity"], ["subject", "subject"], ["expression", "expression"],
+      ["clothing", "clothing and armour"], ["hair_style", "hair style"],
+      ["hair_length", "hair length"], ["hair_color", "hair colour"], ["makeup", "makeup"],
+      ["eyes", "eyes"], ["nose", "nose"], ["mouth", "mouth"], ["chin", "chin"],
+      ["face_shape", "face shape"], ["body_type", "body type"], ["fitness", "fitness"],
+      ["proportions", "proportions"], ["adult_description", "adult body description"],
+    ];
+    const parts = [];
+    (state.characters || []).forEach(function (character, index) {
+      if (!character || character.enabled === false) return;
+      const name = String(character.name || "Character " + (index + 1)).trim();
+      const details = fields.map(function (entry) {
+        const value = String(character[entry[0]] || "").trim();
+        return value ? entry[1] + ": " + value : "";
+      }).filter(Boolean);
+      parts.push(details.length ? "Character " + name + ": " + details.join("; ") : "Character " + name);
+    });
+    const setting = state.setting;
+    if (setting && setting.enabled) {
+      const name = String(setting.name || "Scene").trim();
+      const description = String(setting.description || "").trim();
+      parts.push(description ? "Setting " + name + ": " + description : "Setting: " + name);
+    }
+    return parts;
   }
 
   /* ------------------- Idempotent extension id ------------------------ */
@@ -604,6 +695,8 @@
     fetchMasterPresets,
     fetchSavedPresets,
     saveSavedPresets,
+    fetchConceptColors,
+    saveConceptColors,
     fetchCompiledPreview,
     compilePreview,
   };

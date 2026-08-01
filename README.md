@@ -91,6 +91,10 @@ states, and exact strengths together. Use **Save preset** inside a
 group to store only that group's concepts and strengths. Saved presets
 remain available after restarting ComfyUI.
 
+Characters and settings have their own reusable presets. The character
+editor includes built-in starting points and a compact avatar preview.
+Settings can also choose a fresh location for every queued job.
+
 Each group has its own **Load preset** menu beside Save and Randomize.
 Enable **Each job** for any group that should receive a fresh random
 combination every time a queued job runs. This deliberately makes the
@@ -98,15 +102,18 @@ Wizard node execute again instead of returning a cached prompt.
 
 ### Strength behaviour
 
-Every concept uses a direct -5 to +5 strength in 0.25 steps:
+Every concept uses a direct -3 to +3 strength in 0.25 steps:
 
 - 0 emits `(phrase:0)`, while 1 emits the plain phrase.
-- -1.25 emits `(phrase:-1.25)` and +3.5 emits `(phrase:3.5)`.
+- -1.25 emits `(phrase:-1.25)` and +3 emits `(phrase:3)`.
 
 Hovering a concept connects it visually to its phrase in Live Preview.
 Click a concept name to replace it. Click a concept inside Live Preview
 to expand and locate its editable card.
-- -5 applies maximum de-emphasis.
+- -3 applies maximum de-emphasis.
+
+The gear button controls the range used by dice actions. It includes
+0 to +1.5, 0 to +3, and -3 to +3 profiles plus custom limits.
 
 Negative values **de-emphasise** the concept. To express a *different*
 emotion, add a separate concept (e.g. *Sadness*).

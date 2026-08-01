@@ -386,12 +386,12 @@ def validate_row(row: Any, *, path: str = "row") -> ValidationResult:
     if "strength" in row:
         try:
             strength = float(row["strength"])
-            if strength < -5 or strength > 5:
+            if strength < -3 or strength > 3:
                 raise ValueError
         except (TypeError, ValueError):
             result.add(
                 "row.strength_out_of_range",
-                "Concept strength must be a number from -5 to +5",
+                "Concept strength must be a number from -3 to +3",
                 severity="error",
                 path=f"{path}.strength",
             )

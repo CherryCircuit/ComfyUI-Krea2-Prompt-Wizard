@@ -19,23 +19,131 @@
     compilePreview,
     fetchCompiledPreview,
     fetchLibrary,
+    fetchMasterPresets,
     fetchSavedPresets,
     saveSavedPresets,
     showToast,
     groupForCategory,
   } = K.helpers;
+  const fetchConceptColors = K.helpers.fetchConceptColors || function () { return Promise.resolve({}); };
+  const saveConceptColors = K.helpers.saveConceptColors || function () { return Promise.resolve(); };
   const {
     GROUPS,
     GROUP_LABELS,
     GROUP_CATEGORIES,
     RANDOM_GROUP_CATEGORIES,
     CATEGORIES,
+    CATEGORY_LABELS,
   } = K.constants;
   const { render: renderRow } = K.presetRow;
   const { show: showSearchableSelector } = K.searchableSelector;
   const { open: openLibraryEditor } = K.libraryEditor;
   const { materialize: materializeToNodes, createSubgraph: createSubgraphFromWizard } = K.materialize;
   const { render: renderShowWork } = K.inspectorView;
+
+  const CHARACTER_FIELDS = [
+    ["subject", "Subject", ["adult woman", "adult man", "adult nonbinary person", "fantasy hero", "sci-fi officer", "medieval noble", "modern professional"]],
+    ["expression", "Expression", ["calm confidence", "warm smile", "focused determination", "joyful laughter", "quiet sadness", "suspicious stare", "surprised reaction"]],
+    ["clothing", "Clothing & armour", ["modern casual clothing", "modern formal suit", "elegant formal dress", "medieval tunic and cloak", "medieval plate armour", "fantasy leather armour", "fantasy robes", "sci-fi flight suit", "sci-fi powered armour", "masculine streetwear", "feminine streetwear"]],
+    ["hair_style", "Hair style", ["straight", "wavy", "curly", "braided", "ponytail", "loose pigtails", "undercut", "buzz cut", "messy layered"]],
+    ["hair_length", "Hair length", ["shaved", "short", "chin-length", "shoulder-length", "long", "waist-length"]],
+    ["hair_color", "Hair colour", ["black", "dark brown", "auburn", "blonde", "platinum blonde", "silver", "red", "blue", "pink"]],
+    ["makeup", "Makeup", ["no makeup", "natural makeup", "soft glam makeup", "dramatic smoky makeup", "editorial makeup", "theatrical makeup", "dark gothic makeup"]],
+    ["eyes", "Eyes", ["large round eyes", "almond-shaped eyes", "deep-set eyes", "hooded eyes", "bright blue eyes", "green eyes", "brown eyes", "grey eyes"]],
+    ["nose", "Nose", ["straight nose", "button nose", "aquiline nose", "broad nose", "upturned nose"]],
+    ["mouth", "Mouth", ["full lips", "thin lips", "wide mouth", "small mouth", "defined cupid's bow"]],
+    ["chin", "Chin", ["rounded chin", "pointed chin", "strong chin", "cleft chin", "soft chin"]],
+    ["face_shape", "Face shape", ["oval face", "round face", "square face", "heart-shaped face", "diamond-shaped face", "long face"]],
+    ["body_type", "Body type", ["slim build", "average build", "athletic build", "muscular build", "stocky build", "curvy build", "plus-size build"]],
+    ["fitness", "Fitness", ["soft physique", "lightly toned", "fit", "highly athletic", "powerful physique"]],
+    ["proportions", "Proportions", ["natural proportions", "tall proportions", "petite proportions", "broad shoulders", "long legs", "balanced hourglass proportions"]],
+  ];
+
+  const SETTING_PRESETS = [
+    ["Game show", "a bright television game-show stage with contestant podiums, LED walls, studio cameras, and a cheering audience"],
+    ["Urban apartment — living room", "a contemporary urban apartment living room with city-window views and practical interior lighting"],
+    ["Urban apartment — bedroom", "a lived-in urban apartment bedroom with layered personal details and window light"],
+    ["Suburban house — kitchen", "a warm suburban family kitchen with an island, cupboards, and natural daylight"],
+    ["Suburban house — living room", "a comfortable suburban living room with stairs, family furniture, and soft practical lighting"],
+    ["Spaceship bridge", "a professional cinematic spaceship bridge with command stations, panoramic windows, and readable control lighting"],
+    ["Space shuttle", "a compact working space-shuttle cabin with strapped seats, panels, and weightless equipment"],
+    ["Back alley", "a narrow cinematic back alley with service doors, fire escapes, wet pavement, and motivated practical lights"],
+    ["Carnival rides", "a lively night carnival with illuminated rides, midway booths, crowds, and colourful reflected light"],
+    ["Laser-tag arena", "a multi-level laser-tag arena with cover, ramps, haze, UV markings, and neon team lighting"],
+    ["Airplane cabin", "a realistic passenger airplane cabin with overhead bins, aisle lighting, and window views"],
+    ["Train carriage", "a detailed passenger train carriage with paired seats, aisle, luggage racks, and moving exterior scenery"],
+    ["Car interior", "a cinematic car interior with dashboard detail, believable seating, and exterior road context"],
+    ["Van interior", "a practical passenger van interior with sliding door, bench seating, and equipment storage"],
+    ["Bus interior", "a realistic city bus interior with handrails, rows of seats, windows, and route lighting"],
+    ["Medieval castle", "a lived-in medieval stone castle with a great hall, banners, torches, and period furnishings"],
+    ["School classroom", "a contemporary school classroom with desks, whiteboard, learning materials, and daylight"],
+    ["Desert", "a vast cinematic desert with layered dunes, heat haze, wind-shaped sand, and distant terrain"],
+    ["Concert stage", "a performer on a large stage before a dense crowd with professional concert lighting and atmospheric haze"],
+    ["Film studio soundstage", "a professional film soundstage with practical set walls, rigging, flags, cables, and crew-ready space"],
+    ["Hospital corridor", "a clean modern hospital corridor with patient rooms, equipment bays, and clinical practical lighting"],
+    ["Luxury hotel lobby", "a spacious luxury hotel lobby with concierge desk, lounge seating, architectural lighting, and guests"],
+    ["Rooftop at sunset", "a high city rooftop at sunset with safety rails, vents, layered skyline silhouettes, and warm edge light"],
+    ["Rainy downtown street", "a rain-soaked downtown street at night with traffic, storefront reflections, umbrellas, and glowing signs"],
+    ["Small-town main street", "a welcoming small-town main street with local shops, parked cars, trees, and everyday pedestrian life"],
+    ["Busy subway platform", "a crowded underground subway platform with tiled walls, signage, arriving trains, and practical fluorescent light"],
+    ["Grand central station", "a monumental railway concourse with a vaulted ceiling, departure boards, streams of travellers, and shafts of daylight"],
+    ["Cozy coffee shop", "an intimate independent coffee shop with wood tables, pastry counter, warm lamps, plants, and street-facing windows"],
+    ["Fine-dining restaurant", "an elegant fine-dining restaurant with dressed tables, sculptural lighting, attentive service, and refined architectural detail"],
+    ["Rundown diner", "a weathered roadside diner with vinyl booths, chrome trim, a glowing jukebox, and late-night fluorescent ambience"],
+    ["Grocery store aisle", "a realistic grocery-store aisle with fully stocked shelves, product variety, shopping carts, and even retail lighting"],
+    ["Shopping mall atrium", "a large multi-level shopping mall atrium with escalators, storefronts, skylights, plants, and circulating crowds"],
+    ["Modern office", "a contemporary open-plan office with desks, meeting rooms, monitors, acoustic panels, and broad window light"],
+    ["Corporate boardroom", "a formal corporate boardroom with a long table, presentation wall, city views, and restrained professional lighting"],
+    ["Artist studio", "a working artist studio with canvases, paints, tools, drop cloths, reference objects, and directional north light"],
+    ["Photography studio", "a professional photography studio with seamless paper, strobes, softboxes, flags, stands, and a tethered workstation"],
+    ["Music recording studio", "a professional recording studio with acoustic treatment, mixing console, microphones, instruments, and moody task lighting"],
+    ["Backstage dressing room", "a busy backstage dressing room with mirror bulbs, costumes, makeup stations, garment racks, and production clutter"],
+    ["Boxing gym", "a gritty working boxing gym with a ring, heavy bags, worn mats, lockers, and high industrial windows"],
+    ["Basketball court", "a regulation indoor basketball court with polished wood, bleachers, scoreboards, and bright arena lighting"],
+    ["Olympic swimming pool", "a competition swimming venue with marked lanes, starting blocks, spectator seating, and reflective aquatic light"],
+    ["Forest clearing", "a secluded forest clearing surrounded by layered trees, moss, ferns, fallen branches, and broken natural light"],
+    ["Mountain overlook", "a dramatic mountain overlook with rocky foreground, deep valleys, distant peaks, and changing alpine weather"],
+    ["Tropical beach", "a broad tropical beach with pale sand, clear water, palms, scattered rocks, and humid coastal light"],
+    ["Rocky coastline", "a rugged ocean coastline with dark rocks, breaking surf, sea spray, cliffs, and windswept vegetation"],
+    ["Frozen lake", "a vast frozen lake with textured ice, snow drifts, distant forest, and crisp low winter sunlight"],
+    ["Autumn park", "a mature city park in autumn with winding paths, benches, fallen leaves, and warm filtered daylight"],
+    ["Wildflower meadow", "an open wildflower meadow with tall grasses, varied blooms, distant hills, and a gentle moving breeze"],
+    ["Ancient temple", "a monumental ancient temple with carved stone, weathered columns, ritual objects, and shafts of dusty light"],
+    ["Fantasy throne room", "an immense fantasy throne room with a raised dais, banners, ceremonial guards, towering windows, and dramatic torchlight"],
+    ["Wizard workshop", "a dense wizard workshop with books, alchemical glassware, maps, strange instruments, and layered magical practical light"],
+    ["Medieval village market", "a lively medieval village market with timber stalls, canvas awnings, baskets, animals, townspeople, and muddy lanes"],
+    ["Pirate ship deck", "the working deck of a wooden sailing ship with rigging, cannon, weathered planks, ocean horizon, and wind-filled sails"],
+    ["Underwater research lab", "a pressurized underwater research station with reinforced windows, instrument panels, divers, and deep-ocean views"],
+    ["Mars habitat", "a practical Mars surface habitat with airlocks, equipment racks, pressure suits, red terrain views, and filtered utility light"],
+    ["Orbital space station", "a modular orbital station interior with handrails, floating equipment, observation windows, and Earth visible below"],
+    ["Cyberpunk night market", "a dense futuristic night market with food stalls, tangled signage, steam, crowds, cables, and wet neon reflections"],
+    ["Post-apocalyptic highway", "an abandoned overgrown highway with damaged vehicles, cracked asphalt, improvised shelters, and a vast unsettled sky"],
+    ["Secret laboratory", "a high-security research laboratory with glass partitions, experimental machinery, containment equipment, and precise cold lighting"],
+    ["Museum gallery", "a quiet contemporary museum gallery with large artworks, polished floors, benches, visitors, and controlled exhibition lighting"],
+    ["Public library", "a spacious public library with long shelving, reading tables, study lamps, windows, and a calm lived-in atmosphere"],
+    ["University lecture hall", "a tiered university lecture hall with desks, projection screens, teaching podium, students, and practical ceiling light"],
+    ["Courtroom", "a formal courtroom with judge's bench, witness stand, counsel tables, gallery seating, and dignified institutional detail"],
+    ["Airport terminal", "a busy international airport terminal with gates, flight displays, luggage, travellers, and broad glass curtain walls"],
+    ["Greenhouse", "a humid working greenhouse with glass walls, dense plant benches, irrigation lines, condensation, and luminous diffused light"],
+    ["Abandoned factory", "a vast abandoned factory with rusted machinery, broken windows, debris, graffiti, and dramatic shafts of daylight"],
+    ["Construction site", "an active urban construction site with scaffolding, cranes, materials, safety barriers, workers, and dusty daylight"],
+    ["Fire station", "a working fire station apparatus bay with engines, turnout gear, lockers, tools, and open street-facing doors"],
+    ["Farmhouse barn", "a weathered working barn with timber beams, hay, tools, animals, open doors, and warm rural daylight"],
+    ["Underground bunker", "a reinforced underground bunker with concrete corridors, heavy doors, utility pipes, supplies, and stark emergency lighting"],
+  ];
+
+  const CHARACTER_PRESETS = [
+    { label: "Cinematic heroine", character: { subject: "adult woman", expression: "calm confidence", clothing: "elegant formal dress", hair_style: "wavy", hair_length: "long", hair_color: "dark brown", makeup: "soft glam makeup", eyes: "almond-shaped eyes", face_shape: "oval face", body_type: "athletic build", fitness: "fit", proportions: "natural proportions", identity: "A poised cinematic lead with assured presence" } },
+    { label: "Action hero", character: { subject: "adult man", expression: "focused determination", clothing: "fantasy leather armour", hair_style: "messy layered", hair_length: "short", hair_color: "dark brown", makeup: "no makeup", eyes: "deep-set eyes", face_shape: "square face", body_type: "muscular build", fitness: "powerful physique", proportions: "broad shoulders", identity: "A battle-tested protector who remains calm under pressure" } },
+    { label: "Sci-fi commander", character: { subject: "sci-fi officer", expression: "calm confidence", clothing: "sci-fi powered armour", hair_style: "undercut", hair_length: "short", hair_color: "silver", makeup: "natural makeup", eyes: "grey eyes", face_shape: "diamond-shaped face", body_type: "athletic build", fitness: "highly athletic", proportions: "tall proportions", identity: "A decisive starship commander with a disciplined bearing" } },
+    { label: "Veteran pilot", character: { subject: "adult man", expression: "focused determination", clothing: "sci-fi flight suit", hair_style: "messy layered", hair_length: "short", hair_color: "dark brown", makeup: "no makeup", eyes: "brown eyes", nose: "aquiline nose", chin: "cleft chin", face_shape: "long face", body_type: "average build", fitness: "fit", proportions: "natural proportions", identity: "A veteran shuttle pilot with a weathered face and quick instincts" } },
+    { label: "Noir detective", character: { subject: "modern professional", expression: "suspicious stare", clothing: "modern formal suit", hair_style: "straight", hair_length: "short", hair_color: "black", makeup: "no makeup", eyes: "deep-set eyes", nose: "straight nose", mouth: "thin lips", face_shape: "square face", body_type: "average build", fitness: "lightly toned", proportions: "natural proportions", identity: "A private detective who notices every detail" } },
+    { label: "Fantasy ranger", character: { subject: "fantasy hero", expression: "focused determination", clothing: "fantasy leather armour", hair_style: "braided", hair_length: "shoulder-length", hair_color: "auburn", makeup: "no makeup", eyes: "green eyes", face_shape: "heart-shaped face", body_type: "slim build", fitness: "highly athletic", proportions: "long legs", identity: "A quiet woodland ranger and expert tracker" } },
+    { label: "Royal mage", character: { subject: "medieval noble", expression: "calm confidence", clothing: "fantasy robes", hair_style: "wavy", hair_length: "waist-length", hair_color: "platinum blonde", makeup: "editorial makeup", eyes: "bright blue eyes", nose: "straight nose", mouth: "defined cupid's bow", chin: "pointed chin", face_shape: "oval face", body_type: "slim build", fitness: "soft physique", proportions: "tall proportions", identity: "A learned royal mage with an elegant, otherworldly presence" } },
+    { label: "Cyberpunk hacker", character: { subject: "adult nonbinary person", expression: "suspicious stare", clothing: "masculine streetwear", hair_style: "undercut", hair_length: "chin-length", hair_color: "blue", makeup: "dark gothic makeup", eyes: "large round eyes", face_shape: "diamond-shaped face", body_type: "slim build", fitness: "lightly toned", proportions: "petite proportions", identity: "A brilliant underground hacker with restless energy" } },
+    { label: "Cheerful student", character: { subject: "adult woman", expression: "joyful laughter", clothing: "modern casual clothing", hair_style: "ponytail", hair_length: "shoulder-length", hair_color: "auburn", makeup: "natural makeup", eyes: "large round eyes", nose: "button nose", mouth: "wide mouth", chin: "rounded chin", face_shape: "round face", body_type: "average build", fitness: "lightly toned", proportions: "natural proportions", identity: "An outgoing university student with an infectious laugh" } },
+    { label: "Elegant elder", character: { subject: "adult woman", expression: "warm smile", clothing: "modern formal suit", hair_style: "wavy", hair_length: "chin-length", hair_color: "silver", makeup: "natural makeup", eyes: "hooded eyes", nose: "aquiline nose", mouth: "thin lips", chin: "strong chin", face_shape: "long face", body_type: "average build", fitness: "soft physique", proportions: "natural proportions", identity: "An elegant older mentor with warmth, wisdom, and authority" } },
+  ];
 
   function createWizardWidget(node) {
     const valueWidget = (node.widgets || []).find(function (w) { return w.name === "wizard_state_json"; });
@@ -52,6 +160,7 @@
 
     const library = [];
     let savedPresets = [];
+    let masterPresets = [];
     let dirty = false;
     let undoStack = [];
     let redoStack = [];
@@ -59,24 +168,58 @@
     let latestPreview = null;
     let previewSequence = 0;
 
-    fetchLibrary().then(function (presets) {
-      library.splice(0, library.length, ...presets);
-      render();
-    }).catch(function () { render(); });
-
     const root = el("div", { class: "krea2-wizard-root" });
+    const executionHistory = [];
+    root.krea2ExecutionHistory = executionHistory;
+    root.dataset.krea2ExecutionCount = "0";
+    root.dataset.krea2ExecutionHistory = "[]";
+
+    function recordExecution(prompt) {
+      if (typeof prompt !== "string" || !prompt.trim()) return;
+      executionHistory.push(prompt);
+      if (executionHistory.length > 100) executionHistory.splice(0, executionHistory.length - 100);
+      root.dataset.krea2ExecutionCount = String(executionHistory.length);
+      root.dataset.krea2ExecutionHistory = JSON.stringify(executionHistory);
+      root.dataset.krea2LastOutput = prompt;
+      refreshExecutionHistoryControl();
+    }
+
+    function refreshExecutionHistoryControl() {
+      if (!livePreview || !livePreview.historySelect) return;
+      const select = livePreview.historySelect;
+      select.innerHTML = "";
+      select.appendChild(el("option", { value: "" }, executionHistory.length
+        ? executionHistory.length + " generated prompt" + (executionHistory.length === 1 ? "" : "s")
+        : "No generated prompts yet"));
+      for (let index = executionHistory.length - 1; index >= 0; index -= 1) {
+        const number = index + 1;
+        const excerpt = executionHistory[index].slice(0, 72).replace(/\s+/g, " ");
+        select.appendChild(el("option", { value: String(index) }, "Job " + number + " · " + excerpt));
+      }
+      if (executionHistory.length) select.value = String(executionHistory.length - 1);
+    }
 
     /* --- Top section: base prompt, mode, library button --- */
-    const basePromptControl = buildBasePrompt(state);
+    const basePromptControl = buildBasePrompt();
     const livePreview = buildLivePreview();
     const showWorkToggle = buildShowWorkToggle(state);
     const libraryBtn = el("button", { type: "button", class: "krea2-wizard-btn", onClick: openLibrary }, "Library");
-    const randomAllBtn = el("button", {
+    const randomAllBtn = diceButton(
+      "Randomize all concept groups",
+      randomizeAll,
+      "krea2-wizard-btn krea2-wizard-random-all krea2-icon-btn",
+    );
+    const settingsBtn = el("button", {
       type: "button",
-      class: "krea2-wizard-btn krea2-wizard-random-all",
-      title: "Replace every concept group with a fresh combination",
-      onClick: randomizeAll,
-    }, "Randomize All");
+      class: "krea2-wizard-btn krea2-icon-btn",
+      title: "Node settings",
+      "aria-label": "Node settings",
+      onClick: function () {
+        state.settings_open = !state.settings_open;
+        markDirty();
+        renderNodeSettings();
+      },
+    }, "⚙");
     const materializeBtn = el("button", { type: "button", class: "krea2-wizard-btn", onClick: materialize }, "Materialize");
     const subgraphBtn = el("button", { type: "button", class: "krea2-wizard-btn", onClick: createSubgraph }, "Create Subgraph");
     const undoBtn = el("button", { type: "button", class: "krea2-wizard-btn", onClick: undo, title: "Undo the last change" }, "Undo");
@@ -84,18 +227,25 @@
     const resetBtn = el("button", { type: "button", class: "krea2-wizard-btn", onClick: resetAll }, "Reset All");
     const savedPresetControl = buildSavedPresetControl();
     const creativeModeControl = buildCreativeModeControl();
+    const masterPresetSelect = buildMasterPresetControl();
 
     const topBar = el("div", { class: "krea2-wizard-top" }, [
       creativeModeControl,
       libraryBtn,
       randomAllBtn,
-      materializeBtn,
-      subgraphBtn,
+      settingsBtn,
       undoBtn,
       redoBtn,
-      showWorkToggle,
       resetBtn,
     ]);
+
+    function handleColorChange(presetId, newColor) {
+      state.concept_colors = state.concept_colors || {};
+      if (newColor) state.concept_colors[presetId] = newColor;
+      else delete state.concept_colors[presetId];
+      markDirty();
+      render();
+    }
 
     /* --- Searchable add concept --- */
     const addConcept = el("button", {
@@ -107,18 +257,30 @@
           multiSelect: true,
           selectedIds: state.rows.map(function (row) { return row.preset_id; }),
           onToggle: togglePreset,
+          onClose: function () { render(); },
+          getConceptColor: function (presetId) { return (state.concept_colors || {})[presetId] || ""; },
+          onColorChange: function (presetId, newColor) {
+            state.concept_colors = state.concept_colors || {};
+            if (newColor) state.concept_colors[presetId] = newColor;
+            else delete state.concept_colors[presetId];
+            markDirty();
+          },
         });
       },
     }, "+ Add Concept");
 
     /* --- Layout: collapsible categories --- */
     const categoryBody = el("div", { class: "krea2-wizard-categories" });
+    const settingsHost = el("div", { class: "krea2-settings-host" });
+    const structuredHost = el("div", { class: "krea2-structured-host" });
     const showWork = el("div", { class: "krea2-wizard-show-work-host" });
 
     const editorBody = el("div", { class: "krea2-wizard-editor" }, [
       savedPresetControl.root,
       basePromptControl.root,
-      addConcept,
+      settingsHost,
+      structuredHost,
+      el("div", { class: "krea2-wizard-add-row" }, [addConcept, masterPresetSelect]),
       categoryBody,
     ]);
 
@@ -127,10 +289,57 @@
     root.appendChild(livePreview.root);
     root.appendChild(showWork);
 
+    /* The backend supplies the built-in category presets together with the
+     * user's saved presets. Keeping one source prevents stale browser-only
+     * IDs from silently loading empty cards. */
+    /*
+      // ── Subject & Expression ──
+      {"id":"fb_sub_1","label":"Cinematic Portrait","scope":"group","group":"subject_expression","base_prompt":"","rows":[{"id":"x1","category":"body","preset_id":"body.shoulders_pulled_back","intensity":60},{"id":"x2","category":"emotion","preset_id":"emotion.confident","intensity":65},{"id":"x3","category":"gaze","preset_id":"gaze.looking_directly_into_the_camera","intensity":70}]},
+      {"id":"fb_sub_2","label":"Joyful Laughter","scope":"group","group":"subject_expression","base_prompt":"","rows":[{"id":"x1","category":"emotion","preset_id":"emotion.joy","intensity":80},{"id":"x2","category":"mouth","preset_id":"mouth.laughing","intensity":75},{"id":"x3","category":"face","preset_id":"face.cheek_raiser","intensity":70}]},
+      {"id":"fb_sub_3","label":"Anger","scope":"group","group":"subject_expression","base_prompt":"","rows":[{"id":"x1","category":"emotion","preset_id":"emotion.anger","intensity":85},{"id":"x2","category":"face","preset_id":"face.upper_lip_raiser","intensity":75},{"id":"x3","category":"gaze","preset_id":"gaze.staring_intently","intensity":75}]},
+      {"id":"fb_sub_4","label":"Sadness","scope":"group","group":"subject_expression","base_prompt":"","rows":[{"id":"x1","category":"emotion","preset_id":"emotion.sadness","intensity":70},{"id":"x2","category":"gaze","preset_id":"gaze.looking_down","intensity":65},{"id":"x3","category":"face","preset_id":"face.eyebrow_raiser_inner","intensity":60}]},
+      {"id":"fb_sub_5","label":"Suspenseful Stare","scope":"group","group":"subject_expression","base_prompt":"","rows":[{"id":"x1","category":"gaze","preset_id":"gaze.wide_open_eyes","intensity":75},{"id":"x2","category":"emotion","preset_id":"emotion.surprise","intensity":70},{"id":"x3","category":"body","preset_id":"body.stiff_rigid_stance","intensity":60}]},
+      {"id":"fb_sub_6","label":"Contemplative","scope":"group","group":"subject_expression","base_prompt":"","rows":[{"id":"x1","category":"emotion","preset_id":"emotion.contemplative","intensity":65},{"id":"x2","category":"gaze","preset_id":"gaze.looking_away_thoughtful","intensity":60},{"id":"x3","category":"body","preset_id":"body.relaxed_pose","intensity":50}]},
+      // ── Camera & Film ──
+      {"id":"fb_cam_1","label":"Cinematic Close-up","scope":"group","group":"camera_film","base_prompt":"","rows":[{"id":"x1","category":"framing","preset_id":"framing.close_up","intensity":70},{"id":"x2","category":"lens","preset_id":"lens.85mm_portrait","intensity":60},{"id":"x3","category":"aperture","preset_id":"aperture.shallow_depth_of_field","intensity":75}]},
+      {"id":"fb_cam_2","label":"Wide Epic Landscape","scope":"group","group":"camera_film","base_prompt":"","rows":[{"id":"x1","category":"framing","preset_id":"framing.wide_establishing_shot","intensity":80},{"id":"x2","category":"lens","preset_id":"lens.14mm_ultrawide","intensity":65},{"id":"x3","category":"aperture","preset_id":"aperture.deep_focus","intensity":70}]},
+      {"id":"fb_cam_3","label":"Dutch Angle Thriller","scope":"group","group":"camera_film","base_prompt":"","rows":[{"id":"x1","category":"angle","preset_id":"angle.dutch_angle","intensity":75},{"id":"x2","category":"framing","preset_id":"framing.extreme_close_up","intensity":70},{"id":"x3","category":"composition","preset_id":"composition.diagonal_composition","intensity":65}]},
+      {"id":"fb_cam_4","label":"Handheld Docudrama","scope":"group","group":"camera_film","base_prompt":"","rows":[{"id":"x1","category":"camera_movement","preset_id":"camera_movement.handheld_camera","intensity":75},{"id":"x2","category":"framing","preset_id":"framing.medium_shot","intensity":60},{"id":"x3","category":"perspective","preset_id":"perspective.eye_level","intensity":50}]},
+      {"id":"fb_cam_5","label":"Aerial Drone Shot","scope":"group","group":"camera_film","base_prompt":"","rows":[{"id":"x1","category":"perspective","preset_id":"perspective.birds_eye_view","intensity":80},{"id":"x2","category":"camera_movement","preset_id":"camera_movement.crane_shot","intensity":65},{"id":"x3","category":"lens","preset_id":"lens.50mm_standard","intensity":50}]},
+      {"id":"fb_cam_6","label":"Golden Hour Cinematic","scope":"group","group":"camera_film","base_prompt":"","rows":[{"id":"x1","category":"framing","preset_id":"framing.medium_shot","intensity":65},{"id":"x2","category":"lens","preset_id":"lens.35mm_wide","intensity":60},{"id":"x3","category":"film_color","preset_id":"film_color.kodak_vision3_250d","intensity":55}]},
+      // ── Lighting ──
+      {"id":"fb_lit_1","label":"Rembrandt Classic","scope":"group","group":"lighting","base_prompt":"","rows":[{"id":"x1","category":"lighting_setup","preset_id":"lighting_setup.rembrandt_lighting","intensity":70},{"id":"x2","category":"lighting_direction","preset_id":"lighting_direction.rim_lighting","intensity":60}]},
+      {"id":"fb_lit_2","label":"Backlit Dramatic","scope":"group","group":"lighting","base_prompt":"","rows":[{"id":"x1","category":"lighting_direction","preset_id":"lighting_direction.backlighting","intensity":80},{"id":"x2","category":"lighting_effect","preset_id":"lighting_effect.lens_flare","intensity":60}]},
+      {"id":"fb_lit_3","label":"Noir Chiaroscuro","scope":"group","group":"lighting","base_prompt":"","rows":[{"id":"x1","category":"lighting_setup","preset_id":"lighting_setup.low_key_lighting","intensity":85},{"id":"x2","category":"lighting_direction","preset_id":"lighting_direction.side_lighting","intensity":75}]},
+      {"id":"fb_lit_4","label":"Soft Beauty Light","scope":"group","group":"lighting","base_prompt":"","rows":[{"id":"x1","category":"lighting_setup","preset_id":"lighting_setup.soft_diffused_lighting","intensity":80},{"id":"x2","category":"lighting_direction","preset_id":"lighting_direction.front_lighting","intensity":55}]},
+      {"id":"fb_lit_5","label":"Neon Cyberpunk","scope":"group","group":"lighting","base_prompt":"","rows":[{"id":"x1","category":"lighting_effect","preset_id":"lighting_effect.neon_glow","intensity":80},{"id":"x2","category":"lighting_direction","preset_id":"lighting_direction.colored_gels","intensity":70}]},
+      {"id":"fb_lit_6","label":"Golden Hour Warmth","scope":"group","group":"lighting","base_prompt":"","rows":[{"id":"x1","category":"lighting_setup","preset_id":"lighting_setup.golden_hour_lighting","intensity":80},{"id":"x2","category":"lighting_direction","preset_id":"lighting_direction.backlighting","intensity":60}]},
+      // ── Environment ──
+      {"id":"fb_env_1","label":"Golden Hour","scope":"group","group":"environment","base_prompt":"","rows":[{"id":"x1","category":"atmosphere","preset_id":"atmosphere.light_haze","intensity":60},{"id":"x2","category":"lighting_setup","preset_id":"lighting_setup.golden_hour_lighting","intensity":75}]},
+      {"id":"fb_env_2","label":"Stormy Sky","scope":"group","group":"environment","base_prompt":"","rows":[{"id":"x1","category":"atmosphere","preset_id":"atmosphere.heavy_storm","intensity":80},{"id":"x2","category":"environment_movement","preset_id":"environment_movement.leaves_blowing_in_wind","intensity":65}]},
+      {"id":"fb_env_3","label":"Foggy Mysterious","scope":"group","group":"environment","base_prompt":"","rows":[{"id":"x1","category":"atmosphere","preset_id":"atmosphere.dense_fog","intensity":75},{"id":"x2","category":"environment_movement","preset_id":"environment_movement.smoke_drifting","intensity":50}]},
+      {"id":"fb_env_4","label":"Rainy Neon Streets","scope":"group","group":"environment","base_prompt":"","rows":[{"id":"x1","category":"atmosphere","preset_id":"atmosphere.heavy_rain","intensity":75},{"id":"x2","category":"environment_movement","preset_id":"environment_movement.rain_sweeping_across","intensity":60}]},
+      // ── Style & Finish ──
+      {"id":"fb_sty_1","label":"Fashion Editorial","scope":"group","group":"style_finish","base_prompt":"","rows":[{"id":"x1","category":"style","preset_id":"style.fashion_editorial","intensity":70},{"id":"x2","category":"texture","preset_id":"texture.smooth_clean_digital_texture","intensity":55}]},
+      {"id":"fb_sty_2","label":"Cinematic Film","scope":"group","group":"style_finish","base_prompt":"","rows":[{"id":"x1","category":"style","preset_id":"style.cinematic","intensity":75},{"id":"x2","category":"texture","preset_id":"texture.heavy_film_grain","intensity":60}]},
+      {"id":"fb_sty_3","label":"Oil Painting","scope":"group","group":"style_finish","base_prompt":"","rows":[{"id":"x1","category":"style","preset_id":"style.oil_painting","intensity":75},{"id":"x2","category":"texture","preset_id":"texture.thick_impasto_paint","intensity":70}]},
+      {"id":"fb_sty_4","label":"Vintage Analogue","scope":"group","group":"style_finish","base_prompt":"","rows":[{"id":"x1","category":"style","preset_id":"style.vintage_photograph","intensity":70},{"id":"x2","category":"texture","preset_id":"texture.dust_scratches","intensity":45}]},
+    ];
+    */
+
     fetchSavedPresets().then(function (presets) {
-      savedPresets = presets;
+      savedPresets = Array.isArray(presets) ? presets : [];
       refreshSavedPresetSelect();
+      render();
     });
+
+    function setState(newState) {
+      state = coerceState(newState);
+      if (!Array.isArray(state.rows)) state.rows = [];
+      persistedState = JSON.stringify(state);
+      persist();
+      render();
+    }
 
     function parseState(text) {
       try { return JSON.parse(text); } catch (e) { return null; }
@@ -156,6 +365,440 @@
       persist();
       updateHistoryControls();
       renderLivePreview(true);
+    }
+
+    function cloneJson(value) {
+      return JSON.parse(JSON.stringify(value));
+    }
+
+    function diceButton(label, onClick, className) {
+      return el("button", {
+        type: "button",
+        class: className || "krea2-wizard-btn krea2-icon-btn",
+        title: label,
+        "aria-label": label,
+        onClick: onClick,
+      }, "🎲");
+    }
+
+    function randomStrengthValue() {
+      const minimum = Math.max(-3, Math.min(3, Number(state.random_strength_min) || 0));
+      const maximum = Math.max(minimum, Math.min(3, Number(state.random_strength_max) || 0));
+      const steps = Math.round((maximum - minimum) * 4);
+      return Math.round((minimum + Math.floor(Math.random() * (steps + 1)) / 4) * 4) / 4;
+    }
+
+    function renderNodeSettings() {
+      settingsHost.innerHTML = "";
+      if (!state.settings_open) return;
+      const panel = el("section", { class: "krea2-node-settings" });
+      const close = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-icon-btn",
+        title: "Close settings",
+        "aria-label": "Close settings",
+        onClick: function () { state.settings_open = false; markDirty(); renderNodeSettings(); },
+      }, "×");
+      panel.appendChild(el("div", { class: "krea2-structured-heading" }, [
+        el("strong", null, "Randomization & output"),
+        el("span", { class: "krea2-structured-spacer" }),
+        close,
+      ]));
+
+      const profiles = el("div", { class: "krea2-random-profile-row" });
+      [
+        ["Gentle", 0, 1.5],
+        ["Positive", 0, 3],
+        ["Wild", -3, 3],
+      ].forEach(function (profile) {
+        const active = Number(state.random_strength_min) === profile[1]
+          && Number(state.random_strength_max) === profile[2];
+        profiles.appendChild(el("button", {
+          type: "button",
+          class: "krea2-wizard-btn krea2-random-profile" + (active ? " is-active" : ""),
+          onClick: function () {
+            state.random_strength_min = profile[1];
+            state.random_strength_max = profile[2];
+            markDirty();
+            renderNodeSettings();
+          },
+        }, profile[0] + " " + profile[1] + " to +" + profile[2]));
+      });
+
+      function strengthSelect(label, key) {
+        const select = el("select", {
+          class: "krea2-compact-select",
+          "aria-label": label,
+          onChange: function (event) {
+            state[key] = Number(event.target.value);
+            if (state.random_strength_min > state.random_strength_max) {
+              if (key === "random_strength_min") state.random_strength_max = state.random_strength_min;
+              else state.random_strength_min = state.random_strength_max;
+            }
+            markDirty();
+            renderNodeSettings();
+          },
+        });
+        for (let value = -3; value <= 3.001; value += 0.25) {
+          const rounded = Math.round(value * 4) / 4;
+          select.appendChild(el("option", { value: String(rounded) }, (rounded > 0 ? "+" : "") + rounded));
+        }
+        select.value = String(state[key]);
+        return el("label", { class: "krea2-settings-field" }, [el("span", null, label), select]);
+      }
+
+      panel.appendChild(el("div", { class: "krea2-settings-copy" },
+        "Strengths for every dice action and every-job concept randomization."));
+      panel.appendChild(profiles);
+      panel.appendChild(el("div", { class: "krea2-settings-range" }, [
+        strengthSelect("Minimum strength", "random_strength_min"),
+        strengthSelect("Maximum strength", "random_strength_max"),
+      ]));
+      panel.appendChild(el("label", { class: "krea2-inline-check krea2-metadata-toggle" }, [
+        el("input", {
+          type: "checkbox",
+          checked: state.embed_prompt_metadata !== false,
+          onChange: function (event) { state.embed_prompt_metadata = !!event.target.checked; markDirty(); },
+        }),
+        el("span", null, "Embed the exact generated prompt in image metadata"),
+      ]));
+      panel.appendChild(el("div", { class: "krea2-settings-copy" },
+        "Connect Prompt Output to the text encoder used by the image. The normal Save Image node will then store the resolved text as krea2_prompt when metadata is enabled in ComfyUI."));
+      settingsHost.appendChild(panel);
+    }
+
+    function newCharacter() {
+      const id = "character_" + Date.now().toString(36) + "_" + Math.random().toString(16).slice(2, 7);
+      return {
+        id: id,
+        name: "Character " + ((state.characters || []).length + 1),
+        enabled: true,
+        identity: "",
+        subject: "adult woman",
+        expression: "calm confidence",
+        clothing: "modern casual clothing",
+        hair_style: "",
+        hair_length: "",
+        hair_color: "",
+        makeup: "",
+        eyes: "",
+        nose: "",
+        mouth: "",
+        chin: "",
+        face_shape: "",
+        body_type: "average build",
+        fitness: "",
+        proportions: "natural proportions",
+        adult_description: "",
+      };
+    }
+
+    function ensureStructuredState() {
+      if (!Array.isArray(state.characters)) state.characters = [];
+      if (!Array.isArray(state.character_presets)) state.character_presets = [];
+      if (!state.setting || typeof state.setting !== "object") {
+        state.setting = { enabled: false, name: "", description: "" };
+      }
+      if (!Array.isArray(state.setting_presets)) state.setting_presets = [];
+      if (state.characters.length && !state.characters.some(function (item) {
+        return item.id === state.selected_character_id;
+      })) state.selected_character_id = state.characters[0].id;
+    }
+
+    function randomChoice(values) {
+      return values[Math.floor(Math.random() * values.length)] || "";
+    }
+
+    function renderStructuredEditors() {
+      ensureStructuredState();
+      structuredHost.innerHTML = "";
+      structuredHost.appendChild(renderCharacterEditor());
+      structuredHost.appendChild(renderSettingEditor());
+    }
+
+    function avatarColor(value, fallback) {
+      const colors = {
+        black: "#24242a", "dark brown": "#4b2e24", auburn: "#8c3f2b",
+        blonde: "#d9b65e", "platinum blonde": "#eee6c9", silver: "#aeb6c2",
+        red: "#c74735", blue: "#367bd6", pink: "#d85b9f",
+      };
+      return colors[value] || fallback;
+    }
+
+    function buildCharacterAvatar(character) {
+      const hairColor = avatarColor(character.hair_color, "#4b2e24");
+      const clothing = String(character.clothing || "").toLowerCase();
+      const outfitColor = clothing.includes("sci-fi") ? "#405a78"
+        : clothing.includes("armour") ? "#6c7582"
+        : clothing.includes("fantasy") || clothing.includes("medieval") ? "#72513d"
+        : clothing.includes("formal") ? "#303844"
+        : clothing.includes("streetwear") ? "#8a4160" : "#477f72";
+      const expression = String(character.expression || "").toLowerCase();
+      const avatar = el("div", {
+        class: "krea2-avatar",
+        role: "img",
+        "aria-label": "Simple preview of " + (character.name || "this character"),
+        style: { "--krea2-avatar-hair": hairColor, "--krea2-avatar-outfit": outfitColor },
+      });
+      avatar.append(
+        el("div", { class: "krea2-avatar-hair-back " + String(character.hair_length || "short").replace(/[^a-z]+/g, "-") }),
+        el("div", { class: "krea2-avatar-body " + String(character.body_type || "average").replace(/[^a-z]+/g, "-") }),
+        el("div", { class: "krea2-avatar-neck" }),
+      );
+      const head = el("div", { class: "krea2-avatar-head " + String(character.face_shape || "oval").replace(/[^a-z]+/g, "-") });
+      head.append(
+        el("div", { class: "krea2-avatar-hair-front " + String(character.hair_style || "straight").replace(/[^a-z]+/g, "-") }),
+        el("div", { class: "krea2-avatar-brow left" }),
+        el("div", { class: "krea2-avatar-brow right" }),
+        el("div", { class: "krea2-avatar-eye left" }),
+        el("div", { class: "krea2-avatar-eye right" }),
+        el("div", { class: "krea2-avatar-nose" }),
+        el("div", { class: "krea2-avatar-mouth " + (expression.includes("smile") || expression.includes("joy") || expression.includes("laugh") ? "happy" : expression.includes("sad") ? "sad" : expression.includes("suspicious") ? "flat" : "calm") }),
+      );
+      avatar.appendChild(head);
+      avatar.appendChild(el("div", { class: "krea2-avatar-label" }, character.name || "Character"));
+      return avatar;
+    }
+
+    function availableCharacterPresets() {
+      const presets = CHARACTER_PRESETS.map(function (preset) { return { source: "builtin", preset: preset }; });
+      savedPresets.filter(function (preset) { return preset.scope === "character"; }).forEach(function (preset) {
+        presets.push({ source: "saved", preset: preset });
+      });
+      (state.character_presets || []).forEach(function (preset) {
+        presets.push({ source: "workflow", preset: preset });
+      });
+      return presets;
+    }
+
+    function renderCharacterEditor() {
+      const section = el("section", { class: "krea2-structured-section krea2-character-section" });
+      const add = el("button", { type: "button", class: "krea2-wizard-btn", onClick: function () {
+        const character = newCharacter();
+        state.characters.push(character);
+        state.selected_character_id = character.id;
+        markDirty();
+        renderStructuredEditors();
+      } }, "+ Character");
+      const exportBtn = el("button", { type: "button", class: "krea2-wizard-btn krea2-quiet-btn", onClick: exportStructuredPresets }, "Export");
+      const importInput = el("input", { type: "file", accept: "application/json", hidden: true, onChange: importStructuredPresets });
+      const importBtn = el("button", { type: "button", class: "krea2-wizard-btn krea2-quiet-btn", onClick: function () { importInput.click(); } }, "Import");
+      section.appendChild(el("div", { class: "krea2-structured-heading" }, [
+        el("strong", null, "People & Characters"),
+        el("span", { class: "krea2-structured-spacer" }), add, exportBtn, importBtn, importInput,
+      ]));
+      if (!state.characters.length) {
+        const starter = el("select", { class: "krea2-compact-select", "aria-label": "Add a preset character" });
+        starter.appendChild(el("option", { value: "" }, "Start with a preset character..."));
+        CHARACTER_PRESETS.forEach(function (preset, index) { starter.appendChild(el("option", { value: String(index) }, preset.label)); });
+        starter.addEventListener("change", function () {
+          const preset = CHARACTER_PRESETS[Number(starter.value)];
+          if (!preset) return;
+          const character = Object.assign(newCharacter(), cloneJson(preset.character), { name: preset.label });
+          state.characters.push(character); state.selected_character_id = character.id;
+          markDirty(); renderStructuredEditors();
+        });
+        section.appendChild(el("div", { class: "krea2-character-empty-row" }, [starter, el("span", { class: "krea2-structured-empty" }, "or create a blank character") ]));
+        return section;
+      }
+
+      const tabs = el("div", { class: "krea2-character-tabs" });
+      state.characters.forEach(function (character) {
+        tabs.appendChild(el("button", {
+          type: "button",
+          class: "krea2-character-tab" + (character.id === state.selected_character_id ? " is-active" : "") + (character.enabled === false ? " is-disabled" : ""),
+          onClick: function () { state.selected_character_id = character.id; persist(); renderStructuredEditors(); },
+        }, (character.enabled === false ? "○ " : "● ") + (character.name || "Character")));
+      });
+      section.appendChild(tabs);
+
+      const character = state.characters.find(function (item) { return item.id === state.selected_character_id; }) || state.characters[0];
+      const compact = el("div", { class: "krea2-character-compact" });
+      compact.appendChild(buildCharacterAvatar(character));
+      const content = el("div", { class: "krea2-character-content" });
+
+      const toolbar = el("div", { class: "krea2-structured-toolbar krea2-character-toolbar" });
+      const name = el("input", { type: "text", class: "krea2-compact-input krea2-character-name", value: character.name || "", "aria-label": "Character name", onInput: function (event) {
+        character.name = event.target.value; markDirty();
+      } });
+      const enabled = el("label", { class: "krea2-inline-check" }, [
+        el("input", { type: "checkbox", checked: character.enabled !== false, onChange: function (event) { character.enabled = !!event.target.checked; markDirty(); renderStructuredEditors(); } }),
+        el("span", null, "Include"),
+      ]);
+      const randomAll = diceButton("Randomize this entire character", function () {
+        CHARACTER_FIELDS.forEach(function (field) { character[field[0]] = randomChoice(field[2]); });
+        markDirty(); renderStructuredEditors();
+      });
+      const remove = el("button", { type: "button", class: "krea2-wizard-btn krea2-icon-btn", title: "Delete character", "aria-label": "Delete character", onClick: function () {
+        state.characters = state.characters.filter(function (item) { return item.id !== character.id; });
+        state.selected_character_id = state.characters.length ? state.characters[0].id : null;
+        markDirty(); renderStructuredEditors();
+      } }, "×");
+      toolbar.append(name, enabled, randomAll, remove);
+      content.appendChild(toolbar);
+
+      const allPresets = availableCharacterPresets();
+      const presetSelect = el("select", { class: "krea2-compact-select", "aria-label": "Character presets" });
+      presetSelect.appendChild(el("option", { value: "" }, "Character presets..."));
+      allPresets.forEach(function (entry, index) {
+        const prefix = entry.source === "builtin" ? "Built in · " : entry.source === "saved" ? "My preset · " : "Workflow · ";
+        presetSelect.appendChild(el("option", { value: String(index) }, prefix + (entry.preset.label || "Character")));
+      });
+      const applyPreset = el("button", { type: "button", class: "krea2-wizard-btn", onClick: function () {
+        const entry = allPresets[Number(presetSelect.value)];
+        if (!entry || !entry.preset.character) return;
+        const stored = cloneJson(entry.preset.character);
+        const replacement = Object.assign(newCharacter(), stored, { id: character.id });
+        if (!stored.name) replacement.name = character.name || entry.preset.label;
+        const index = state.characters.indexOf(character); state.characters[index] = replacement;
+        markDirty(); renderStructuredEditors();
+      } }, "Apply");
+      content.appendChild(el("div", { class: "krea2-character-preset-row" }, [presetSelect, applyPreset]));
+
+      const identity = el("textarea", { class: "krea2-compact-textarea krea2-character-identity", rows: "1", "aria-label": "Character identity", placeholder: "Role, age, heritage, distinctive features...", onInput: function (event) {
+        character.identity = event.target.value; markDirty();
+      } }, character.identity || "");
+      content.appendChild(identity);
+
+      const presetName = el("input", { type: "text", class: "krea2-compact-input", value: character.name || "", "aria-label": "Character preset name", placeholder: "Character preset name" });
+      const saveCharacter = el("button", { type: "button", class: "krea2-wizard-btn krea2-save-character", onClick: function () {
+        const label = String(presetName.value || character.name || "Character preset").trim();
+        if (!label) { showToast("Give the character preset a name", "warning"); return; }
+        const stored = cloneJson(character);
+        delete stored.id;
+        delete stored.details_open;
+        savedPresets.push({
+          id: makeSavedPresetId("character", ""),
+          label: label,
+          scope: "character",
+          character: stored,
+        });
+        persistSavedPresets("Character preset saved").then(function () { renderStructuredEditors(); });
+      } }, "Save character preset");
+      content.appendChild(el("div", { class: "krea2-character-save-row" }, [presetName, saveCharacter]));
+
+      compact.appendChild(content);
+      section.appendChild(compact);
+
+      const details = el("details", {
+        class: "krea2-character-details",
+        open: !!character.details_open,
+        onToggle: function (event) { character.details_open = !!event.target.open; persist(); },
+      });
+      const summaryText = [character.subject, character.expression, character.clothing, character.hair_color].filter(Boolean).join(" · ");
+      details.appendChild(el("summary", null, summaryText || "Appearance & body"));
+      const grid = el("div", { class: "krea2-character-grid" });
+      CHARACTER_FIELDS.forEach(function (field) {
+        const select = el("select", { class: "krea2-compact-select", "aria-label": field[1], onChange: function (event) {
+          character[field[0]] = event.target.value; markDirty(); renderStructuredEditors();
+        } });
+        select.appendChild(el("option", { value: "" }, "Not specified"));
+        field[2].forEach(function (value) { select.appendChild(el("option", { value: value }, value)); });
+        if (character[field[0]] && !field[2].includes(character[field[0]])) select.appendChild(el("option", { value: character[field[0]] }, character[field[0]]));
+        select.value = character[field[0]] || "";
+        grid.appendChild(el("label", { class: "krea2-character-field" }, [
+          el("span", null, field[1]),
+          el("div", { class: "krea2-field-row" }, [select, diceButton("Randomize only " + field[1], function () {
+            character[field[0]] = randomChoice(field[2]); markDirty(); renderStructuredEditors();
+          }, "krea2-field-random krea2-icon-btn")]),
+        ]));
+      });
+      const adult = el("textarea", { class: "krea2-compact-textarea", rows: "2", "aria-label": "Adult body description", placeholder: "Optional adult body description in your own words", onInput: function (event) {
+        character.adult_description = event.target.value; markDirty();
+      } }, character.adult_description || "");
+      grid.appendChild(el("label", { class: "krea2-character-field krea2-field-wide" }, [el("span", null, "Adult body description"), adult]));
+      details.appendChild(grid);
+      section.appendChild(details);
+      return section;
+    }
+
+    function renderSettingEditor() {
+      const section = el("section", { class: "krea2-structured-section" });
+      const setting = state.setting;
+      const settingEachJob = !!(state.randomize_on_job || {}).setting;
+      const heading = el("div", { class: "krea2-structured-heading" }, [
+        el("strong", null, "Setting & Scene"),
+        el("span", { class: "krea2-structured-spacer" }),
+        el("label", { class: "krea2-inline-check" }, [
+          el("input", { type: "checkbox", checked: !!setting.enabled, onChange: function (event) { setting.enabled = !!event.target.checked; markDirty(); } }),
+          el("span", null, "Include"),
+        ]),
+        el("label", { class: "krea2-inline-check", title: "Choose a fresh setting for every queued job" }, [
+          el("input", { type: "checkbox", checked: settingEachJob, onChange: function (event) {
+            state.randomize_on_job = state.randomize_on_job || {};
+            state.randomize_on_job.setting = !!event.target.checked;
+            state.setting_random_pool = SETTING_PRESETS.map(function (preset) { return { name: preset[0], description: preset[1] }; });
+            if (event.target.checked) setting.enabled = true;
+            markDirty(); renderStructuredEditors();
+          } }),
+          el("span", null, "Each job"),
+        ]),
+      ]);
+      section.appendChild(heading);
+      const toolbar = el("div", { class: "krea2-structured-toolbar" });
+      const builtins = el("select", { class: "krea2-compact-select", "aria-label": "Professional setting presets", onChange: function (event) {
+        const preset = SETTING_PRESETS[Number(event.target.value)];
+        if (!preset) return;
+        setting.enabled = true; setting.name = preset[0]; setting.description = preset[1];
+        markDirty(); renderStructuredEditors();
+      } });
+      builtins.appendChild(el("option", { value: "" }, SETTING_PRESETS.length + " professional settings..."));
+      SETTING_PRESETS.forEach(function (preset, index) { builtins.appendChild(el("option", { value: String(index) }, preset[0])); });
+      const saved = el("select", { class: "krea2-compact-select", "aria-label": "Saved setting presets" });
+      saved.appendChild(el("option", { value: "" }, "Saved settings..."));
+      const savedSettings = savedPresets.filter(function (preset) { return preset.scope === "setting"; })
+        .concat(state.setting_presets || []);
+      savedSettings.forEach(function (preset, index) { saved.appendChild(el("option", { value: String(index) }, preset.label || "Setting")); });
+      toolbar.append(
+        builtins,
+        diceButton("Randomize the setting", function () { const preset=randomChoice(SETTING_PRESETS); setting.enabled=true; setting.name=preset[0]; setting.description=preset[1]; markDirty(); renderStructuredEditors(); }),
+        saved,
+        el("button", { type: "button", class: "krea2-wizard-btn", onClick: function () { const preset=savedSettings[Number(saved.value)]; if(!preset)return; state.setting=cloneJson(preset.setting); markDirty(); renderStructuredEditors(); } }, "Apply"),
+      );
+      section.appendChild(toolbar);
+      section.appendChild(el("div", { class: "krea2-setting-grid" }, [
+        el("label", null, [el("span", null, "Name"), el("input", { type: "text", class: "krea2-compact-input", value: setting.name || "", "aria-label": "Setting name", onInput: function (event) { setting.name=event.target.value; markDirty(); } })]),
+        el("label", { class: "krea2-field-wide" }, [el("span", null, "Description"), el("textarea", { class: "krea2-compact-textarea", rows: "2", "aria-label": "Setting description", onInput: function (event) { setting.description=event.target.value; markDirty(); } }, setting.description || "")]),
+      ]));
+      const settingPresetName = el("input", { type: "text", class: "krea2-compact-input", value: setting.name || "", "aria-label": "Setting preset name", placeholder: "Setting preset name" });
+      section.appendChild(el("div", { class: "krea2-character-save-row" }, [
+        settingPresetName,
+        el("button", { type: "button", class: "krea2-wizard-btn", onClick: function () {
+          const label = String(settingPresetName.value || setting.name || "Setting").trim();
+          if (!label) { showToast("Give the setting preset a name", "warning"); return; }
+          savedPresets.push({ id: makeSavedPresetId("setting", ""), label: label, scope: "setting", setting: cloneJson(setting) });
+          persistSavedPresets("Setting preset saved").then(function () { renderStructuredEditors(); });
+        } }, "Save setting preset"),
+      ]));
+      if (settingEachJob) section.appendChild(el("div", { class: "krea2-settings-copy" },
+        "A different professional setting will be chosen for every queued job."));
+      return section;
+    }
+
+    function exportStructuredPresets() {
+      const payload = JSON.stringify({ characters: state.characters, character_presets: state.character_presets, setting: state.setting, setting_presets: state.setting_presets }, null, 2);
+      const url = URL.createObjectURL(new Blob([payload], { type: "application/json" }));
+      const anchor = el("a", { href: url, download: "krea2-characters-and-settings.json" });
+      document.body.appendChild(anchor); anchor.click(); anchor.remove(); URL.revokeObjectURL(url);
+    }
+
+    function importStructuredPresets(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function () {
+        try {
+          const payload = JSON.parse(String(reader.result || "{}"));
+          if (Array.isArray(payload.characters)) state.characters = payload.characters.filter(function (item) { return item && typeof item === "object"; });
+          if (Array.isArray(payload.character_presets)) state.character_presets = payload.character_presets;
+          if (payload.setting && typeof payload.setting === "object") state.setting = payload.setting;
+          if (Array.isArray(payload.setting_presets)) state.setting_presets = payload.setting_presets;
+          state.selected_character_id = state.characters.length ? state.characters[0].id : null;
+          markDirty(); renderStructuredEditors(); showToast("Characters and settings imported", "info");
+        } catch (error) { showToast("That preset file is not valid JSON", "error"); }
+      };
+      reader.readAsText(file);
+      event.target.value = "";
     }
 
     function undo() {
@@ -186,7 +829,7 @@
     }
 
     function presetToRow(preset, state) {
-      const initialStrength = Math.round(Math.max(-5, Math.min(5,
+      const initialStrength = Math.round(Math.max(-3, Math.min(3,
         (Number(preset.default_strength) || 0) / 20)) * 4) / 4;
       return {
         id: uniqueRowId(state),
@@ -221,6 +864,7 @@
         });
       }
       markDirty();
+      saveConceptColors(state.concept_colors).catch(function () {});
       render();
     }
 
@@ -242,7 +886,9 @@
       const maximum = Math.min(6, candidates.length);
       const count = minimum + Math.floor(Math.random() * (maximum - minimum + 1));
       for (const preset of candidates.slice(0, count)) {
-        state.rows.push(presetToRow(preset, state));
+        const row = presetToRow(preset, state);
+        row.strength = randomStrengthValue();
+        state.rows.push(row);
       }
     }
 
@@ -303,6 +949,7 @@
       }
       replaceGroupWithRandom(group);
       markDirty();
+      saveConceptColors(state.concept_colors).catch(function () {});
       render();
       showToast(GROUP_LABELS[group] + " randomized", "info");
     }
@@ -319,11 +966,10 @@
       showToast("All concept groups randomized", "info");
     }
 
-    function buildBasePrompt(state) {
+    function buildBasePrompt() {
       const ta = el("textarea", {
         class: "krea2-wizard-base",
-        rows: "2",
-        "aria-label": "Describe the image you want to make",
+        "aria-label": "Describe the image you want to create",
         placeholder: "Describe the scene, subject, mood, lighting, camera, or style.",
         onInput: function (e) {
           state.base_prompt = e.target.value;
@@ -334,7 +980,10 @@
       }, state.base_prompt || "");
       return {
         root: el("div", { class: "krea2-wizard-prompt-field" }, [
-          el("label", null, "Describe what you want to make"),
+          el("div", { class: "krea2-wizard-prompt-label-row" }, [
+            el("label", { class: "krea2-wizard-prompt-title" }, "Main prompt"),
+            el("span", { class: "krea2-wizard-prompt-helper" }, "Describe what you want to create"),
+          ]),
           ta,
         ]),
         input: ta,
@@ -392,7 +1041,9 @@
       const current = savedPresetControl.select.value;
       savedPresetControl.select.innerHTML = "";
       savedPresetControl.select.appendChild(el("option", { value: "" }, "Choose a saved preset..."));
-      const ordered = savedPresets.slice().sort(function (a, b) {
+      const ordered = savedPresets.filter(function (preset) {
+        return !preset.builtin && (preset.scope === "full" || preset.scope === "group");
+      }).sort(function (a, b) {
         return (a.scope + a.label).localeCompare(b.scope + b.label);
       });
       for (const preset of ordered) {
@@ -402,10 +1053,10 @@
         savedPresetControl.select.appendChild(
           el("option", { value: preset.id }, prefix + " · " + preset.label));
       }
-      savedPresetControl.select.value = savedPresets.some(function (preset) {
+      savedPresetControl.select.value = ordered.some(function (preset) {
         return preset.id === current;
       }) ? current : "";
-      const disabled = savedPresets.length === 0;
+      const disabled = ordered.length === 0;
       savedPresetControl.load.disabled = disabled;
       savedPresetControl.remove.disabled = disabled;
     }
@@ -499,7 +1150,7 @@
       showToast(preset.label + " loaded", "info");
     }
 
-    function loadGroupPreset(group, presetId) {
+function loadGroupPreset(group, presetId) {
       const preset = savedPresets.find(function (item) {
         return item.id === presetId && item.scope === "group" && item.group === group;
       });
@@ -507,22 +1158,52 @@
       state.rows = state.rows.filter(function (row) {
         return groupForCategory(row.category) !== group;
       });
-      state.rows.push.apply(state.rows, cloneRowsWithFreshIds(preset.rows));
+      if (!library.length) {
+        showToast("The concept library is still loading. Please try again in a moment.", "warning");
+        return;
+      }
+      var newRows = cloneRowsWithFreshIds(preset.rows).filter(function (row) {
+        return groupForCategory(row.category) === group;
+      });
+      for (var i = 0; i < newRows.length; i++) {
+        var libPreset = library.find(function (p) { return p.id === newRows[i].preset_id; });
+        if (!libPreset) continue;
+        newRows[i].label = libPreset.label || "";
+        newRows[i].phrase = libPreset.phrase || "";
+      }
+      newRows = newRows.filter(function (row) { return row.label && row.phrase; });
+      if (!newRows.length) {
+        showToast("This preset has no usable concepts for this section.", "warning");
+        return;
+      }
+      state.rows.push.apply(state.rows, newRows);
+      state.loaded_group_presets = state.loaded_group_presets || {};
+      state.loaded_group_presets[group] = presetId;
       markDirty();
-      render();
-      showToast(preset.label + " loaded", "info");
+      var raf = window.requestAnimationFrame || function (cb) { return setTimeout(cb, 0); };
+      raf(function () {
+        render();
+        showToast(preset.label + " loaded", "info");
+      });
     }
 
-    function buildGroupPresetPicker(group) {
+function buildGroupPresetPicker(group) {
       const select = el("select", {
         class: "krea2-wizard-group-preset",
         "aria-label": GROUP_LABELS[group] + " saved presets",
       });
       select.appendChild(el("option", { value: "" }, "Load preset..."));
-      for (const preset of savedPresets.filter(function (item) {
-        return item.scope === "group" && item.group === group;
-      })) {
+      var groupPresets = savedPresets.filter(function (item) {
+        return item.scope === "group" && item.group === group
+          && Array.isArray(item.rows)
+          && item.rows.some(function (row) { return groupForCategory(row.category) === group; });
+      });
+      for (const preset of groupPresets) {
         select.appendChild(el("option", { value: preset.id }, preset.label));
+      }
+      var lastLoaded = (state.loaded_group_presets || {})[group];
+      if (lastLoaded && groupPresets.some(function (p) { return p.id === lastLoaded; })) {
+        select.value = lastLoaded;
       }
       const load = el("button", {
         type: "button",
@@ -545,59 +1226,218 @@
       persistSavedPresets("Saved preset deleted");
     }
 
+    function buildMasterPresetControl() {
+      const select = el("select", {
+        class: "krea2-wizard-master-select",
+        "aria-label": "Scene presets",
+      });
+      select.appendChild(el("option", { value: "" }, "Scene presets..."));
+      return select;
+    }
+
+    function refreshMasterPresetSelect() {
+      const current = masterPresetSelect.value;
+      masterPresetSelect.innerHTML = "";
+      masterPresetSelect.appendChild(el("option", { value: "" }, "Scene presets..."));
+      for (const preset of masterPresets) {
+        masterPresetSelect.appendChild(el("option", { value: preset.id }, preset.label));
+      }
+      masterPresetSelect.value = masterPresets.some(function (p) {
+        return p.id === current;
+      }) ? current : "";
+      masterPresetSelect.onchange = function () {
+        loadMasterPreset(masterPresetSelect.value);
+      };
+    }
+
+    function loadMasterPreset(presetId) {
+      if (!presetId) return;
+      const preset = masterPresets.find(function (p) { return p.id === presetId; });
+      if (!preset) return;
+      const newRows = [];
+      for (const mpRow of (preset.rows || [])) {
+        const libPreset = library.find(function (p) { return p.id === mpRow.preset_id; });
+        if (!libPreset) continue;
+        const row = presetToRow(libPreset, state);
+        row.intensity = mpRow.intensity || 0;
+        row.strength = Math.round(Math.max(-3, Math.min(3,
+          (Number(mpRow.intensity) || 0) / 20)) * 4) / 4;
+        newRows.push(row);
+      }
+      if (!newRows.length) {
+        showToast("No matching presets found for " + preset.label, "warning");
+        return;
+      }
+      state.rows = newRows;
+      state.master_preset_id = presetId;
+      state.master_preset_label = preset.label;
+      markDirty();
+      render();
+      showToast("Scene preset \u201c" + preset.label + "\u201d loaded", "info");
+    }
+
     function buildLivePreview() {
-      const text = el("div", { class: "krea2-wizard-preview" }, "");
-      const plain = el("pre", { class: "krea2-wizard-plain", hidden: true }, "");
-      const buttons = el("div", { class: "krea2-wizard-preview-buttons" }, [
-        el("button", { type: "button", onClick: function () { copy(text.textContent); } }, "Copy Final"),
-        el("button", { type: "button", onClick: function () { copy(plain.textContent); } }, "Copy Plain"),
-      ]);
-      const header = el("h3", null, "Live Preview");
-      const root = el("div", { class: "krea2-wizard-preview-host" }, [header, buttons, text, plain]);
-      return { root: root, text: text, plain: plain };
+      var previewActiveTab = "pretty";
+      var codeText = el("div", { class: "krea2-wizard-preview" }, "");
+      codeText.hidden = true;
+      var prettyBody = el("div", { class: "krea2-preview-pretty" });
+      prettyBody.hidden = false;
+      var tabPretty = el("button", { type: "button", class: "krea2-preview-tab is-active" }, "Pretty");
+      var tabCode = el("button", { type: "button", class: "krea2-preview-tab" }, "Code");
+      var switchTab = function (tab) {
+        previewActiveTab = tab;
+        tabPretty.classList.toggle("is-active", tab === "pretty");
+        tabCode.classList.toggle("is-active", tab === "code");
+        prettyBody.hidden = tab !== "pretty";
+        codeText.hidden = tab !== "code";
+      };
+      tabPretty.onclick = function () { switchTab("pretty"); };
+      tabCode.onclick = function () { switchTab("code"); };
+      var tabBar = el("div", { class: "krea2-preview-tabs" }, [tabPretty, tabCode]);
+      var previewBody = el("div", { class: "krea2-preview-body" }, [prettyBody, codeText]);
+      var copyBtn = el("button", { type: "button", class: "krea2-wizard-btn", onClick: function () {
+        copy(codeText.textContent);
+      } }, "Copy shown prompt");
+      var historySelect = el("select", {
+        class: "krea2-compact-select krea2-prompt-history",
+        "aria-label": "Generated prompt history",
+        onChange: function () {
+          const prompt = executionHistory[Number(historySelect.value)];
+          if (!prompt) return;
+          codeText.textContent = prompt;
+          switchTab("code");
+        },
+      });
+      historySelect.appendChild(el("option", { value: "" }, "No generated prompts yet"));
+      var copyGenerated = el("button", { type: "button", class: "krea2-wizard-btn", onClick: function () {
+        const prompt = executionHistory[Number(historySelect.value)] || executionHistory[executionHistory.length - 1];
+        if (!prompt) { showToast("Run the workflow first", "warning"); return; }
+        copy(prompt);
+      } }, "Copy generated prompt");
+      var header = el("h3", null, "Preview");
+      var root = el("div", { class: "krea2-wizard-preview-host" }, [header, tabBar, previewBody, el("div", { class: "krea2-wizard-preview-buttons" }, [historySelect, copyGenerated, copyBtn])]);
+      return { root: root, tabBar: tabBar, previewBody: previewBody, prettyBody: prettyBody, codeText: codeText, historySelect: historySelect };
     }
 
     function renderLivePreview(requestAuthoritativePreview) {
-      const signature = JSON.stringify(state);
-      const compiled = latestPreview && latestPreview.signature === signature
-        ? latestPreview.result
-        : compilePreview(state);
-      renderInteractivePreview(compiled);
-      livePreview.plain.textContent = compiled.plain_prompt;
-      showWork.innerHTML = "";
-      if (state.show_work) {
-        showWork.appendChild(renderShowWork(state, compiled));
-      }
-      if (requestAuthoritativePreview !== false) {
-        schedulePreview(signature);
+      try {
+        var signature = JSON.stringify(state);
+        var compiled = latestPreview && latestPreview.signature === signature
+          ? latestPreview.result
+          : compilePreview(state);
+        renderPrettyPreview(compiled);
+        renderCodePreview(compiled);
+        showWork.innerHTML = "";
+        if (state.show_work) {
+          showWork.appendChild(renderShowWork(state, compiled));
+        }
+        if (requestAuthoritativePreview !== false) {
+          schedulePreview(signature);
+        }
+      } catch (e) {
+        console.warn("[Krea2PromptWizard] renderLivePreview error", e);
       }
     }
 
-    function renderInteractivePreview(compiled) {
-      livePreview.text.innerHTML = "";
-      const parts = [];
+    function renderPrettyPreview(compiled) {
+      var host = livePreview.prettyBody;
+      host.innerHTML = "";
+      if (!compiled || !compiled.category_prompts) return;
+      var structuredLabels = (state.characters || []).filter(function (character) {
+        return character && character.enabled !== false;
+      }).map(function (character) { return character.name || "Character"; });
+      if (state.setting && state.setting.enabled) structuredLabels.push(state.setting.name || "Setting");
+      if (structuredLabels.length) {
+        host.appendChild(el("div", { class: "krea2-preview-block" }, [
+          el("div", { class: "krea2-preview-group-title" }, "People & Setting"),
+          el("div", { class: "krea2-preview-cat-item" }, structuredLabels.join(" · ")),
+        ]));
+      }
+      var catRaw = compiled.category_prompts;
+      var fragmentByRow = new Map((compiled.fragments || []).map(function (f) { return [f.row_id, f]; }));
+      var anyContent = false;
+      for (var gi = 0; gi < GROUPS.length; gi++) {
+        var group = GROUPS[gi];
+        var categories = GROUP_CATEGORIES[group];
+        var groupParts = [];
+        for (var ci = 0; ci < categories.length; ci++) {
+          var cat = categories[ci];
+          var raw = catRaw[cat];
+          var items = [];
+          if (Array.isArray(raw)) {
+            items = raw.filter(Boolean);
+          } else if (typeof raw === "string" && raw.trim()) {
+            items = [raw.trim()];
+          }
+          if (!items.length) continue;
+          var catItems = [];
+          for (var ri = 0; ri < state.rows.length; ri++) {
+            var row = state.rows[ri];
+            if (row.category !== cat || row.enabled === false) continue;
+            var fragment = fragmentByRow.get(row.id);
+            if (fragment && fragment.fragment) {
+              var text = fragment.fragment;
+              var btn = el("button", {
+                type: "button",
+                class: "krea2-preview-concept",
+                dataset: { rowId: row.id },
+                onMouseEnter: function (id) { return function () { setRowHover(id, true); }; }(row.id),
+                onMouseLeave: function (id) { return function () { setRowHover(id, false); }; }(row.id),
+                onClick: function (id) { return function () { focusRow(id); }; }(row.id),
+              }, text);
+              catItems.push(el("div", { class: "krea2-preview-cat-item" }, [btn]));
+            }
+          }
+          groupParts.push({ label: CATEGORY_LABELS[cat] || cat, items: catItems });
+        }
+        if (!groupParts.length) continue;
+        anyContent = true;
+        var block = el("div", { class: "krea2-preview-block" });
+        block.appendChild(el("div", { class: "krea2-preview-group-title" }, GROUP_LABELS[group]));
+        for (var pi = 0; pi < groupParts.length; pi++) {
+          var part = groupParts[pi];
+          block.appendChild(el("div", { class: "krea2-preview-cat-label" }, part.label));
+          for (var ii = 0; ii < part.items.length; ii++) {
+            block.appendChild(part.items[ii]);
+          }
+        }
+        host.appendChild(block);
+      }
+    }
+
+    function renderCodePreview(compiled) {
+      var host = livePreview.codeText;
+      host.innerHTML = "";
+      if ((state.characters || []).some(function (character) { return character && character.enabled !== false; })
+          || (state.setting && state.setting.enabled)) {
+        host.textContent = compiled.final_prompt || "";
+        return;
+      }
+      var parts = [];
       if ((state.base_prompt || "").trim()) {
         parts.push({ text: state.base_prompt.trim(), rowId: "" });
       }
-      const fragmentByRow = new Map((compiled.fragments || []).map(function (fragment) {
+      var fragmentByRow = new Map((compiled.fragments || []).map(function (fragment) {
         return [fragment.row_id, fragment];
       }));
-      for (const category of CATEGORIES) {
-        for (const row of state.rows) {
-          if (row.category !== category || row.enabled === false) continue;
-          const fragment = fragmentByRow.get(row.id);
+      for (var ci = 0; ci < CATEGORIES.length; ci++) {
+        var cat = CATEGORIES[ci];
+        for (var ri = 0; ri < state.rows.length; ri++) {
+          var row = state.rows[ri];
+          if (row.category !== cat || row.enabled === false) continue;
+          var fragment = fragmentByRow.get(row.id);
           if (fragment && fragment.fragment) {
             parts.push({ text: fragment.fragment, rowId: row.id });
           }
         }
       }
       parts.forEach(function (part, index) {
-        if (index) livePreview.text.appendChild(document.createTextNode(", "));
+        if (index) host.appendChild(document.createTextNode(", "));
         if (!part.rowId) {
-          livePreview.text.appendChild(document.createTextNode(part.text));
+          host.appendChild(document.createTextNode(part.text));
           return;
         }
-        livePreview.text.appendChild(el("button", {
+        host.appendChild(el("button", {
           type: "button",
           class: "krea2-preview-concept",
           dataset: { rowId: part.rowId },
@@ -640,6 +1480,14 @@
         multiSelect: false,
         selectedIds: [row.preset_id],
         initialPresetId: row.preset_id,
+        onClose: function () { render(); },
+        getConceptColor: function (presetId) { return (state.concept_colors || {})[presetId] || ""; },
+        onColorChange: function (presetId, newColor) {
+          state.concept_colors = state.concept_colors || {};
+          if (newColor) state.concept_colors[presetId] = newColor;
+          else delete state.concept_colors[presetId];
+          markDirty();
+        },
         onPick: function (preset) {
           const replacement = presetToRow(preset, state);
           replacement.id = row.id;
@@ -673,6 +1521,8 @@
       basePromptControl.input.value = state.base_prompt || "";
       sizeBasePrompt();
       showWorkToggle.textContent = state.show_work ? "Hide Work" : "Show Work";
+      renderNodeSettings();
+      renderStructuredEditors();
       categoryBody.innerHTML = "";
       const visibleGroups = GROUPS;
       for (const group of visibleGroups) {
@@ -705,18 +1555,25 @@
               multiSelect: true,
               selectedIds: rows.map(function (row) { return row.preset_id; }),
               onToggle: togglePreset,
+              onClose: function () { render(); },
+              getConceptColor: function (presetId) { return (state.concept_colors || {})[presetId] || ""; },
+              onColorChange: function (presetId, newColor) {
+                state.concept_colors = state.concept_colors || {};
+                if (newColor) state.concept_colors[presetId] = newColor;
+                else delete state.concept_colors[presetId];
+                markDirty();
+              },
             });
           },
         }, "+ Add");
-        const randomBtn = el("button", {
-          type: "button",
-          class: "krea2-wizard-category-random",
-          title: "Replace this group with a random combination",
-          onClick: function (event) {
+        const randomBtn = diceButton(
+          "Replace this group with a random combination",
+          function (event) {
             event.stopPropagation();
             randomizeGroup(group);
           },
-        }, "Randomize");
+          "krea2-wizard-category-random krea2-icon-btn",
+        );
         const saveBtn = el("button", {
           type: "button",
           class: "krea2-wizard-category-save",
@@ -756,12 +1613,14 @@
         const content = el("div", { class: "krea2-wizard-category-content" });
         if (rows.length === 0) {
           content.appendChild(el("div", { class: "krea2-wizard-empty" },
-            "No concepts yet. Add your own or try Randomize."));
+            "No concepts yet. Add your own or use the dice."));
         } else {
           for (const row of rows) {
             content.appendChild(renderRow(row, {
               presets: library,
+              conceptColors: state.concept_colors,
               markDirty: markDirty,
+              persistConceptColors: function () { saveConceptColors(state.concept_colors || {}).catch(function () {}); },
               refresh: render,
               removeRow: function (id) {
                 state.rows = state.rows.filter(function (r) { return r.id !== id; });
@@ -883,7 +1742,28 @@
     }
 
     render();
-    return { root: root, state: state, markDirty: markDirty, render: render };
+    fetchLibrary().then(function (presets) {
+      library.splice(0, library.length, ...presets);
+      render();
+    }).catch(function () {});
+    fetchConceptColors().then(function (colors) {
+      state.concept_colors = Object.assign({}, colors, state.concept_colors || {});
+      markDirty();
+      render();
+    }).catch(function () {});
+    fetchMasterPresets().then(function (presets) {
+      masterPresets = presets;
+      refreshMasterPresetSelect();
+    });
+    return {
+      root: root,
+      state: state,
+      markDirty: markDirty,
+      render: render,
+      setState: setState,
+      recordExecution: recordExecution,
+      getExecutionHistory: function () { return executionHistory.slice(); },
+    };
   }
 
   K.createWizardWidget = createWizardWidget;

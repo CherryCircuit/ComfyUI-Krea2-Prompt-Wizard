@@ -59,8 +59,17 @@ def empty_state() -> Dict[str, Any]:
         "master_preset_id": None,
         "selected_category": "emotion",
         "randomize_on_job": {},
+        "random_strength_min": 0.0,
+        "random_strength_max": 3.0,
+        "embed_prompt_metadata": True,
         "creative_mode": "photo",
         "collapsed": {},
+        "characters": [],
+        "selected_character_id": None,
+        "character_presets": [],
+        "setting": {"enabled": False, "name": "", "description": ""},
+        "setting_presets": [],
+        "setting_random_pool": [],
     }
 
 
@@ -82,8 +91,21 @@ def coerce_state(raw: Any) -> Dict[str, Any]:
         "master_preset_id",
         "selected_category",
         "randomize_on_job",
+        "random_strength_min",
+        "random_strength_max",
+        "embed_prompt_metadata",
         "creative_mode",
         "collapsed",
+        "concept_colors",
+        "loaded_preset_id",
+        "loaded_preset_label",
+        "loaded_group_presets",
+        "characters",
+        "selected_character_id",
+        "character_presets",
+        "setting",
+        "setting_presets",
+        "setting_random_pool",
     ):
         if key in raw:
             state[key] = raw[key]
@@ -93,12 +115,37 @@ def coerce_state(raw: Any) -> Dict[str, Any]:
             if "strength" not in row:
                 try:
                     legacy = max(
-                        -5.0,
-                        min(5.0, float(row.get("intensity", 0)) / 20.0),
+                        -3.0,
+                        min(3.0, float(row.get("intensity", 0)) / 20.0),
                     )
                     row["strength"] = round(legacy * 4) / 4
                 except (TypeError, ValueError):
                     row["strength"] = 0.0
+    if not isinstance(state.get("characters"), list):
+        state["characters"] = []
+    else:
+        state["characters"] = [item for item in state["characters"] if isinstance(item, dict)]
+    if not isinstance(state.get("character_presets"), list):
+        state["character_presets"] = []
+    if not isinstance(state.get("setting"), dict):
+        state["setting"] = {"enabled": False, "name": "", "description": ""}
+    if not isinstance(state.get("setting_presets"), list):
+        state["setting_presets"] = []
+    if not isinstance(state.get("setting_random_pool"), list):
+        state["setting_random_pool"] = []
+    try:
+        minimum = max(-3.0, min(3.0, round(float(state.get("random_strength_min", 0)) * 4) / 4))
+    except (TypeError, ValueError):
+        minimum = 0.0
+    try:
+        maximum = max(-3.0, min(3.0, round(float(state.get("random_strength_max", 3)) * 4) / 4))
+    except (TypeError, ValueError):
+        maximum = 3.0
+    if minimum > maximum:
+        minimum, maximum = maximum, minimum
+    state["random_strength_min"] = minimum
+    state["random_strength_max"] = maximum
+    state["embed_prompt_metadata"] = state.get("embed_prompt_metadata") is not False
     return state
 
 

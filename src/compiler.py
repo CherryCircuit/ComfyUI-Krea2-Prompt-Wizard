@@ -106,6 +106,55 @@ class CompilationResult:
 # ---------------------------------------------------------------------------
 
 
+_CHARACTER_FIELDS = (
+    ("identity", "identity"),
+    ("subject", "subject"),
+    ("expression", "expression"),
+    ("clothing", "clothing and armour"),
+    ("hair_style", "hair style"),
+    ("hair_length", "hair length"),
+    ("hair_color", "hair colour"),
+    ("makeup", "makeup"),
+    ("eyes", "eyes"),
+    ("nose", "nose"),
+    ("mouth", "mouth"),
+    ("chin", "chin"),
+    ("face_shape", "face shape"),
+    ("body_type", "body type"),
+    ("fitness", "fitness"),
+    ("proportions", "proportions"),
+    ("adult_description", "adult body description"),
+)
+
+
+def _structured_prompt_parts(state: Dict[str, Any]) -> List[str]:
+    """Compile the human-facing character and setting editors."""
+    parts: List[str] = []
+    for index, character in enumerate(state.get("characters") or []):
+        if not isinstance(character, dict) or character.get("enabled", True) is False:
+            continue
+        name = str(character.get("name") or f"Character {index + 1}").strip()
+        details = []
+        for key, label in _CHARACTER_FIELDS:
+            value = str(character.get(key) or "").strip()
+            if value:
+                details.append(f"{label}: {value}")
+        if details:
+            parts.append(f"Character {name}: " + "; ".join(details))
+        elif name:
+            parts.append(f"Character {name}")
+
+    setting = state.get("setting")
+    if isinstance(setting, dict) and setting.get("enabled", False):
+        name = str(setting.get("name") or "Scene").strip()
+        description = str(setting.get("description") or "").strip()
+        if description:
+            parts.append(f"Setting {name}: {description}")
+        elif name:
+            parts.append(f"Setting: {name}")
+    return parts
+
+
 def compile_state(
     state: Dict[str, Any],
     library: Any,
@@ -119,6 +168,7 @@ def compile_state(
     raise_if_errors(validation)
 
     base_prompt = (state.get("base_prompt") or "").strip()
+    structured_parts = _structured_prompt_parts(state)
     rows = list(state.get("rows") or [])
 
     # Tidy: skip rows without a phrase or with an explicit invalid entry.
@@ -250,6 +300,7 @@ def compile_state(
     body_parts: List[str] = []
     if base_prompt:
         body_parts.append(base_prompt.rstrip())
+    body_parts.extend(structured_parts)
 
     for cat in CATEGORIES:
         text = category_prompts.get(cat, "")
@@ -263,6 +314,7 @@ def compile_state(
     plain_parts: List[str] = []
     if base_prompt:
         plain_parts.append(base_prompt.rstrip())
+    plain_parts.extend(structured_parts)
     for cat in CATEGORIES:
         plain_fragments = []
         for f in fragments:

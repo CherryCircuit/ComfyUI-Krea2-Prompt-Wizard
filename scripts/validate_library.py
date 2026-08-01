@@ -22,6 +22,16 @@ from src.validation import (
     validate_user_library,
 )
 from src.schemas import CATEGORIES, SCHEMA_VERSION
+from src.saved_presets import DEFAULT_GROUP_PRESETS
+from src.job_randomizer import ALL_GROUP_CATEGORIES
+
+WIZARD_GROUP_CATEGORIES = {
+        "subject_expression": ALL_GROUP_CATEGORIES["subject_expression"],
+        "camera_film": ALL_GROUP_CATEGORIES["camera_film"],
+    "lighting": ALL_GROUP_CATEGORIES["lighting"],
+    "environment": ALL_GROUP_CATEGORIES["environment"],
+    "style_finish": ALL_GROUP_CATEGORIES["style_finish"],
+}
 from src.wizard import (
     coerce_state,
     add_row,
@@ -79,6 +89,30 @@ def _validate_master_presets() -> None:
     print(f"master_presets.json: {len(masters)} presets validated")
 
 
+def _validate_default_group_presets() -> None:
+    """Ensure every visible category preset can produce real concept cards."""
+    data = _load(os.path.join(ROOT, "presets", "default_library.json"))
+    presets = data.get("presets", []) if isinstance(data, dict) else data
+    by_id = {item.get("id"): item for item in presets if isinstance(item, dict)}
+    errors = []
+    for preset in DEFAULT_GROUP_PRESETS:
+        group = preset.get("group")
+        allowed = WIZARD_GROUP_CATEGORIES.get(group, set())
+        for row in preset.get("rows", []):
+            concept = by_id.get(row.get("preset_id"))
+            if not concept:
+                errors.append(f"{preset['id']} references missing concept {row.get('preset_id')}")
+            elif concept.get("category") != row.get("category"):
+                errors.append(f"{preset['id']} gives {row.get('preset_id')} the wrong category")
+            elif row.get("category") not in allowed:
+                errors.append(f"{preset['id']} puts {row.get('preset_id')} in the wrong group")
+    print(f"default group presets: {len(DEFAULT_GROUP_PRESETS)} presets, {len(errors)} issues")
+    if errors:
+        for error in errors:
+            print(f"  ERROR {error}")
+        sys.exit("default group presets contain errors")
+
+
 def _validate_conflicts() -> None:
     data = _load(os.path.join(ROOT, "presets", "conflicts.json"))
     rules = data.get("conflicts", [])
@@ -125,6 +159,7 @@ def main() -> None:
     print(f"schema version: {SCHEMA_VERSION}")
     _validate_default_library()
     _validate_master_presets()
+    _validate_default_group_presets()
     _validate_conflicts()
     _sanity_compile_sample()
     print("ok")

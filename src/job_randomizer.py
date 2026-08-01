@@ -10,18 +10,16 @@ from .wizard import add_row
 
 
 GROUP_CATEGORIES = {
-    "subject": ("body", "subject_movement"),
-    "expression": ("emotion", "face", "gaze"),
-    "camera": ("framing", "angle", "lens", "composition", "film_color"),
+    "subject_expression": ("body", "subject_movement", "emotion", "face", "gaze", "mouth"),
+    "camera_film": ("framing", "angle", "lens", "composition", "film_color"),
     "lighting": ("lighting_setup", "lighting_direction", "lighting_effect"),
     "environment": ("atmosphere", "environment_movement"),
     "style_finish": ("style", "texture", "detail"),
 }
 
 ALL_GROUP_CATEGORIES = {
-    "subject": {"body", "subject_movement"},
-    "expression": {"emotion", "face", "gaze", "mouth"},
-    "camera": {
+    "subject_expression": {"body", "subject_movement", "emotion", "face", "gaze", "mouth"},
+    "camera_film": {
         "framing", "angle", "perspective", "lens", "aperture",
         "camera_body", "composition", "camera_movement", "lens_family",
         "film_color",
@@ -64,9 +62,29 @@ def _matches_creative_mode(preset: Dict[str, Any], mode: str) -> bool:
 
 def has_job_randomization(state: Dict[str, Any]) -> bool:
     flags = state.get("randomize_on_job")
-    return isinstance(flags, dict) and any(
-        bool(flags.get(group)) for group in GROUP_CATEGORIES
+    return isinstance(flags, dict) and (
+        bool(flags.get("setting"))
+        or any(
+            bool(flags.get(group) or (group == "subject_expression" and (flags.get("subject") or flags.get("expression"))) or (group == "camera_film" and flags.get("camera"))) for group in GROUP_CATEGORIES
+        )
     )
+
+
+def _random_strength(state: Dict[str, Any], randomizer: secrets.SystemRandom) -> float:
+    try:
+        minimum = float(state.get("random_strength_min", 0))
+    except (TypeError, ValueError):
+        minimum = 0.0
+    try:
+        maximum = float(state.get("random_strength_max", 3))
+    except (TypeError, ValueError):
+        maximum = 3.0
+    minimum = max(-3.0, min(3.0, round(minimum * 4) / 4))
+    maximum = max(-3.0, min(3.0, round(maximum * 4) / 4))
+    if minimum > maximum:
+        minimum, maximum = maximum, minimum
+    steps = int(round((maximum - minimum) * 4))
+    return round((minimum + randomizer.randrange(steps + 1) / 4) * 4) / 4
 
 
 def randomize_enabled_groups(
@@ -78,12 +96,14 @@ def randomize_enabled_groups(
     flags = result.get("randomize_on_job")
     if not isinstance(flags, dict):
         return result
+    randomizer = secrets.SystemRandom()
 
     rows = result.get("rows")
     if not isinstance(rows, list):
         rows = []
     for group, random_categories in GROUP_CATEGORIES.items():
-        if not flags.get(group):
+        enabled = flags.get(group) or (group == "subject_expression" and (flags.get("subject") or flags.get("expression"))) or (group == "camera_film" and flags.get("camera"))
+        if not enabled:
             continue
         group_categories = ALL_GROUP_CATEGORIES[group]
         rows = [
@@ -100,20 +120,27 @@ def randomize_enabled_groups(
             for preset in library.by_category(category)
             if not preset.get("disabled") and _matches_creative_mode(preset, mode)
         ]
-        secrets.SystemRandom().shuffle(candidates)
+        randomizer.shuffle(candidates)
         minimum = min(2, len(candidates))
         maximum = min(6, len(candidates))
         count = secrets.randbelow(maximum - minimum + 1) + minimum if maximum else 0
         for preset in candidates[:count]:
             add_row(result, preset, category=preset.get("category"))
-            result["rows"][-1]["strength"] = max(
-                -5.0,
-                min(
-                    5.0,
-                    round((float(preset.get("default_strength") or 0) / 20.0) * 4)
-                    / 4,
-                ),
-            )
+            result["rows"][-1]["strength"] = _random_strength(result, randomizer)
             rows = result["rows"]
     result["rows"] = rows
+
+    if flags.get("setting"):
+        raw_pool = result.get("setting_random_pool")
+        pool = [item for item in raw_pool if isinstance(item, dict)] if isinstance(raw_pool, list) else []
+        if not pool and isinstance(result.get("setting_presets"), list):
+            pool = [
+                item.get("setting")
+                for item in result["setting_presets"]
+                if isinstance(item, dict) and isinstance(item.get("setting"), dict)
+            ]
+        if pool:
+            selected = copy.deepcopy(randomizer.choice(pool))
+            selected["enabled"] = True
+            result["setting"] = selected
     return result

@@ -36,7 +36,7 @@ ComfyUI-Krea2-Prompt-Wizard/
 
     web/
         js/
-            extension.js
+            krea2_prompt_wizard_v3.js
             state.js
             searchable_selector.js
             preset_row.js
@@ -118,7 +118,7 @@ can be exercised in unit tests without the ComfyUI runtime.
 ## Frontend
 
 The frontend uses one auto-discovered JavaScript entry point,
-`web/extension.js`. Its helper files use the `.mjs` extension so
+`web/krea2_prompt_wizard_v3.js`. Its helper files use the `.mjs` extension so
 ComfyUI's recursive `*.js` extension scan does not execute them out of
 order. The entry point awaits the state, selector, row, library editor,
 materialize, inspector, and widget modules before registering the
@@ -167,7 +167,7 @@ The state shape is:
       "phrase": "<phrase>",
       "control_mode": "scalar" | "bipolar" | "raw",
       "intensity": -100..100,
-      "strength": -5..5,
+      "strength": -3..3,
       "enabled": true,
       "aliases": [...],
       "verification": "...",

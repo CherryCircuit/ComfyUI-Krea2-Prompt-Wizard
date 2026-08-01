@@ -23,13 +23,13 @@ class FrontendPackagingTests(unittest.TestCase):
             path.relative_to(ROOT / "web").as_posix()
             for path in (ROOT / "web").rglob("*.js")
         )
-        self.assertEqual(javascript_files, ["extension.js"])
+        self.assertEqual(javascript_files, ["krea2_prompt_wizard_v3.js"])
 
     def test_entrypoint_loads_helpers_before_registration(self):
-        source = (ROOT / "web" / "extension.js").read_text(encoding="utf-8")
+        source = (ROOT / "web" / "krea2_prompt_wizard_v3.js").read_text(encoding="utf-8")
         self.assertIn('import { app } from "../../scripts/app.js"', source)
-        self.assertIn('await import("./js/state.mjs")', source)
-        self.assertIn('await import("./js/wizard_widget.mjs")', source)
+        self.assertIn('await import("./js/state.mjs?v=3")', source)
+        self.assertIn('await import("./js/wizard_widget.mjs?v=3")', source)
         self.assertLess(source.index("await import"), source.index("app.registerExtension"))
 
     def test_all_entrypoint_helper_modules_exist(self):
@@ -87,7 +87,9 @@ class FrontendPackagingTests(unittest.TestCase):
             "rows": [],
         }
         result = Krea2PromptWizard().build(json.dumps(state))
-        self.assertEqual(result, ("portrait of a traveler",))
+        self.assertEqual(result["result"], ("portrait of a traveler",))
+        self.assertEqual(json.loads(result["ui"]["krea2_resolved_state"][0])["base_prompt"], "portrait of a traveler")
+        self.assertEqual(result["ui"]["krea2_prompt_output"], ["portrait of a traveler"])
 
     def test_frontend_data_routes_are_registered(self):
         handlers = {}
@@ -130,6 +132,8 @@ class FrontendPackagingTests(unittest.TestCase):
                 ("GET", "/krea2_prompt_wizard/master_presets"),
                 ("GET", "/krea2_prompt_wizard/saved_presets"),
                 ("POST", "/krea2_prompt_wizard/saved_presets"),
+                ("GET", "/krea2_prompt_wizard/concept_colors"),
+                ("POST", "/krea2_prompt_wizard/concept_colors"),
                 ("POST", "/krea2_prompt_wizard/preview"),
             },
         )

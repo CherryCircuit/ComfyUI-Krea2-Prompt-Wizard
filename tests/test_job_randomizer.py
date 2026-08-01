@@ -52,9 +52,8 @@ class JobRandomizerTests(unittest.TestCase):
         result = randomize_enabled_groups(state, self.library)
         ids = {row.get("preset_id") for row in result["rows"]}
         self.assertNotIn("body.old", ids)
-        self.assertIn("body.one", ids)
-        self.assertIn("subject_movement.one", ids)
-        self.assertIn("emotion.keep", ids)
+        self.assertGreaterEqual(len(ids), 2)
+        self.assertNotIn("emotion.keep", ids)
         self.assertEqual(state["rows"][0]["preset_id"], "body.old")
 
     def test_cache_is_busted_only_when_job_randomization_is_enabled(self):
@@ -63,6 +62,73 @@ class JobRandomizerTests(unittest.TestCase):
         self.assertTrue(math.isnan(Krea2PromptWizard.IS_CHANGED(enabled)))
         self.assertEqual(Krea2PromptWizard.IS_CHANGED(disabled), disabled)
         self.assertTrue(has_job_randomization(json.loads(enabled)))
+
+    def test_randomized_strengths_stay_inside_the_compiler_range(self):
+        library = Library(
+            presets=[preset(f"body.{index}", "body") | {"default_strength": 100} for index in range(6)]
+        )
+        result = randomize_enabled_groups(
+            {"rows": [], "randomize_on_job": {"subject_expression": True}},
+            library,
+        )
+        self.assertTrue(result["rows"])
+        self.assertTrue(all(-3 <= row["strength"] <= 3 for row in result["rows"]))
+
+    def test_randomized_strengths_respect_the_selected_range(self):
+        library = Library(
+            presets=[preset(f"body.{index}", "body") for index in range(10)]
+        )
+        for _ in range(20):
+            result = randomize_enabled_groups(
+                {
+                    "rows": [],
+                    "randomize_on_job": {"subject_expression": True},
+                    "random_strength_min": -3,
+                    "random_strength_max": -1,
+                },
+                library,
+            )
+            self.assertTrue(all(-3 <= row["strength"] <= -1 for row in result["rows"]))
+
+    def test_setting_can_randomize_on_each_job(self):
+        state = {
+            "rows": [],
+            "randomize_on_job": {"setting": True},
+            "setting": {"enabled": True, "name": "Old setting"},
+            "setting_random_pool": [
+                {"name": "Bridge", "description": "command deck"},
+            ],
+        }
+        result = randomize_enabled_groups(state, self.library)
+        self.assertEqual(result["setting"]["name"], "Bridge")
+        self.assertTrue(result["setting"]["enabled"])
+        self.assertTrue(has_job_randomization(state))
+
+    def test_backend_compile_errors_are_not_replaced_with_the_base_prompt(self):
+        state = json.dumps(
+            {
+                "base_prompt": "base prompt",
+                "rows": [
+                    {
+                        "id": "bad",
+                        "category": "body",
+                        "preset_id": "body.one",
+                        "phrase": "body.one",
+                        "strength": 4,
+                    }
+                ],
+            }
+        )
+        with self.assertRaises(Exception):
+            Krea2PromptWizard().build(state)
+
+    def test_actual_prompt_is_added_to_image_metadata(self):
+        metadata = {"workflow": {"nodes": []}}
+        result = Krea2PromptWizard().build(
+            json.dumps({"base_prompt": "portrait of Mara", "rows": []}),
+            extra_pnginfo=metadata,
+        )
+        self.assertEqual(metadata["krea2_prompt"], result["result"][0])
 
     def test_random_group_uses_between_two_and_six_concepts(self):
         library = Library(

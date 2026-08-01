@@ -163,6 +163,24 @@ class CompilerTests(unittest.TestCase):
         result = compile_state(state, lib)
         self.assertTrue(any(w["code"].startswith("shot_size") for w in result.warnings))
 
+    def test_multiple_characters_and_setting_compile_into_the_prompt(self):
+        state = empty_state()
+        state["characters"] = [
+            {"name": "Mara", "enabled": True, "identity": "veteran pilot", "clothing": "sci-fi flight suit"},
+            {"name": "Ivo", "enabled": True, "expression": "focused determination", "hair_color": "black"},
+            {"name": "Hidden", "enabled": False, "identity": "must not compile"},
+        ]
+        state["setting"] = {
+            "enabled": True,
+            "name": "Spaceship bridge",
+            "description": "a working command deck with panoramic windows",
+        }
+        result = compile_state(state, _lib())
+        self.assertIn("Character Mara", result.final_prompt)
+        self.assertIn("Character Ivo", result.final_prompt)
+        self.assertNotIn("must not compile", result.final_prompt)
+        self.assertIn("Setting Spaceship bridge", result.final_prompt)
+
 
 class DeterministicTests(unittest.TestCase):
     def test_same_state_same_output(self):

@@ -6,6 +6,7 @@
   const { el, groupForCategory } = K.helpers;
   const {
     CATEGORIES,
+    CATEGORY_LABELS,
     GROUPS,
     GROUP_LABELS,
     GROUP_CATEGORIES,
@@ -140,6 +141,63 @@
       ].join(" ").toLowerCase();
     }
 
+    function showColorPicker(anchor, presetId, onPick) {
+      const existing = document.querySelector(".krea2-color-picker-menu");
+      if (existing) existing.remove();
+      const menu = el("div", { class: "krea2-color-picker-menu" }, [
+        makeColorOption("🔴 Red", "red"),
+        makeColorOption("🟠 Orange", "orange"),
+        makeColorOption("🟡 Yellow", "yellow"),
+        makeColorOption("🟢 Green", "green"),
+        makeColorOption("🔵 Blue", "blue"),
+        makeColorOption("🩷 Pink", "pink"),
+        makeColorOption("❌ Clear", ""),
+      ]);
+      function makeColorOption(label, val) {
+        return el("button", {
+          type: "button",
+          class: "krea2-color-option",
+          style: {
+            background: "transparent",
+            border: "0",
+            color: "var(--krea2-text)",
+            textAlign: "left",
+            padding: "3px 6px",
+            borderRadius: "3px",
+            cursor: "pointer",
+          },
+          onClick: function (e) {
+            e.stopPropagation();
+            onPick(val);
+            menu.remove();
+          },
+        }, label);
+      }
+      const rect = anchor.getBoundingClientRect();
+      Object.assign(menu.style, {
+        position: "fixed",
+        left: rect.left + "px",
+        top: (rect.bottom + 4) + "px",
+        zIndex: "2147483500",
+        background: "var(--krea2-panel, #202329)",
+        border: "1px solid var(--krea2-border)",
+        borderRadius: "4px",
+        padding: "4px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "2px",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+      });
+      document.body.appendChild(menu);
+      function onDocClick(e) {
+        if (!menu.contains(e.target)) {
+          menu.remove();
+          document.removeEventListener("click", onDocClick, true);
+        }
+      }
+      setTimeout(() => document.addEventListener("click", onDocClick, true), 0);
+    }
+
     function renderResults() {
       listEl.innerHTML = "";
       const query = (search.value || "").trim().toLowerCase();
@@ -166,26 +224,77 @@
         return;
       }
 
-      currentResults.forEach(function (preset, index) {
-        const isSelected = selected.has(preset.id);
-        const item = el("button", {
-          type: "button",
-          class: "krea2-searchable-item" + (isSelected ? " is-selected" : ""),
-          dataset: { idx: String(index), presetId: preset.id },
+      // Sort by category then group results with subcategory headers
+      currentResults.sort(function (a, b) {
+        var catA = a.category || "";
+        var catB = b.category || "";
+        return catA.localeCompare(catB);
+      });
+
+      var lastCategory = "";
+      var absIndex = 0;
+      for (var ri = 0; ri < currentResults.length; ri++) {
+        const preset = currentResults[ri];
+        var presetCat = preset.category || "";
+        if (presetCat !== lastCategory) {
+          if (lastCategory !== "") {
+            // Add a subtle separator between categories
+            var sep = el("div", { class: "krea2-searchable-cat-sep" });
+            listEl.appendChild(sep);
+          }
+          var headerLabel = CATEGORY_LABELS[presetCat] || presetCat;
+          var header = el("div", { class: "krea2-searchable-cat-header" }, headerLabel);
+          listEl.appendChild(header);
+          lastCategory = presetCat;
+        }
+
+        var index = ri;
+        var isSelected = selected.has(preset.id);
+        var color = opts.getConceptColor ? opts.getConceptColor(preset.id) : ((opts.conceptColors || {})[preset.id] || "");
+        var itemClass = "krea2-searchable-item";
+        if (isSelected && color) itemClass += " is-selected is-starred-" + color;
+        else if (isSelected) itemClass += " is-selected-only";
+        else if (color) itemClass += " is-starred-" + color;
+
+        var item = el("div", {
+          class: itemClass,
+          role: "option",
+          tabIndex: "0",
+          "aria-selected": isSelected ? "true" : "false",
+          dataset: { idx: String(absIndex), presetId: preset.id },
           title: preset.phrase || preset.label || preset.id,
-          onClick: function () { choose(index); },
-          onMouseEnter: function () { setHighlight(index); },
+          onClick: function (i) { return function () { choose(i); }; }(index),
+          onKeyDown: function (i) { return function (event) {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              choose(i);
+            }
+          }; }(index),
+          onMouseEnter: function (i) { return function () { setHighlight(i); }; }(index),
         }, [
+          el("button", {
+            type: "button",
+            class: "krea2-star-btn" + (color ? " color-" + color + " is-starred" : ""),
+            title: "Star concept with macOS color tag",
+            onClick: function (e) {
+              e.stopPropagation();
+              showColorPicker(e.currentTarget, preset.id, function (newColor) {
+                if (opts.onColorChange) opts.onColorChange(preset.id, newColor);
+                renderResults();
+              });
+            },
+          }, "★"),
           el("span", { class: "krea2-searchable-check" }, isSelected ? "✓" : ""),
           el("span", { class: "krea2-searchable-title" }, preset.label || preset.id),
-          el(
-            "span",
-            { class: "krea2-searchable-group" },
-            GROUP_LABELS[groupForCategory(preset.category)],
-          ),
+          el("span", { class: "krea2-searchable-group" }, CATEGORY_LABELS[presetCat] || presetCat),
         ]);
         listEl.appendChild(item);
-      });
+        absIndex++;
+      }
+      // Rebuild currentResults in the new sorted order for highlight indexing
+      currentResults = Array.prototype.slice.call(listEl.querySelectorAll(".krea2-searchable-item")).map(function (el) {
+        return list.find(function (p) { return p.id === el.dataset.presetId; });
+      }).filter(Boolean);
       setHighlight(Math.max(0, Math.min(highlighted, currentResults.length - 1)));
     }
 
