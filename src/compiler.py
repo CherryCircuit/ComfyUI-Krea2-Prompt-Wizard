@@ -63,6 +63,26 @@ class Fragment:
     verification: str = "general visual vocabulary"
     source: str = "library"
     warning: Optional[str] = None
+    scope: str = "global"
+    character: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "category": self.category,
+            "row_id": self.row_id,
+            "preset_id": self.preset_id,
+            "label": self.label,
+            "phrase": self.phrase,
+            "weight": self.weight,
+            "mode": self.mode,
+            "enabled": self.enabled,
+            "fragment": self.fragment,
+            "verification": self.verification,
+            "source": self.source,
+            "warning": self.warning,
+            "scope": self.scope,
+            "character": self.character,
+        }
 
 
 @dataclass
@@ -73,6 +93,8 @@ class CompilationResult:
     fragments: List[Fragment]
     trace: Dict[str, Any]
     warnings: List[Dict[str, Any]]
+    motion_prompt: str = ""
+    motion_prompt_draft: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -93,11 +115,15 @@ class CompilationResult:
                     "verification": f.verification,
                     "source": f.source,
                     "warning": f.warning,
+                    "scope": f.scope,
+                    "character": f.character,
                 }
                 for f in self.fragments
             ],
             "trace": dict(self.trace),
             "warnings": list(self.warnings),
+            "motion_prompt": self.motion_prompt,
+            "motion_prompt_draft": self.motion_prompt_draft,
         }
 
 
@@ -126,33 +152,369 @@ _CHARACTER_FIELDS = (
     ("adult_description", "adult body description"),
 )
 
+# Per-character direction categories, in canonical compile order. These are
+# the categories a cast member owns individually so two characters in one
+# scene never share the same emotion, expression, or body language.
+_CHARACTER_DIRECTION_CATEGORIES = (
+    "body",
+    "emotion",
+    "emotion_trigger",
+    "face",
+    "face_trigger",
+    "gaze",
+    "mouth",
+    "position",
+)
 
-def _structured_prompt_parts(state: Dict[str, Any]) -> List[str]:
-    """Compile the human-facing character and setting editors."""
-    parts: List[str] = []
-    for index, character in enumerate(state.get("characters") or []):
-        if not isinstance(character, dict) or character.get("enabled", True) is False:
+# Emotion keywords -> motion verb for the LTX video-motion draft. The
+# first matching keyword (substring, lowercased) wins.
+_MOTION_VERBS: Tuple[Tuple[Tuple[str, ...], str], ...] = (
+    (("joy", "happi", "elat", "glee", "delight", "radian", "amuse", "entertain", "content"), "beams with joy"),
+    (("excit", "thrill", "energ", "enthusias", "eager", "pump"), "moves energetically"),
+    (("seren", "calm", "tranqu", "peace", "relief", "relax"), "stays calm"),
+    (("affection", "love", "tender", "warmth", "romantic", "soft-hearted"), "behaves warmly"),
+    (("pride", "proud", "accomplish", "dignif"), "holds their head high"),
+    (("hope", "hopeful", "optimis", "brighten"), "brightens with hope"),
+    (("wonder", "awe", "amaz", "awestruck", "breathless"), "gazes in awe"),
+    (("surpris", "shock", "startl", "astonish", "caught off guard"), "reacts in surprise"),
+    (("confus", "puzzl", "baffl"), "hesitates in confusion"),
+    (("curious", "interest", "intrigu", "fascin", "inquisit"), "leans in curiously"),
+    (("skeptic", "doubt", "wary", "suspic", "distrust", "tentative", "unsure"), "eyes warily"),
+    (("anxi", "nerv", "on edge", "skittish", "worr"), "fidgets nervously"),
+    (("fear", "afraid", "scared", "terrif", "terror", "horr", "dread", "panic", "hysteric"), "flinches in fear"),
+    (("sad", "melanchol", "grief", "mourn", "despair", "hopeless", "lonel", "isolat", "sorrow", "pensiv", "wistful"), "looks sad"),
+    (("disappoint", "let down", "sigh"), "slumps in disappointment"),
+    (("embarrass", "flustered", "awkward", "shy", "shame", "humiliat", "guilt", "remorse"), "looks embarrassed"),
+    (("anger", "mad", "irritat", "annoy", "frustrat", "exasper", "fury", "furious", "enrag", "rage", "raging", "incandesc"), "glowers in anger"),
+    (("defian", "rebell", "stubborn"), "stands defiant"),
+    (("determin", "resolute", "resolve", "assert"), "stands resolute"),
+    (("disgust", "repuls", "contempt", "scorn", "sneer", "disdain"), "sneers with contempt"),
+    (("bored", "apathetic", "numb", "hollow"), "looks bored"),
+    (("fatigue", "exhaust", "weary", "tired", "drained"), "slumps tiredly"),
+)
+
+
+def _character_has_direction(character: Dict[str, Any]) -> bool:
+    """A character is "directed" when they own emotion/body guidance."""
+    rows = character.get("rows") or []
+    if any(isinstance(r, dict) for r in rows):
+        return True
+    if str(character.get("face_guidance") or "").strip():
+        return True
+    if str(character.get("interaction") or "").strip():
+        return True
+    return False
+
+
+def _face_guidance_lines(guidance: Any) -> List[str]:
+    """Split the per-character face guidance text into verbatim lines."""
+    text = str(guidance or "").strip()
+    if not text:
+        return []
+    out: List[str] = []
+    for raw in text.splitlines():
+        line = raw.strip()
+        if line:
+            out.append(line)
+    return out
+
+
+def _compile_row_fragment(
+    row: Dict[str, Any],
+    preset_index: Dict[str, Dict[str, Any]],
+    *,
+    expert: bool,
+) -> Optional[Fragment]:
+    """Compile one wizard row into a Fragment, or None when it emits nothing.
+
+    Shared by the global concept rows and the per-character direction rows.
+    """
+    if not isinstance(row, dict):
+        return None
+    rid = row.get("id", "")
+    cat = row.get("category", "custom")
+    mode = mode_for_row(row)
+    enabled = bool(row.get("enabled", True))
+    raw_phrase = (row.get("phrase") or "").strip()
+    preset = preset_index.get(row.get("preset_id", ""), {})
+    verification = preset.get("verification", "general visual vocabulary")
+    source = preset.get("source", "library")
+    label = row.get("label", "") or preset.get("label", "")
+
+    if not raw_phrase:
+        return Fragment(
+            category=cat,
+            row_id=rid,
+            preset_id=row.get("preset_id", ""),
+            label=label,
+            phrase="",
+            weight=1.0,
+            mode=mode,
+            enabled=enabled,
+            fragment="",
+            verification=verification,
+            source=source,
+        )
+    if row.get("verbatim"):
+        # Verbatim rows (e.g. pasted parenthetical triggers) are emitted
+        # exactly as typed: no stripping, no re-weighting.
+        fragment = raw_phrase
+        return Fragment(
+            category=cat,
+            row_id=rid,
+            preset_id=row.get("preset_id", ""),
+            label=label,
+            phrase=raw_phrase,
+            weight=1.0,
+            mode=mode,
+            enabled=enabled,
+            fragment=fragment,
+            verification=verification,
+            source=source,
+        )
+
+    try:
+        intensity = float(row.get("strength", row.get("intensity", SLIDER_DEFAULT)))
+    except (TypeError, ValueError):
+        intensity = SLIDER_DEFAULT
+    phrase = phrase_for_row(row)
+    phrase = strip_weighting(phrase)
+    weight = weight_for_row(row, expert=expert)
+    if not enabled or not phrase:
+        fragment = strip_weighting(phrase)
+        return Fragment(
+            category=cat,
+            row_id=rid,
+            preset_id=row.get("preset_id", ""),
+            label=label,
+            phrase=phrase,
+            weight=weight,
+            mode=mode,
+            enabled=enabled,
+            fragment=fragment,
+            verification=verification,
+            source=source,
+        )
+    if mode == MODE_BIPOLAR and intensity == 0:
+        fragment = strip_weighting(phrase)
+        return Fragment(
+            category=cat,
+            row_id=rid,
+            preset_id=row.get("preset_id", ""),
+            label=label,
+            phrase=phrase,
+            weight=weight,
+            mode=mode,
+            enabled=enabled,
+            fragment=fragment,
+            verification=verification,
+            source=source,
+        )
+
+    emitted_phrase = format_phrase(phrase, weight)
+    row_warning = None
+    if mode == MODE_RAW and weight < 0:
+        row_warning = "Raw negative numerical weights are community-reported for Krea 2."
+    elif mode == MODE_RAW and abs(weight) > 3.0:
+        row_warning = "Raw weight exceeds the documented 3.0 ceiling."
+    elif abs(weight) > WEIGHT_MAX_PROMINENT:
+        row_warning = "Weight exceeds the safe 3.0 ceiling."
+    return Fragment(
+        category=cat,
+        row_id=rid,
+        preset_id=row.get("preset_id", ""),
+        label=label,
+        phrase=phrase,
+        weight=weight,
+        mode=mode,
+        enabled=enabled,
+        fragment=emitted_phrase,
+        verification=verification,
+        source=source,
+        warning=row_warning,
+    )
+
+
+def _motion_verb_for_row(row: Dict[str, Any]) -> str:
+    """Pick a motion verb from an emotion row's label, phrase, or aliases."""
+    haystack = " ".join(
+        [
+            str(row.get("label") or ""),
+            str(row.get("phrase") or ""),
+            " ".join(str(a) for a in (row.get("aliases") or [])),
+        ]
+    ).lower()
+    for keywords, verb in _MOTION_VERBS:
+        if any(keyword in haystack for keyword in keywords):
+            return verb
+    return "reacts"
+
+
+def _motion_line(
+    character: Dict[str, Any],
+    name: str,
+    position: str,
+    rows: Sequence[Dict[str, Any]],
+) -> Optional[str]:
+    """Draft one character's motion line for a video model (LTX 2.3)."""
+    enabled_rows = [r for r in rows if isinstance(r, dict) and r.get("enabled", True)]
+    emotion_rows = [r for r in enabled_rows if r.get("category") == "emotion"]
+    body_rows = [r for r in enabled_rows if r.get("category") == "body"]
+    interaction = str(character.get("interaction") or "").strip()
+
+    strongest = None
+    if emotion_rows:
+        try:
+            strongest = max(emotion_rows, key=lambda r: abs(float(weight_for_row(r))))
+        except (TypeError, ValueError):
+            strongest = emotion_rows[0]
+    verb = _motion_verb_for_row(strongest) if strongest else "stands"
+
+    head = name
+    if position:
+        head = f"{name} ({position})"
+    bits = [f"{head} {verb}"]
+    if body_rows:
+        phrase = strip_weighting(str(body_rows[0].get("phrase") or "")).strip()
+        if phrase:
+            bits.append(phrase)
+    if interaction:
+        bits.append(interaction)
+    return ", ".join(bits).strip() or None
+
+
+def _compile_character(
+    character: Dict[str, Any],
+    index: int,
+    preset_index: Dict[str, Dict[str, Any]],
+    *,
+    expert: bool,
+) -> Optional[Tuple[str, str, List[Fragment], Optional[str]]]:
+    """Compile one cast member into ``(clause, plain_clause, fragments, motion)``.
+
+    Returns ``None`` for disabled or malformed characters. The clause is the
+    human-readable block emitted into the final prompt; ``motion`` is the
+    draft video-motion line (or ``None``).
+    """
+    if not isinstance(character, dict) or character.get("enabled", True) is False:
+        return None
+    name = str(character.get("name") or f"Character {index + 1}").strip()
+    if not name:
+        name = f"Character {index + 1}"
+    position = str(character.get("position") or "").strip()
+    rows = [r for r in (character.get("rows") or []) if isinstance(r, dict)]
+    guidance = _face_guidance_lines(character.get("face_guidance"))
+    interaction = str(character.get("interaction") or "").strip()
+    directed = _character_has_direction(character)
+
+    category_order = {cat: i for i, cat in enumerate(CATEGORIES)}
+    rows.sort(key=lambda r: (category_order.get(str(r.get("category")), 99), 0))
+
+    fragments: List[Fragment] = []
+    for row in rows:
+        fragment = _compile_row_fragment(row, preset_index, expert=expert)
+        if fragment is None:
             continue
-        name = str(character.get("name") or f"Character {index + 1}").strip()
-        details = []
-        for key, label in _CHARACTER_FIELDS:
-            value = str(character.get(key) or "").strip()
-            if value:
-                details.append(f"{label}: {value}")
-        if details:
-            parts.append(f"Character {name}: " + "; ".join(details))
-        elif name:
-            parts.append(f"Character {name}")
+        fragment.scope = "character"
+        fragment.character = name
+        fragments.append(fragment)
 
+    emitted = []
+    for fragment in fragments:
+        if fragment.enabled and fragment.fragment:
+            if fragment.mode == MODE_BIPOLAR and fragment.phrase == "":
+                continue
+            emitted.append(fragment.fragment)
+    # Characters own their emotion/mouth fragments; dedupe within the member.
+    emitted = _dedupe_preserving_order(emitted)
+    plain_emitted = []
+    for fragment in fragments:
+        if fragment.enabled and fragment.phrase:
+            plain_emitted.append(strip_weighting(fragment.phrase))
+    plain_emitted = _dedupe_preserving_order(plain_emitted)
+
+    emitted.extend(guidance)
+    plain_emitted.extend(guidance)
+    if interaction:
+        emitted.append(interaction)
+        plain_emitted.append(interaction)
+
+    fields: List[str] = []
+    for key, label in _CHARACTER_FIELDS:
+        if directed and key == "expression":
+            # A directed character's emotion is owned by its direction rows.
+            continue
+        value = str(character.get(key) or "").strip()
+        if value:
+            fields.append(f"{label}: {value}")
+
+    head = f"{name} ({position})" if position else name
+    if fields and emitted:
+        clause = f"Character {head}: {'; '.join(fields)}, {', '.join(emitted)}"
+        plain = f"Character {head}: {'; '.join(fields)}, {', '.join(plain_emitted)}"
+    elif fields:
+        clause = f"Character {head}: {'; '.join(fields)}"
+        plain = clause
+    elif emitted:
+        clause = f"Character {head}, {', '.join(emitted)}"
+        plain = f"Character {head}, {', '.join(plain_emitted)}"
+    else:
+        clause = f"Character {head}"
+        plain = clause
+
+    motion = None
+    if any(f.enabled and f.fragment for f in fragments) or interaction:
+        motion = _motion_line(character, name, position, rows)
+    return clause, plain, fragments, motion
+
+
+def _setting_part(state: Dict[str, Any]) -> str:
     setting = state.get("setting")
     if isinstance(setting, dict) and setting.get("enabled", False):
         name = str(setting.get("name") or "Scene").strip()
         description = str(setting.get("description") or "").strip()
         if description:
-            parts.append(f"Setting {name}: {description}")
-        elif name:
-            parts.append(f"Setting: {name}")
-    return parts
+            return f"Setting {name}: {description}"
+        if name:
+            return f"Setting: {name}"
+    return ""
+
+
+def _compile_characters(
+    state: Dict[str, Any],
+    preset_index: Dict[str, Dict[str, Any]],
+    *,
+    expert: bool,
+) -> Tuple[List[str], List[str], List[Fragment], List[Optional[str]], List[Dict[str, Any]]]:
+    """Compile the cast list.
+
+    Returns ``(clauses, plain_clauses, fragments, motion_lines, trace_entries)``.
+    """
+    clauses: List[str] = []
+    plain_clauses: List[str] = []
+    fragments: List[Fragment] = []
+    motion_lines: List[Optional[str]] = []
+    trace_entries: List[Dict[str, Any]] = []
+    for index, character in enumerate(state.get("characters") or []):
+        compiled = _compile_character(character, index, preset_index, expert=expert)
+        if compiled is None:
+            continue
+        clause, plain, char_fragments, motion = compiled
+        clauses.append(clause)
+        plain_clauses.append(plain)
+        fragments.extend(char_fragments)
+        motion_lines.append(motion)
+        trace_entries.append(
+            {
+                "name": str(character.get("name") or f"Character {index + 1}"),
+                "position": str(character.get("position") or ""),
+                "rows": [f.to_dict() for f in char_fragments],
+                "face_guidance": str(character.get("face_guidance") or ""),
+                "interaction": str(character.get("interaction") or ""),
+                "motion": motion or "",
+            }
+        )
+    return clauses, plain_clauses, fragments, motion_lines, trace_entries
 
 
 def compile_state(
@@ -168,10 +530,22 @@ def compile_state(
     raise_if_errors(validation)
 
     base_prompt = (state.get("base_prompt") or "").strip()
-    structured_parts = _structured_prompt_parts(state)
-    rows = list(state.get("rows") or [])
 
-    # Tidy: skip rows without a phrase or with an explicit invalid entry.
+    preset_index = {}
+    if library is not None and hasattr(library, "index_by_id"):
+        try:
+            preset_index = library.index_by_id()
+        except Exception:
+            preset_index = {}
+
+    # Cast members compile first: each character owns their emotion, face,
+    # body, gaze, mouth, and position guidance.
+    character_clauses, character_plain, character_fragments, motion_lines, cast_trace = (
+        _compile_characters(state, preset_index, expert=expert)
+    )
+    setting_part = _setting_part(state)
+
+    rows = list(state.get("rows") or [])
     cleaned_rows = []
     for row in rows:
         if not isinstance(row, dict):
@@ -181,13 +555,6 @@ def compile_state(
             continue
         cleaned_rows.append(row)
 
-    preset_index = {}
-    if library is not None and hasattr(library, "index_by_id"):
-        try:
-            preset_index = library.index_by_id()
-        except Exception:
-            preset_index = {}
-
     fragments: List[Fragment] = []
     weights_by_id: Dict[str, float] = {}
     enabled_rows: List[Dict[str, Any]] = []
@@ -195,84 +562,14 @@ def compile_state(
     for row in cleaned_rows:
         rid = row.get("id", "")
         cat = row.get("category", "custom")
-        mode = mode_for_row(row)
-        try:
-            intensity = float(row.get("strength", row.get("intensity", SLIDER_DEFAULT)))
-        except (TypeError, ValueError):
-            intensity = SLIDER_DEFAULT
-        enabled = bool(row.get("enabled", True))
-        phrase = phrase_for_row(row)
-        phrase = strip_weighting(phrase)
-        weight = weight_for_row(row, expert=expert)
-        weights_by_id[rid] = weight
-
-        preset = preset_index.get(row.get("preset_id", ""), {})
-        verification = preset.get("verification", "general visual vocabulary")
-        source = preset.get("source", "library")
-
-        if not enabled or not phrase:
-            fragments.append(
-                Fragment(
-                    category=cat,
-                    row_id=rid,
-                    preset_id=row.get("preset_id", ""),
-                    label=row.get("label", "") or preset.get("label", ""),
-                    phrase=phrase,
-                    weight=weight,
-                    mode=mode,
-                    enabled=enabled,
-                    fragment=strip_weighting(phrase),
-                    verification=verification,
-                    source=source,
-                )
-            )
+        fragment = _compile_row_fragment(row, preset_index, expert=expert)
+        if fragment is None:
             continue
-
-        if mode == MODE_BIPOLAR and intensity == 0:
-            # Bipolar rows with slider at zero contribute nothing.
-            fragments.append(
-                Fragment(
-                    category=cat,
-                    row_id=rid,
-                    preset_id=row.get("preset_id", ""),
-                    label=row.get("label", "") or preset.get("label", ""),
-                    phrase=phrase,
-                    weight=weight,
-                    mode=mode,
-                    enabled=enabled,
-                    fragment=strip_weighting(phrase),
-                    verification=verification,
-                    source=source,
-                )
-            )
-            continue
-
-        emitted_phrase = format_phrase(phrase, weight)
-        row_warning = None
-        if mode == MODE_RAW and weight < 0:
-            row_warning = "Raw negative numerical weights are community-reported for Krea 2."
-        elif mode == MODE_RAW and abs(weight) > 3.0:
-            row_warning = "Raw weight exceeds the documented 3.0 ceiling."
-        elif abs(weight) > WEIGHT_MAX_PROMINENT:
-            row_warning = "Weight exceeds the safe 3.0 ceiling."
-
-        fragments.append(
-            Fragment(
-                category=cat,
-                row_id=rid,
-                preset_id=row.get("preset_id", ""),
-                label=row.get("label", "") or preset.get("label", ""),
-                phrase=phrase,
-                weight=weight,
-                mode=mode,
-                enabled=enabled,
-                fragment=emitted_phrase,
-                verification=verification,
-                source=source,
-                warning=row_warning,
-            )
-        )
-        enabled_rows.append(row)
+        fragment.scope = "global"
+        weights_by_id[rid] = fragment.weight
+        fragments.append(fragment)
+        if fragment.enabled and fragment.fragment and fragment.phrase:
+            enabled_rows.append(row)
 
     # Detect duplicates (enabled rows only).
     duplicate_pairs = _detect_duplicate_emissions(enabled_rows)
@@ -300,7 +597,9 @@ def compile_state(
     body_parts: List[str] = []
     if base_prompt:
         body_parts.append(base_prompt.rstrip())
-    body_parts.extend(structured_parts)
+    body_parts.extend(character_clauses)
+    if setting_part:
+        body_parts.append(setting_part)
 
     for cat in CATEGORIES:
         text = category_prompts.get(cat, "")
@@ -314,7 +613,9 @@ def compile_state(
     plain_parts: List[str] = []
     if base_prompt:
         plain_parts.append(base_prompt.rstrip())
-    plain_parts.extend(structured_parts)
+    plain_parts.extend(character_plain)
+    if setting_part:
+        plain_parts.append(setting_part)
     for cat in CATEGORIES:
         plain_fragments = []
         for f in fragments:
@@ -347,6 +648,17 @@ def compile_state(
             }
         )
 
+    # Video motion prompt: an explicit user override wins; otherwise the
+    # cast draft is emitted only when the motion output is enabled.
+    motion_draft = "\n".join([m for m in motion_lines if m]).strip()
+    motion_override = str(state.get("motion_prompt") or "").strip()
+    if motion_override:
+        motion_prompt = motion_override
+    elif state.get("motion_prompt_enabled"):
+        motion_prompt = motion_draft
+    else:
+        motion_prompt = ""
+
     trace = {
         "schema_version": SCHEMA_VERSION,
         "rows": [
@@ -363,12 +675,17 @@ def compile_state(
                 "verification": f.verification,
                 "source": f.source,
                 "warning": f.warning,
+                "scope": f.scope,
+                "character": f.character,
             }
             for f in fragments
         ],
         "category_prompts": category_prompts,
+        "cast": cast_trace,
         "final_prompt": final_prompt,
         "plain_prompt": plain_prompt,
+        "motion_prompt": motion_prompt,
+        "motion_prompt_draft": motion_draft,
     }
 
     return CompilationResult(
@@ -378,6 +695,8 @@ def compile_state(
         fragments=fragments,
         trace=trace,
         warnings=warning_list,
+        motion_prompt=motion_prompt,
+        motion_prompt_draft=motion_draft,
     )
 
 

@@ -70,6 +70,9 @@ def empty_state() -> Dict[str, Any]:
         "setting": {"enabled": False, "name": "", "description": ""},
         "setting_presets": [],
         "setting_random_pool": [],
+        "motion_prompt": "",
+        "motion_prompt_enabled": False,
+        "active_tab": "cast",
     }
 
 
@@ -106,6 +109,9 @@ def coerce_state(raw: Any) -> Dict[str, Any]:
         "setting",
         "setting_presets",
         "setting_random_pool",
+        "motion_prompt",
+        "motion_prompt_enabled",
+        "active_tab",
     ):
         if key in raw:
             state[key] = raw[key]
@@ -125,6 +131,17 @@ def coerce_state(raw: Any) -> Dict[str, Any]:
         state["characters"] = []
     else:
         state["characters"] = [item for item in state["characters"] if isinstance(item, dict)]
+    # Cast members gain their direction scaffolding when missing (additive
+    # migration: old workflows simply have empty direction blocks).
+    for character in state["characters"]:
+        character.setdefault("rows", [])
+        if not isinstance(character["rows"], list):
+            character["rows"] = []
+        character["rows"] = [r for r in character["rows"] if isinstance(r, dict)]
+        character.setdefault("position", "")
+        character.setdefault("face_guidance", "")
+        character.setdefault("interaction", "")
+        character.setdefault("character_ref", "")
     if not isinstance(state.get("character_presets"), list):
         state["character_presets"] = []
     if not isinstance(state.get("setting"), dict):

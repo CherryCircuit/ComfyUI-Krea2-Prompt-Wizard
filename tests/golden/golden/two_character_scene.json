@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "final_prompt": "a quiet cafe table, Character Mara (seated on the left side of the frame): subject: adult woman; clothing and armour: knitted cardigan, (joy:1.5), (gentle smile:1.25), (sparkling bright eyes:1.4), Character Ivo (seated on the right side of the frame): subject: adult man; clothing and armour: dark wool coat, hunched shoulders, (melancholy:1.5), staring into his coffee, two-shot",
+  "plain_prompt": "a quiet cafe table, Character Mara (seated on the left side of the frame): subject: adult woman; clothing and armour: knitted cardigan, joy, gentle smile, (sparkling bright eyes:1.4), Character Ivo (seated on the right side of the frame): subject: adult man; clothing and armour: dark wool coat, hunched shoulders, melancholy, staring into his coffee, two-shot",
+  "category_prompts": {
+    "body": "",
+    "emotion": "",
+    "emotion_trigger": "",
+    "face": "",
+    "face_trigger": "",
+    "gaze": "",
+    "mouth": "",
+    "position": "",
+    "framing": "two-shot",
+    "angle": "",
+    "perspective": "",
+    "lens": "",
+    "aperture": "",
+    "camera_body": "",
+    "composition": "",
+    "lighting_setup": "",
+    "lighting_direction": "",
+    "lighting_effect": "",
+    "subject_movement": "",
+    "camera_movement": "",
+    "environment_movement": "",
+    "atmosphere": "",
+    "style": "",
+    "film_color": "",
+    "texture": "",
+    "detail": "",
+    "lens_family": "",
+    "custom": ""
+  },
+  "motion_prompt": "Mara (seated on the left side of the frame) beams with joy\nIvo (seated on the right side of the frame) looks sad, hunched shoulders, staring into his coffee",
+  "motion_prompt_draft": "Mara (seated on the left side of the frame) beams with joy\nIvo (seated on the right side of the frame) looks sad, hunched shoulders, staring into his coffee",
+  "rows": [
+    {
+      "id": "g1",
+      "category": "framing",
+      "preset_id": "framing.two_shot",
+      "label": "Two-shot",
+      "phrase": "two-shot",
+      "weight": 1.0,
+      "mode": "scalar",
+      "enabled": true,
+      "fragment": "two-shot",
+      "verification": "general visual vocabulary",
+      "source": "curated visual vocabulary",
+      "warning": null,
+      "scope": "global",
+      "character": ""
+    }
+  ],
+  "cast": [
+    {
+      "name": "Mara",
+      "position": "seated on the left side of the frame",
+      "rows": [
+        {
+          "category": "emotion",
+          "row_id": "r1",
+          "preset_id": "emotion.joy",
+          "label": "Joy",
+          "phrase": "joy",
+          "weight": 1.5,
+          "mode": "scalar",
+          "enabled": true,
+          "fragment": "(joy:1.5)",
+          "verification": "general visual vocabulary",
+          "source": "curated visual vocabulary",
+          "warning": null,
+          "scope": "character",
+          "character": "Mara"
+        },
+        {
+          "category": "mouth",
+          "row_id": "r2",
+          "preset_id": "mouth.gentle_smile",
+          "label": "Gentle smile",
+          "phrase": "gentle smile",
+          "weight": 1.25,
+          "mode": "scalar",
+          "enabled": true,
+          "fragment": "(gentle smile:1.25)",
+          "verification": "general visual vocabulary",
+          "source": "curated visual vocabulary",
+          "warning": null,
+          "scope": "character",
+          "character": "Mara"
+        }
+      ],
+      "face_guidance": "(sparkling bright eyes:1.4)",
+      "interaction": "",
+      "motion": "Mara (seated on the left side of the frame) beams with joy"
+    },
+    {
+      "name": "Ivo",
+      "position": "seated on the right side of the frame",
+      "rows": [
+        {
+          "category": "body",
+          "row_id": "r4",
+          "preset_id": "body.hunched_shoulders",
+          "label": "Hunched shoulders",
+          "phrase": "hunched shoulders",
+          "weight": 1.0,
+          "mode": "scalar",
+          "enabled": true,
+          "fragment": "hunched shoulders",
+          "verification": "general visual vocabulary",
+          "source": "curated visual vocabulary",
+          "warning": null,
+          "scope": "character",
+          "character": "Ivo"
+        },
+        {
+          "category": "emotion",
+          "row_id": "r3",
+          "preset_id": "emotion.melancholy",
+          "label": "Melancholy",
+          "phrase": "melancholy",
+          "weight": 1.5,
+          "mode": "scalar",
+          "enabled": true,
+          "fragment": "(melancholy:1.5)",
+          "verification": "general visual vocabulary",
+          "source": "curated visual vocabulary",
+          "warning": null,
+          "scope": "character",
+          "character": "Ivo"
+        }
+      ],
+      "face_guidance": "",
+      "interaction": "staring into his coffee",
+      "motion": "Ivo (seated on the right side of the frame) looks sad, hunched shoulders, staring into his coffee"
+    }
+  ]
+}

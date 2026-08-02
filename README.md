@@ -66,23 +66,80 @@ The wizard writes to no other locations on disk.
 ## Basic usage
 
 1. Add a `Krea2 Prompt Wizard` node.
-2. Use the on-node wizard panel to type a short prompt idea, then hit
-   the `+` buttons to add concepts.
-3. Adjust each concept with its slider or exact numeric value. Use the
-   eye to temporarily hide it or the delete button to remove it.
-4. Use `Prompt Output` to feed the result into a `CLIPTextEncode` node.
+2. The wizard now uses four **mode tabs**: 🎬 **Cast**, 🎥 **Scene**,
+   ✨ **Concepts**, and 📜 **Prompt**. Only one section is visible at a
+   time, so the node stays calm even for complex scenes.
+3. Start in **Cast**: add characters, then direct each one individually.
+4. Use **Scene** for the main prompt, setting, shot presets, and
+   camera/lighting choices.
+5. Check **Prompt** for the live preview, the video motion prompt, and
+   the copy buttons.
 
-### Combining multiple concepts
+### Directing a scene (cast members)
 
-You can combine any number of concepts. Add several emotions, lighting
-effects, camera settings, and style cues, each with its own slider.
+Characters are now **directed** as cast members: each character owns
+their own emotion, facial expression, body language, position in the
+frame, face-guidance triggers, and interaction with other characters.
+Two characters in one scene no longer share one emotion.
+
+For every cast member you can set:
+
+- **Placement** — a position preset such as *standing on the left side
+  of the frame* or *in the background*. It compiles as
+  `Mara (standing on the left side of the frame): …`.
+- **Emotion quick picks** — one-click chips for Joy, Sadness, Anger,
+  Fear, Surprise, Disgust, Serenity, and Determination. Click again to
+  remove. “+ Add” opens the full searchable library, including the new
+  *emotion trigger* and *face trigger* preset categories.
+- **Face guidance triggers** — a free-text field where each line is
+  emitted verbatim, e.g. `(sparkling bright eyes:1.4)` on its own line.
+  These are the parenthetical guidance fragments Krea 2 / the KJNodes
+  weighting patch respond to. (The repo's research notes that the
+  `(phrase:weight)` syntax is not officially documented by Krea and is
+  applied by the optional KJNodes patch; without it, parentheses are
+  literal text.)
+- **Body & movement** — body-language rows scoped to this character
+  only.
+- **Interaction** — relational direction such as *looking at Alex*.
+
+A character's static *Expression* field is skipped in the compiled
+prompt once the character has direction of its own.
+
+### Saving and casting characters
+
+Use **Save character preset** to store a character's appearance
+(identity, clothing, hair, build). To reuse a character later, open any
+cast member's *Character presets* picker, choose your saved character,
+and press **Apply** — the appearance is replaced while the member's
+emotion, face guidance, and position are kept.
+
+### Shot presets and scenes
+
+The **Scene** tab includes a **Shot preset** picker with cinematic
+starting points such as *Over-the-Shoulder Dialogue*,
+*Two-Character Conversation*, *Reaction Close-Up*, *Reverse Shot*,
+*Establishing Duo*, and *Intimate Two-Shot*. Shot presets add the
+matching framing, angle, lens, and lighting rows in one click. The
+Scene tab also hosts the main prompt, the setting editor, and the
+camera / lighting / environment / style concept groups.
+
+### Video Motion Prompt (LTX-2.3)
+
+The wizard exposes a second output, **Video Motion Prompt**. In the
+**Prompt** tab, press **Draft from cast** to generate one motion line
+per cast member from their emotion and body rows (e.g. *Mara (standing
+on the left side of the frame) beams with joy, arms crossed, looking at
+Alex*), then edit freely and enable the output. Feed the generated
+still plus this motion prompt to an image-to-video model such as LTX-2.3.
+
+### Using the concept groups
 
 Concepts are organized into six practical groups: Subject, Expression
 & Pose, Camera & Film, Lighting, Environment, and Style & Finish. Each
 group can be randomized independently, or you can randomize all groups.
 Randomize chooses between two and six concepts. Use the Photography /
 Artwork switch to keep incompatible style and camera choices out of the
-picker and randomizer.
+picker and randomizer. The full row grid lives in the **Concepts** tab.
 
 ### Saved presets
 
@@ -178,11 +235,12 @@ Every materialized node is a real ComfyUI node. You can:
 
 ## Outputs
 
-The `Krea2 Prompt Wizard` exposes one STRING output:
+The `Krea2 Prompt Wizard` exposes two STRING outputs:
 
 | Output | Description |
 |---|---|
 | `Prompt Output` | The compiled final prompt. |
+| `Video Motion Prompt` | Optional per-character motion lines for image-to-video models such as LTX-2.3. Empty until enabled in the Prompt tab. |
 
 ## KJNodes integration (optional)
 

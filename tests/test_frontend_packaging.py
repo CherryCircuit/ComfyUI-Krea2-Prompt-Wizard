@@ -72,9 +72,11 @@ class FrontendPackagingTests(unittest.TestCase):
         self.assertIn("resize: none", base_block)
         self.assertIn("overflow: hidden", base_block)
 
-    def test_wizard_has_one_prompt_output(self):
-        self.assertEqual(Krea2PromptWizard.RETURN_TYPES, ("STRING",))
-        self.assertEqual(Krea2PromptWizard.RETURN_NAMES, ("Prompt Output",))
+    def test_wizard_has_prompt_and_motion_outputs(self):
+        self.assertEqual(Krea2PromptWizard.RETURN_TYPES, ("STRING", "STRING"))
+        self.assertEqual(
+            Krea2PromptWizard.RETURN_NAMES, ("Prompt Output", "Video Motion Prompt")
+        )
 
     def test_nodes_use_requested_category(self):
         for node_class in NODE_CLASS_MAPPINGS.values():
@@ -87,9 +89,10 @@ class FrontendPackagingTests(unittest.TestCase):
             "rows": [],
         }
         result = Krea2PromptWizard().build(json.dumps(state))
-        self.assertEqual(result["result"], ("portrait of a traveler",))
+        self.assertEqual(result["result"], ("portrait of a traveler", ""))
         self.assertEqual(json.loads(result["ui"]["krea2_resolved_state"][0])["base_prompt"], "portrait of a traveler")
         self.assertEqual(result["ui"]["krea2_prompt_output"], ["portrait of a traveler"])
+        self.assertEqual(result["ui"]["krea2_motion_prompt"], [""])
 
     def test_frontend_data_routes_are_registered(self):
         handlers = {}

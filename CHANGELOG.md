@@ -1,5 +1,41 @@
 # CHANGELOG
 
+## 1.1.0 — 2026-08-01
+
+Scene-director overhaul: cast members, per-character direction, and a
+minimal tabbed interface.
+
+### Features
+
+- **Mode tabs** — the editor is organised into 🎬 Cast, 🎥 Scene,
+  ✨ Concepts, and 📜 Prompt. Only one section renders at a time.
+- **Per-character direction** — each cast member owns their own emotion
+  chips, emotion/face/body/position rows, face-guidance triggers, and
+  interaction with other characters. Two characters in one scene no
+  longer share one emotion.
+- **Face guidance triggers** — free-text per-character lines emitted
+  verbatim (e.g. `(sparkling bright eyes:1.4)`), plus new bundled
+  `emotion_trigger` and `face_trigger` preset categories.
+- **Position presets** — new `position` category (25 placements) and
+  `Name (position): …` compilation.
+- **Video Motion Prompt** — new second STRING output with a cast
+  draft (one motion line per character) for LTX-2.3 image-to-video.
+- **Shot presets** — six new cinematic master presets
+  (Over-the-Shoulder, Two-Character Conversation, Reaction Close-Up,
+  Reverse Shot, Establishing Duo, Intimate Two-Shot).
+- **Verbatim rows** — rows flagged `verbatim` are emitted exactly as
+  typed, without stripping or re-weighting.
+- The dead Show Work toggle is wired into the Prompt tab; header
+  controls moved into a compact overflow menu.
+- New example workflow: `example_two_character_scene.json`.
+
+### Backward compatibility
+
+- The state schema stays additive: old workflows compile unchanged
+  (`Character X: …` legacy format preserved).
+- The wizard now exposes two outputs; the first (`Prompt Output`)
+  behaves exactly as before.
+
 ## 1.0.0 — 2026-07-25
 
 Initial release of ComfyUI-Krea2-Prompt-Wizard.

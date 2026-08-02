@@ -12942,6 +12942,1393 @@
       "schema_version": 1
     },
     {
+      "id": "emotion_trigger.radiant_joy",
+      "category": "emotion_trigger",
+      "label": "Radiant joy",
+      "phrase": "a radiant glow of joy",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "joyful glow",
+        "beaming warmth"
+      ],
+      "tags": [
+        "emotion_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "emotion_trigger.heavy_hearted_melancholy",
+      "category": "emotion_trigger",
+      "label": "Heavy-hearted melancholy",
+      "phrase": "a heavy-hearted melancholy",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "deep wistfulness"
+      ],
+      "tags": [
+        "emotion_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "emotion_trigger.simmering_anger",
+      "category": "emotion_trigger",
+      "label": "Simmering anger",
+      "phrase": "suppressed simmering anger",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "contained fury"
+      ],
+      "tags": [
+        "emotion_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "emotion_trigger.quiet_awe",
+      "category": "emotion_trigger",
+      "label": "Quiet awe",
+      "phrase": "quiet awe and wonder",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "hushed amazement"
+      ],
+      "tags": [
+        "emotion_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "emotion_trigger.piercing_dread",
+      "category": "emotion_trigger",
+      "label": "Piercing dread",
+      "phrase": "piercing dread",
+      "default_strength": 65,
+      "control_mode": "scalar",
+      "aliases": [
+        "cold fear"
+      ],
+      "tags": [
+        "emotion_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "emotion_trigger.tender_warmth",
+      "category": "emotion_trigger",
+      "label": "Tender warmth",
+      "phrase": "tender warmth",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "gentle affection"
+      ],
+      "tags": [
+        "emotion_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "emotion_trigger.wistful_nostalgia",
+      "category": "emotion_trigger",
+      "label": "Wistful nostalgia",
+      "phrase": "wistful nostalgia",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "yearning memory"
+      ],
+      "tags": [
+        "emotion_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "emotion_trigger.sharp_contempt",
+      "category": "emotion_trigger",
+      "label": "Sharp contempt",
+      "phrase": "sharp contempt",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "cutting disdain"
+      ],
+      "tags": [
+        "emotion_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "emotion_trigger.nervous_apprehension",
+      "category": "emotion_trigger",
+      "label": "Nervous apprehension",
+      "phrase": "nervous apprehension",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "anxious anticipation"
+      ],
+      "tags": [
+        "emotion_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "emotion_trigger.quiet_relief",
+      "category": "emotion_trigger",
+      "label": "Quiet relief",
+      "phrase": "quiet relief",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "settled ease"
+      ],
+      "tags": [
+        "emotion_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "emotion_trigger.grieving_sorrow",
+      "category": "emotion_trigger",
+      "label": "Grieving sorrow",
+      "phrase": "grieving sorrow",
+      "default_strength": 65,
+      "control_mode": "scalar",
+      "aliases": [
+        "mournful ache"
+      ],
+      "tags": [
+        "emotion_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "emotion_trigger.playful_mischief",
+      "category": "emotion_trigger",
+      "label": "Playful mischief",
+      "phrase": "playful mischief",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "teasing energy"
+      ],
+      "tags": [
+        "emotion_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "emotion_trigger.weary_exhaustion",
+      "category": "emotion_trigger",
+      "label": "Weary exhaustion",
+      "phrase": "weary exhaustion",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "drained weariness"
+      ],
+      "tags": [
+        "emotion_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "emotion_trigger.guilty_hesitation",
+      "category": "emotion_trigger",
+      "label": "Guilty hesitation",
+      "phrase": "guilty hesitation",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "remorseful pause"
+      ],
+      "tags": [
+        "emotion_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "emotion_trigger.burning_determination",
+      "category": "emotion_trigger",
+      "label": "Burning determination",
+      "phrase": "burning determination",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "fierce resolve"
+      ],
+      "tags": [
+        "emotion_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "emotion_trigger.awkward_embarrassment",
+      "category": "emotion_trigger",
+      "label": "Awkward embarrassment",
+      "phrase": "awkward embarrassment",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "flustered discomfort"
+      ],
+      "tags": [
+        "emotion_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "emotion_trigger.hopeful_optimism",
+      "category": "emotion_trigger",
+      "label": "Hopeful optimism",
+      "phrase": "hopeful optimism",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "bright expectation"
+      ],
+      "tags": [
+        "emotion_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "emotion_trigger.smoldering_jealousy",
+      "category": "emotion_trigger",
+      "label": "Smoldering jealousy",
+      "phrase": "smoldering jealousy",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "envious tension"
+      ],
+      "tags": [
+        "emotion_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "emotion_trigger.frozen_terror",
+      "category": "emotion_trigger",
+      "label": "Frozen terror",
+      "phrase": "frozen terror",
+      "default_strength": 65,
+      "control_mode": "scalar",
+      "aliases": [
+        "paralyzed fear"
+      ],
+      "tags": [
+        "emotion_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "emotion_trigger.quiet_contentment",
+      "category": "emotion_trigger",
+      "label": "Quiet contentment",
+      "phrase": "quiet contentment",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "settled peace"
+      ],
+      "tags": [
+        "emotion_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "face_trigger.sparkling_bright_eyes",
+      "category": "face_trigger",
+      "label": "Sparkling bright eyes",
+      "phrase": "sparkling bright eyes",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "luminous eyes"
+      ],
+      "tags": [
+        "face_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "face_trigger.genuine_warm_smile",
+      "category": "face_trigger",
+      "label": "Genuine warm smile",
+      "phrase": "a genuine warm smile",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "heartfelt smile"
+      ],
+      "tags": [
+        "face_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "face_trigger.soft_gentle_gaze",
+      "category": "face_trigger",
+      "label": "Soft gentle gaze",
+      "phrase": "a soft gentle gaze",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "tender look"
+      ],
+      "tags": [
+        "face_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "face_trigger.subtle_frown_lines",
+      "category": "face_trigger",
+      "label": "Subtle frown lines",
+      "phrase": "subtle frown lines",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "worried creases"
+      ],
+      "tags": [
+        "face_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "face_trigger.slightly_raised_eyebrows",
+      "category": "face_trigger",
+      "label": "Slightly raised eyebrows",
+      "phrase": "slightly raised eyebrows",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "questioning brows"
+      ],
+      "tags": [
+        "face_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "face_trigger.quivering_lower_lip",
+      "category": "face_trigger",
+      "label": "Quivering lower lip",
+      "phrase": "a quivering lower lip",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "trembling lip"
+      ],
+      "tags": [
+        "face_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "face_trigger.tear_filled_eyes",
+      "category": "face_trigger",
+      "label": "Tear-filled eyes",
+      "phrase": "tear-filled eyes",
+      "default_strength": 65,
+      "control_mode": "scalar",
+      "aliases": [
+        "glistening eyes"
+      ],
+      "tags": [
+        "face_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "face_trigger.tightly_pressed_lips",
+      "category": "face_trigger",
+      "label": "Tightly pressed lips",
+      "phrase": "tightly pressed lips",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "compressed mouth"
+      ],
+      "tags": [
+        "face_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "face_trigger.wide_unblinking_eyes",
+      "category": "face_trigger",
+      "label": "Wide unblinking eyes",
+      "phrase": "wide unblinking eyes",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "staring eyes"
+      ],
+      "tags": [
+        "face_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "face_trigger.soft_smile_lines",
+      "category": "face_trigger",
+      "label": "Soft smile lines",
+      "phrase": "soft smile lines",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "laugh lines"
+      ],
+      "tags": [
+        "face_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "face_trigger.furrowed_brow",
+      "category": "face_trigger",
+      "label": "Furrowed brow",
+      "phrase": "a furrowed brow",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "knitted brow"
+      ],
+      "tags": [
+        "face_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "face_trigger.parted_lips",
+      "category": "face_trigger",
+      "label": "Parted lips",
+      "phrase": "parted lips",
+      "default_strength": 50,
+      "control_mode": "scalar",
+      "aliases": [
+        "slightly open mouth"
+      ],
+      "tags": [
+        "face_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "face_trigger.relaxed_brow",
+      "category": "face_trigger",
+      "label": "Relaxed brow",
+      "phrase": "a relaxed brow",
+      "default_strength": 50,
+      "control_mode": "scalar",
+      "aliases": [
+        "smooth forehead"
+      ],
+      "tags": [
+        "face_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "face_trigger.crinkled_eye_corners",
+      "category": "face_trigger",
+      "label": "Crinkled eye corners",
+      "phrase": "crinkled eye corners",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "squinting smile eyes"
+      ],
+      "tags": [
+        "face_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "face_trigger.dimpled_cheeks",
+      "category": "face_trigger",
+      "label": "Dimpled cheeks",
+      "phrase": "dimpled cheeks",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "cheek dimples"
+      ],
+      "tags": [
+        "face_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "face_trigger.flushed_cheeks",
+      "category": "face_trigger",
+      "label": "Flushed cheeks",
+      "phrase": "flushed cheeks",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "rosy cheeks"
+      ],
+      "tags": [
+        "face_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "face_trigger.slack_jawed",
+      "category": "face_trigger",
+      "label": "Slack jawed",
+      "phrase": "a slack jaw",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "hanging jaw"
+      ],
+      "tags": [
+        "face_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "face_trigger.tense_jawline",
+      "category": "face_trigger",
+      "label": "Tense jawline",
+      "phrase": "a tense jawline",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "clenched jaw"
+      ],
+      "tags": [
+        "face_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "position.left_of_frame",
+      "category": "position",
+      "label": "Left of frame",
+      "phrase": "standing on the left side of the frame",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "frame left"
+      ],
+      "tags": [
+        "position"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "position.right_of_frame",
+      "category": "position",
+      "label": "Right of frame",
+      "phrase": "standing on the right side of the frame",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "frame right"
+      ],
+      "tags": [
+        "position"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "position.center_of_frame",
+      "category": "position",
+      "label": "Center of frame",
+      "phrase": "standing in the center of the frame",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "center stage"
+      ],
+      "tags": [
+        "position"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "position.in_the_foreground",
+      "category": "position",
+      "label": "In the foreground",
+      "phrase": "positioned in the foreground",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "foreground"
+      ],
+      "tags": [
+        "position"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "position.in_the_background",
+      "category": "position",
+      "label": "In the background",
+      "phrase": "positioned in the background",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "background"
+      ],
+      "tags": [
+        "position"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "position.far_left_edge",
+      "category": "position",
+      "label": "Far left edge",
+      "phrase": "at the far left edge of the frame",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "far left"
+      ],
+      "tags": [
+        "position"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "position.far_right_edge",
+      "category": "position",
+      "label": "Far right edge",
+      "phrase": "at the far right edge of the frame",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "far right"
+      ],
+      "tags": [
+        "position"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "position.behind_the_other_character",
+      "category": "position",
+      "label": "Behind the other character",
+      "phrase": "standing behind the other character",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "behind them"
+      ],
+      "tags": [
+        "position"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "position.closer_to_the_camera",
+      "category": "position",
+      "label": "Closer to the camera",
+      "phrase": "closer to the camera than the other character",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "near camera"
+      ],
+      "tags": [
+        "position"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "position.further_from_the_camera",
+      "category": "position",
+      "label": "Further from the camera",
+      "phrase": "further from the camera than the other character",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "far camera"
+      ],
+      "tags": [
+        "position"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "position.facing_away_from_camera",
+      "category": "position",
+      "label": "Facing away from camera",
+      "phrase": "facing away from the camera",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "back turned"
+      ],
+      "tags": [
+        "position"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "position.in_profile",
+      "category": "position",
+      "label": "In profile",
+      "phrase": "seen in profile",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "side view"
+      ],
+      "tags": [
+        "position"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "position.seated_on_the_left",
+      "category": "position",
+      "label": "Seated on the left",
+      "phrase": "seated on the left side of the frame",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "left seated"
+      ],
+      "tags": [
+        "position"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "position.seated_on_the_right",
+      "category": "position",
+      "label": "Seated on the right",
+      "phrase": "seated on the right side of the frame",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "right seated"
+      ],
+      "tags": [
+        "position"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "position.seated_in_the_center",
+      "category": "position",
+      "label": "Seated in the center",
+      "phrase": "seated in the center of the frame",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "center seated"
+      ],
+      "tags": [
+        "position"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "position.partially_out_of_frame",
+      "category": "position",
+      "label": "Partially out of frame",
+      "phrase": "partially out of frame at the edge",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "edge cropped"
+      ],
+      "tags": [
+        "position"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "position.elevated_above_the_other",
+      "category": "position",
+      "label": "Elevated above the other",
+      "phrase": "standing on a higher level than the other character",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "raised position"
+      ],
+      "tags": [
+        "position"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "position.lower_than_the_other",
+      "category": "position",
+      "label": "Lower than the other",
+      "phrase": "standing on a lower level than the other character",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "lower position"
+      ],
+      "tags": [
+        "position"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "position.leaning_against_a_wall",
+      "category": "position",
+      "label": "Leaning against a wall",
+      "phrase": "leaning against a wall",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "wall lean"
+      ],
+      "tags": [
+        "position"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "position.on_a_balcony_above",
+      "category": "position",
+      "label": "On a balcony above",
+      "phrase": "standing on a balcony above the scene",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "balcony"
+      ],
+      "tags": [
+        "position"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "position.at_a_doorway",
+      "category": "position",
+      "label": "At a doorway",
+      "phrase": "standing in a doorway",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "doorway"
+      ],
+      "tags": [
+        "position"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "position.by_a_window",
+      "category": "position",
+      "label": "By a window",
+      "phrase": "standing beside a window",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "window side"
+      ],
+      "tags": [
+        "position"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "position.walking_toward_camera",
+      "category": "position",
+      "label": "Walking toward camera",
+      "phrase": "walking toward the camera",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "approaching camera"
+      ],
+      "tags": [
+        "position"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "position.walking_away_from_camera",
+      "category": "position",
+      "label": "Walking away from camera",
+      "phrase": "walking away from the camera",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "receding"
+      ],
+      "tags": [
+        "position"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
+      "id": "position.at_the_head_of_a_table",
+      "category": "position",
+      "label": "At the head of a table",
+      "phrase": "seated at the head of the table",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "table head"
+      ],
+      "tags": [
+        "position"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "general visual vocabulary",
+      "schema_version": 1
+    },
+    {
       "id": "custom.custom_phrase",
       "category": "custom",
       "label": "Custom phrase",

@@ -517,6 +517,216 @@
           "intensity": 50
         }
       ]
+    },
+    {
+      "id": "master.over_the_shoulder",
+      "label": "Over-the-Shoulder Dialogue",
+      "description": "Classic OTS shot for two-character conversation.",
+      "rows": [
+        {
+          "preset_id": "framing.over_the_shoulder_shot",
+          "intensity": 60
+        },
+        {
+          "preset_id": "angle.shoulder_level_camera",
+          "intensity": 55
+        },
+        {
+          "preset_id": "lens.85mm_portrait",
+          "intensity": 55
+        },
+        {
+          "preset_id": "aperture.shallow_depth_of_field",
+          "intensity": 60
+        },
+        {
+          "preset_id": "lighting_setup.three_point_lighting",
+          "intensity": 50
+        },
+        {
+          "preset_id": "film_color.kodak_vision3_500t",
+          "intensity": 45
+        },
+        {
+          "preset_id": "style.cinematic_film_still",
+          "intensity": 55
+        }
+      ]
+    },
+    {
+      "id": "master.two_character_conversation",
+      "label": "Two-Character Conversation",
+      "description": "Balanced two-shot for an exchange between two characters.",
+      "rows": [
+        {
+          "preset_id": "framing.two_shot",
+          "intensity": 60
+        },
+        {
+          "preset_id": "composition.subject_on_left",
+          "intensity": 50
+        },
+        {
+          "preset_id": "composition.subject_on_right",
+          "intensity": 50
+        },
+        {
+          "preset_id": "lens.50mm_normal",
+          "intensity": 50
+        },
+        {
+          "preset_id": "aperture.moderate_depth_of_field",
+          "intensity": 55
+        },
+        {
+          "preset_id": "lighting_setup.three_point_lighting",
+          "intensity": 50
+        },
+        {
+          "preset_id": "camera_movement.locked_off_camera",
+          "intensity": 50
+        }
+      ]
+    },
+    {
+      "id": "master.reaction_close_up",
+      "label": "Reaction Close-Up",
+      "description": "Tight close-up that isolates one character's face.",
+      "rows": [
+        {
+          "preset_id": "framing.close_up",
+          "intensity": 65
+        },
+        {
+          "preset_id": "angle.eye_level",
+          "intensity": 50
+        },
+        {
+          "preset_id": "lens.100mm_portrait",
+          "intensity": 55
+        },
+        {
+          "preset_id": "aperture.shallow_depth_of_field",
+          "intensity": 60
+        },
+        {
+          "preset_id": "lighting_setup.soft_diffused_lighting",
+          "intensity": 55
+        },
+        {
+          "preset_id": "film_color.kodak_vision3_250d",
+          "intensity": 50
+        },
+        {
+          "preset_id": "composition.centered_composition",
+          "intensity": 50
+        }
+      ]
+    },
+    {
+      "id": "master.reverse_shot",
+      "label": "Reverse Shot",
+      "description": "Mirrored medium shot looking back at the first speaker.",
+      "rows": [
+        {
+          "preset_id": "framing.medium_close_up",
+          "intensity": 60
+        },
+        {
+          "preset_id": "angle.shoulder_level_camera",
+          "intensity": 55
+        },
+        {
+          "preset_id": "lens.85mm_portrait",
+          "intensity": 55
+        },
+        {
+          "preset_id": "aperture.shallow_depth_of_field",
+          "intensity": 60
+        },
+        {
+          "preset_id": "lighting_setup.low_key_lighting",
+          "intensity": 55
+        },
+        {
+          "preset_id": "film_color.kodak_vision3_500t",
+          "intensity": 50
+        },
+        {
+          "preset_id": "composition.subject_on_left",
+          "intensity": 55
+        }
+      ]
+    },
+    {
+      "id": "master.establishing_duo",
+      "label": "Establishing Duo",
+      "description": "Wide establishing shot placing two characters in a location.",
+      "rows": [
+        {
+          "preset_id": "framing.wide_shot",
+          "intensity": 60
+        },
+        {
+          "preset_id": "framing.two_shot",
+          "intensity": 50
+        },
+        {
+          "preset_id": "lens.35mm_documentary",
+          "intensity": 55
+        },
+        {
+          "preset_id": "aperture.moderate_depth_of_field",
+          "intensity": 55
+        },
+        {
+          "preset_id": "composition.layered_foreground_midground_and_background",
+          "intensity": 55
+        },
+        {
+          "preset_id": "lighting_setup.golden_hour_lighting",
+          "intensity": 55
+        },
+        {
+          "preset_id": "camera_movement.locked_off_camera",
+          "intensity": 50
+        }
+      ]
+    },
+    {
+      "id": "master.intimate_two_shot",
+      "label": "Intimate Two-Shot",
+      "description": "Close two-shot for an emotional beat between characters.",
+      "rows": [
+        {
+          "preset_id": "framing.two_shot",
+          "intensity": 60
+        },
+        {
+          "preset_id": "framing.close_up",
+          "intensity": 45
+        },
+        {
+          "preset_id": "lens.85mm_portrait",
+          "intensity": 55
+        },
+        {
+          "preset_id": "aperture.shallow_depth_of_field",
+          "intensity": 65
+        },
+        {
+          "preset_id": "lighting_setup.soft_diffused_lighting",
+          "intensity": 55
+        },
+        {
+          "preset_id": "lighting_direction.rim_lighting",
+          "intensity": 50
+        },
+        {
+          "preset_id": "film_color.warm_golden_palette",
+          "intensity": 50
+        }
+      ]
     }
   ]
 }

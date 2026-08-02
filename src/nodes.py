@@ -465,14 +465,14 @@ class Krea2PromptWizard:
             },
         }
 
-    RETURN_TYPES = ("STRING",)
+    RETURN_TYPES = ("STRING", "STRING")
     # A wizard with Each job enabled must run for every queue item.  Marking it
     # as an output node prevents ComfyUI from reusing a previous prompt.
     OUTPUT_NODE = True
-    RETURN_NAMES = ("Prompt Output",)
+    RETURN_NAMES = ("Prompt Output", "Video Motion Prompt")
     FUNCTION = "build"
     CATEGORY = "_Krea2 Prompt Wizard"
-    DESCRIPTION = "Visual prompt builder for Krea 2. The frontend owns the editor; the backend compiles the state to one prompt."
+    DESCRIPTION = "Visual prompt builder for Krea 2. The frontend owns the editor; the backend compiles the state to one prompt, plus an optional video motion prompt for image-to-video models like LTX-2.3."
     SEARCH_ALIASES = ["krea2 wizard", "prompt wizard", "visual prompt builder", "krea2 prompt builder"]
 
     @classmethod
@@ -510,14 +510,17 @@ class Krea2PromptWizard:
         result = compiler_module.compile_state(state, get_library(), expert=expert_mode)
         if state.get("embed_prompt_metadata", True) and isinstance(extra_pnginfo, dict):
             extra_pnginfo["krea2_prompt"] = result.final_prompt
+            if result.motion_prompt:
+                extra_pnginfo["krea2_motion_prompt"] = result.motion_prompt
         # Return the resolved random choices to the frontend as well as the
         # prompt.  This keeps the visible cards honest after Each job runs.
         return {
             "ui": {
                 "krea2_resolved_state": [json.dumps(state, ensure_ascii=False)],
                 "krea2_prompt_output": [result.final_prompt],
+                "krea2_motion_prompt": [result.motion_prompt],
             },
-            "result": (result.final_prompt,),
+            "result": (result.final_prompt, result.motion_prompt),
         }
 
 

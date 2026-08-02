@@ -1,5 +1,11 @@
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { readFileSync } from "node:fs";
 import path from "node:path";
+
+const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const libraryPayload = JSON.parse(
+  readFileSync(path.join(rootDir, "presets", "default_library.json"), "utf-8"),
+);
 
 class ClassList {
   constructor() { this.values = new Set(); }
@@ -27,6 +33,14 @@ class Element {
     this.textContent = "";
     this.parentNode = null;
     this.listeners = {};
+    this._innerHTML = "";
+  }
+  set innerHTML(value) {
+    this._innerHTML = String(value);
+    if (value === "") this.children = [];
+  }
+  get innerHTML() {
+    return this._innerHTML;
   }
   appendChild(child) { this.children.push(child); child.parentNode = this; return child; }
   append(...children) { children.forEach((child) => this.appendChild(child)); }
@@ -48,7 +62,28 @@ globalThis.document = {
 globalThis.window = globalThis;
 window.KREA2 = {};
 window.app = { api: { apiURL: (url) => url }, extensionManager: { toast: { add() {} } } };
-globalThis.fetch = () => new Promise(() => {});
+globalThis.fetch = (url) => {
+  const apiPath = String(url).replace(/^.*\/krea2_prompt_wizard/, "/krea2_prompt_wizard");
+  if (apiPath === "/krea2_prompt_wizard/library") {
+    return Promise.resolve({ ok: true, json: async () => libraryPayload });
+  }
+  if (apiPath === "/krea2_prompt_wizard/saved_presets") {
+    return Promise.resolve({ ok: true, json: async () => ({ presets: [] }) });
+  }
+  if (apiPath === "/krea2_prompt_wizard/master_presets") {
+    return Promise.resolve({ ok: true, json: async () => ({ master_presets: [] }) });
+  }
+  if (apiPath === "/krea2_prompt_wizard/concept_colors") {
+    return Promise.resolve({ ok: true, json: async () => ({ colors: {} }) });
+  }
+  if (apiPath === "/krea2_prompt_wizard/preview") {
+    return Promise.resolve({
+      ok: true,
+      json: async () => ({ final_prompt: "", plain_prompt: "", fragments: [], warnings: [] }),
+    });
+  }
+  return new Promise(() => {});
+};
 globalThis.confirm = () => true;
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -89,7 +124,7 @@ const stateWidget = {
 const node = { widgets: [stateWidget], setDirtyCanvas() {} };
 const wizard = window.KREA2.createWizardWidget(node);
 
-if (!wizard || wizard.root.children.length < 4 || !stateWidget.hidden) {
+if (!wizard || wizard.root.children.length < 2 || !stateWidget.hidden) {
   throw new Error("Wizard DOM failed to initialize");
 }
 
@@ -102,6 +137,47 @@ function findByClass(element, className) {
   return matches;
 }
 
+function switchTab(tabId) {
+  wizard.setTab(tabId);
+}
+
+if (findByClass(wizard.root, "krea2-wizard-tab").length !== 4) {
+  throw new Error("The wizard must expose four mode tabs (Cast, Scene, Concepts, Prompt).");
+}
+if (findByClass(wizard.root, "krea2-wizard-creative-option").length !== 2) {
+  throw new Error("The creative mode toggle must remain visible in the header.");
+}
+if (!findByClass(wizard.root, "krea2-structured-section").length) {
+  throw new Error("The Cast tab must render the character editor by default.");
+}
+
+const promptInput = findByClass(wizard.root, "krea2-wizard-base")[0];
+wizard.setState({ schema_version: 1, base_prompt: "restored prompt", rows: [] });
+switchTab("scene");
+const restoredInput = findByClass(wizard.root, "krea2-wizard-base")[0];
+restoredInput.listeners.input({ target: { value: "updated prompt" } });
+if (JSON.parse(stateWidget.value).base_prompt !== "updated prompt") {
+  throw new Error("Main prompt edits must persist after state restoration.");
+}
+
+wizard.setState({
+  schema_version: 1,
+  base_prompt: "portrait",
+  rows: [{
+    id: "row_smoke",
+    category: "emotion",
+    preset_id: "emotion.joy",
+    label: "Joy",
+    phrase: "joy",
+    control_mode: "scalar",
+    intensity: 42,
+    strength: -1.25,
+    enabled: true,
+    aliases: [],
+    verification: "general visual vocabulary",
+  }],
+});
+switchTab("concepts");
 const sliders = findByClass(wizard.root, "krea2-row-intensity");
 if (sliders.length !== 1 || sliders[0].min !== "-3" || sliders[0].max !== "3") {
   throw new Error("Concept cards must expose the compact -3 to +3 strength control.");
@@ -119,26 +195,21 @@ if (findByClass(wizard.root, "krea2-row-preview").length !== 0
   throw new Error("Compact concept cards must not render legacy detail controls.");
 }
 if (findByClass(wizard.root, "krea2-wizard-category").length !== 5) {
-  throw new Error("All five concept groups must be visible from the start.");
+  throw new Error("The Concepts tab must show all five concept groups.");
 }
+if (findByClass(wizard.root, "krea2-wizard-random-controls").length !== 5) {
+  throw new Error("Each concept group must keep its dice and each-job controls.");
+}
+
+switchTab("prompt");
 if (findByClass(wizard.root, "krea2-wizard-preview-host").length !== 1
     || findByClass(wizard.root, "krea2-preview-pretty").length !== 1
     || findByClass(wizard.root, "krea2-wizard-preview").length !== 1) {
-  throw new Error("Live Preview must render both readable and prompt-code views.");
+  throw new Error("The Prompt tab must render both readable and prompt-code preview views.");
 }
-if (findByClass(wizard.root, "krea2-wizard-creative-option").length !== 2
-    || findByClass(wizard.root, "krea2-wizard-random-controls").length !== 5) {
-  throw new Error("The creative mode and related random controls must be visible.");
-}
-if (findByClass(wizard.root, "krea2-structured-section").length !== 2) {
-  throw new Error("Character and setting editors must be visible.");
-}
-
-const promptInput = findByClass(wizard.root, "krea2-wizard-base")[0];
-wizard.setState({ schema_version: 1, base_prompt: "restored prompt", rows: [] });
-promptInput.listeners.input({ target: { value: "updated prompt" } });
-if (JSON.parse(stateWidget.value).base_prompt !== "updated prompt") {
-  throw new Error("Main prompt edits must persist after state restoration.");
+if (findByClass(wizard.root, "krea2-motion-section").length !== 1
+    || findByClass(wizard.root, "krea2-motion-prompt").length !== 1) {
+  throw new Error("The Prompt tab must expose the video motion prompt editor.");
 }
 
 const structuredState = {
@@ -157,13 +228,91 @@ if (!structuredPrompt.includes("Character Mara") || !structuredPrompt.includes("
     || !structuredPrompt.includes("Setting Spaceship bridge")) {
   throw new Error("Multiple characters and the active setting must compile into the prompt preview.");
 }
+switchTab("cast");
 if (findByClass(wizard.root, "krea2-avatar").length !== 1
     || findByClass(wizard.root, "krea2-character-details").length !== 1
-    || findByClass(wizard.root, "krea2-save-character").length !== 1) {
-  throw new Error("The compact character editor must keep its avatar, details, and preset save control.");
+    || findByClass(wizard.root, "krea2-save-character").length !== 1
+    || findByClass(wizard.root, "krea2-emotion-chips").length !== 1
+    || findByClass(wizard.root, "krea2-face-guidance").length !== 1
+    || findByClass(wizard.root, "krea2-character-direction").length !== 1) {
+  throw new Error("The compact cast editor must keep its avatar, details, preset save, and per-character direction panel.");
 }
 if (findByClass(wizard.root, "krea2-icon-btn").length < 8) {
   throw new Error("Randomization controls must use compact dice buttons.");
+}
+
+const directedState = {
+  schema_version: 1,
+  base_prompt: "a rainy street",
+  rows: [],
+  characters: [
+    {
+      id: "d1",
+      name: "Mara",
+      enabled: true,
+      position: "standing on the left side of the frame",
+      rows: [{
+        id: "dr1",
+        category: "emotion",
+        preset_id: "emotion.joy",
+        label: "Joy",
+        phrase: "joy",
+        control_mode: "scalar",
+        intensity: 0,
+        strength: 1.5,
+        enabled: true,
+        aliases: [],
+      }],
+      face_guidance: "(sparkling bright eyes:1.4)",
+    },
+    {
+      id: "d2",
+      name: "Alex",
+      enabled: true,
+      position: "standing on the right side of the frame",
+      rows: [{
+        id: "dr2",
+        category: "emotion",
+        preset_id: "emotion.sadness",
+        label: "Sadness",
+        phrase: "sadness",
+        control_mode: "scalar",
+        intensity: 0,
+        strength: 1.5,
+        enabled: true,
+        aliases: [],
+      }],
+      interaction: "avoiding eye contact",
+    },
+  ],
+  motion_prompt_enabled: true,
+};
+wizard.setState(directedState);
+const directedPreview = window.KREA2.helpers.compilePreview(directedState);
+if (!directedPreview.final_prompt.includes("Character Mara (standing on the left side of the frame)")
+    || !directedPreview.final_prompt.includes("(joy:1.5)")
+    || !directedPreview.final_prompt.includes("Character Alex (standing on the right side of the frame)")
+    || !directedPreview.final_prompt.includes("(sadness:1.5)")
+    || !directedPreview.final_prompt.includes("(sparkling bright eyes:1.4)")
+    || !directedPreview.final_prompt.includes("avoiding eye contact")) {
+  throw new Error("Directed cast members must compile with separate emotions, positions, and face guidance.");
+}
+const maraIndex = directedPreview.final_prompt.indexOf("Mara");
+const alexIndex = directedPreview.final_prompt.indexOf("Alex");
+if (directedPreview.final_prompt.slice(maraIndex, alexIndex).includes("sadness")) {
+  throw new Error("One cast member's emotion must not leak into the other's block.");
+}
+if (!directedPreview.motion_prompt_draft.includes("beams with joy")
+    || !directedPreview.motion_prompt_draft.includes("looks sad")) {
+  throw new Error("The cast draft must produce per-character motion lines.");
+}
+switchTab("cast");
+await new Promise((resolve) => setTimeout(resolve, 25));
+const emotionChips = findByClass(wizard.root, "krea2-emotion-chip");
+if (emotionChips.length < 4
+    || findByClass(wizard.root, "krea2-direction-rows").length < 1
+    || emotionChips.filter((chip) => (chip.className || "").split(/\s+/).includes("is-active")).length !== 1) {
+  throw new Error("Cast direction must render emotion chips and scoped direction rows.");
 }
 
 wizard.recordExecution("first prompt");

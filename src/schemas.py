@@ -68,9 +68,12 @@ MAX_PRESETS_BUNDLED_DEFAULT = 2000  # documented requirement: at least 2000
 CATEGORIES: List[str] = [
     "body",  # body language, pose, subject action
     "emotion",
+    "emotion_trigger",  # parenthetical emotion guidance triggers
     "face",  # facial action
+    "face_trigger",  # parenthetical face guidance triggers
     "gaze",
     "mouth",  # mouth and vocal action
+    "position",  # character placement inside the frame
     "framing",  # camera framing / shot size
     "angle",  # camera angle
     "perspective",  # camera position and perspective
@@ -96,9 +99,12 @@ CATEGORIES: List[str] = [
 CATEGORY_LABELS: Dict[str, str] = {
     "body": "Body Language and Pose",
     "emotion": "Emotion",
+    "emotion_trigger": "Emotion Trigger",
     "face": "Facial Action",
+    "face_trigger": "Face Trigger",
     "gaze": "Gaze",
     "mouth": "Mouth and Vocal Action",
+    "position": "Position and Placement",
     "framing": "Camera Framing",
     "angle": "Camera Angle",
     "perspective": "Camera Position and Perspective",
@@ -146,6 +152,7 @@ OUTPUT_CHANNELS: List[str] = [
     "style_prompt",
     "detail_prompt",
     "custom_prompt",
+    "motion_prompt",
     "trace_json",
     "state_json",
     "warnings",
@@ -217,6 +224,7 @@ PRESET_KEYS_OPTIONAL: Tuple[str, ...] = (
     "notes",
     "schema_version",
     "deprecated_replacement",
+    "verbatim",
 )
 ROW_KEYS_REQUIRED: Tuple[str, ...] = (
     "id",
@@ -240,6 +248,7 @@ ROW_KEYS_OPTIONAL: Tuple[str, ...] = (
     "source",
     "i18n_aliases",
     "favourite",
+    "verbatim",
 )
 
 

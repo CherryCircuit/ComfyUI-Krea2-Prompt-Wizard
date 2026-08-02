@@ -179,5 +179,108 @@ class DeterministicRegressionTests(unittest.TestCase):
         self.assertEqual(a.final_prompt, b.final_prompt)
 
 
+class TwoCharacterSceneTest(unittest.TestCase):
+    """Per-character direction must keep emotions separate in one scene."""
+
+    def test_happy_and_sad_cast_members(self):
+        state = empty_state()
+        state["base_prompt"] = "a quiet cafe table"
+        state["characters"] = [
+            {
+                "id": "c1",
+                "name": "Mara",
+                "enabled": True,
+                "subject": "adult woman",
+                "clothing": "knitted cardigan",
+                "position": "seated on the left side of the frame",
+                "rows": [
+                    {
+                        "id": "r1",
+                        "category": "emotion",
+                        "preset_id": "emotion.joy",
+                        "label": "Joy",
+                        "phrase": "joy",
+                        "intensity": 0,
+                        "strength": 1.5,
+                        "control_mode": "scalar",
+                        "enabled": True,
+                    },
+                    {
+                        "id": "r2",
+                        "category": "mouth",
+                        "preset_id": "mouth.gentle_smile",
+                        "label": "Gentle smile",
+                        "phrase": "gentle smile",
+                        "intensity": 0,
+                        "strength": 1.25,
+                        "control_mode": "scalar",
+                        "enabled": True,
+                    },
+                ],
+                "face_guidance": "(sparkling bright eyes:1.4)",
+            },
+            {
+                "id": "c2",
+                "name": "Ivo",
+                "enabled": True,
+                "subject": "adult man",
+                "clothing": "dark wool coat",
+                "position": "seated on the right side of the frame",
+                "rows": [
+                    {
+                        "id": "r3",
+                        "category": "emotion",
+                        "preset_id": "emotion.melancholy",
+                        "label": "Melancholy",
+                        "phrase": "melancholy",
+                        "intensity": 0,
+                        "strength": 1.5,
+                        "control_mode": "scalar",
+                        "enabled": True,
+                    },
+                    {
+                        "id": "r4",
+                        "category": "body",
+                        "preset_id": "body.hunched_shoulders",
+                        "label": "Hunched shoulders",
+                        "phrase": "hunched shoulders",
+                        "intensity": 0,
+                        "strength": 1.0,
+                        "control_mode": "scalar",
+                        "enabled": True,
+                    },
+                ],
+                "interaction": "staring into his coffee",
+            },
+        ]
+        state["rows"] = [
+            {
+                "id": "g1",
+                "category": "framing",
+                "preset_id": "framing.two_shot",
+                "label": "Two-shot",
+                "phrase": "two-shot",
+                "intensity": 0,
+                "strength": 1.0,
+                "control_mode": "scalar",
+                "enabled": True,
+            },
+        ]
+        state["motion_prompt_enabled"] = True
+        result = compile_state(state, _lib())
+        self.assertIn("(joy:1.5)", result.final_prompt)
+        self.assertIn("(gentle smile:1.25)", result.final_prompt)
+        self.assertIn("(melancholy:1.5)", result.final_prompt)
+        self.assertIn(", hunched shoulders,", result.final_prompt)
+        self.assertIn("(sparkling bright eyes:1.4)", result.final_prompt)
+        self.assertIn("staring into his coffee", result.final_prompt)
+        mara_idx = result.final_prompt.index("Mara")
+        ivo_idx = result.final_prompt.index("Ivo")
+        self.assertNotIn("melancholy", result.final_prompt[mara_idx:ivo_idx])
+        self.assertIn("beams with joy", result.motion_prompt)
+        self.assertIn("looks sad", result.motion_prompt)
+        _assert_golden(self, "two_character_scene.json", result)
+
+
 if __name__ == "__main__":
     unittest.main()

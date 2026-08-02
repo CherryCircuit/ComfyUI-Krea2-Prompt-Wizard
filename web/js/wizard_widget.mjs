@@ -59,6 +59,35 @@
     ["proportions", "Proportions", ["natural proportions", "tall proportions", "petite proportions", "broad shoulders", "long legs", "balanced hourglass proportions"]],
   ];
 
+  /* Per-character direction categories. A cast member owns these so two
+   * characters in one scene never share the same emotion or body language. */
+  const EMOTION_CATEGORIES = ["emotion", "emotion_trigger"];
+  const FACE_CATEGORIES = ["face", "face_trigger", "gaze", "mouth"];
+  const BODY_CATEGORIES = ["body"];
+  const POSITION_CATEGORIES = ["position"];
+  const DIRECTION_CATEGORIES = EMOTION_CATEGORIES.concat(
+    FACE_CATEGORIES, BODY_CATEGORIES, POSITION_CATEGORIES,
+  );
+
+  /* One-click emotion chips shown on each cast member. */
+  const EMOTION_CHIP_PRESET_IDS = [
+    "emotion.joy",
+    "emotion.sadness",
+    "emotion.anger",
+    "emotion.fear",
+    "emotion.surprise",
+    "emotion.disgust",
+    "emotion.serenity",
+    "emotion.determination",
+  ];
+
+  const TABS = [
+    ["cast", "🎬 Cast"],
+    ["scene", "🎥 Scene"],
+    ["concepts", "✨ Concepts"],
+    ["prompt", "📜 Prompt"],
+  ];
+
   const SETTING_PRESETS = [
     ["Game show", "a bright television game-show stage with contestant podiums, LED walls, studio cameras, and a cheering audience"],
     ["Urban apartment — living room", "a contemporary urban apartment living room with city-window views and practical interior lighting"],
@@ -231,13 +260,54 @@
 
     const topBar = el("div", { class: "krea2-wizard-top" }, [
       creativeModeControl,
-      libraryBtn,
-      randomAllBtn,
-      settingsBtn,
+      el("span", { class: "krea2-structured-spacer" }),
       undoBtn,
       redoBtn,
       resetBtn,
+      buildOverflowMenu(),
     ]);
+
+    function buildOverflowMenu() {
+      const wrap = el("div", { class: "krea2-wizard-overflow" });
+      const moreBtn = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-icon-btn",
+        title: "More options",
+        "aria-label": "More options",
+        onClick: function (event) {
+          event.stopPropagation();
+          const open = menu.classList.toggle("is-open");
+          document.addEventListener("mousedown", closeOnOutside, { once: true });
+          function closeOnOutside(event) {
+            if (!wrap.contains(event.target)) menu.classList.remove("is-open");
+          }
+          if (!open) document.removeEventListener("mousedown", closeOnOutside, { once: true });
+        },
+      }, "···");
+      const menu = el("div", { class: "krea2-wizard-overflow-menu" }, [
+        el("button", { type: "button", class: "krea2-wizard-btn", onClick: function () {
+          menu.classList.remove("is-open"); openLibrary();
+        } }, "📚 Library"),
+        el("button", { type: "button", class: "krea2-wizard-btn", onClick: function () {
+          menu.classList.remove("is-open"); randomizeAll();
+        } }, "🎲 Randomize all"),
+        el("button", { type: "button", class: "krea2-wizard-btn", onClick: function () {
+          menu.classList.remove("is-open");
+          state.settings_open = !state.settings_open;
+          markDirty();
+          renderNodeSettings();
+        } }, "⚙ Node settings"),
+        el("button", { type: "button", class: "krea2-wizard-btn", onClick: function () {
+          menu.classList.remove("is-open"); materialize();
+        } }, "🔗 Materialize"),
+        el("button", { type: "button", class: "krea2-wizard-btn", onClick: function () {
+          menu.classList.remove("is-open"); createSubgraph();
+        } }, "📦 Create Subgraph"),
+      ]);
+      wrap.appendChild(moreBtn);
+      wrap.appendChild(menu);
+      return wrap;
+    }
 
     function handleColorChange(presetId, newColor) {
       state.concept_colors = state.concept_colors || {};
@@ -269,25 +339,47 @@
       },
     }, "+ Add Concept");
 
-    /* --- Layout: collapsible categories --- */
-    const categoryBody = el("div", { class: "krea2-wizard-categories" });
+    /* --- Layout: mode tabs with per-tab hosts --- */
+    const tabBar = el("div", { class: "krea2-wizard-tabs", role: "tablist" });
+    const castHost = el("div", { class: "krea2-tab-host krea2-cast-tab" });
+    const sceneHost = el("div", { class: "krea2-tab-host krea2-scene-tab" });
+    const conceptsHost = el("div", { class: "krea2-tab-host krea2-concepts-tab" });
+    const promptHost = el("div", { class: "krea2-tab-host krea2-prompt-tab" });
     const settingsHost = el("div", { class: "krea2-settings-host" });
     const structuredHost = el("div", { class: "krea2-structured-host" });
+    const categoryBody = el("div", { class: "krea2-wizard-categories" });
     const showWork = el("div", { class: "krea2-wizard-show-work-host" });
 
     const editorBody = el("div", { class: "krea2-wizard-editor" }, [
-      savedPresetControl.root,
-      basePromptControl.root,
+      tabBar,
       settingsHost,
-      structuredHost,
-      el("div", { class: "krea2-wizard-add-row" }, [addConcept, masterPresetSelect]),
-      categoryBody,
+      castHost,
+      sceneHost,
+      conceptsHost,
+      promptHost,
     ]);
+
+    function renderTabBar() {
+      tabBar.innerHTML = "";
+      for (const tab of TABS) {
+        const active = (state.active_tab || "cast") === tab[0];
+        tabBar.appendChild(el("button", {
+          type: "button",
+          class: "krea2-wizard-tab" + (active ? " is-active" : ""),
+          role: "tab",
+          "aria-selected": active ? "true" : "false",
+          onClick: function () {
+            if (state.active_tab === tab[0]) return;
+            state.active_tab = tab[0];
+            persist();
+            render();
+          },
+        }, tab[1]));
+      }
+    }
 
     root.appendChild(topBar);
     root.appendChild(editorBody);
-    root.appendChild(livePreview.root);
-    root.appendChild(showWork);
 
     /* The backend supplies the built-in category presets together with the
      * user's saved presets. Keeping one source prevents stale browser-only
@@ -490,6 +582,11 @@
         fitness: "",
         proportions: "natural proportions",
         adult_description: "",
+        character_ref: "",
+        position: "",
+        face_guidance: "",
+        interaction: "",
+        rows: [],
       };
     }
 
@@ -510,10 +607,265 @@
     }
 
     function renderStructuredEditors() {
-      ensureStructuredState();
-      structuredHost.innerHTML = "";
-      structuredHost.appendChild(renderCharacterEditor());
-      structuredHost.appendChild(renderSettingEditor());
+      render();
+    }
+
+    /* --- Per-character direction (emotion, face, body, position) --- */
+
+    function uniqueCharacterRowId(character) {
+      let id;
+      const taken = new Set(state.rows.map(function (row) { return row.id; }));
+      (state.characters || []).forEach(function (item) {
+        (item.rows || []).forEach(function (row) { taken.add(row.id); });
+      });
+      do {
+        id = "crow_" + Math.random().toString(16).slice(2, 12);
+      } while (taken.has(id));
+      return id;
+    }
+
+    function addCharacterRow(character, preset) {
+      if (!Array.isArray(character.rows)) character.rows = [];
+      const row = presetToRow(preset, state);
+      row.id = uniqueCharacterRowId(character);
+      character.rows.push(row);
+      markDirty();
+      render();
+    }
+
+    function removeCharacterRow(character, rowId) {
+      character.rows = (character.rows || []).filter(function (row) { return row.id !== rowId; });
+      markDirty();
+      render();
+    }
+
+    function editCharacterRow(character, row) {
+      showSearchableSelector({
+        presets: characterRowPresets(),
+        title: "Replace " + (row.label || "concept"),
+        categories: DIRECTION_CATEGORIES,
+        multiSelect: false,
+        selectedIds: [row.preset_id],
+        initialPresetId: row.preset_id,
+        onClose: function () { render(); },
+        getConceptColor: function (presetId) { return (state.concept_colors || {})[presetId] || ""; },
+        onColorChange: function (presetId, newColor) {
+          state.concept_colors = state.concept_colors || {};
+          if (newColor) state.concept_colors[presetId] = newColor;
+          else delete state.concept_colors[presetId];
+          markDirty();
+        },
+        onPick: function (preset) {
+          const replacement = presetToRow(preset, state);
+          replacement.id = row.id;
+          replacement.strength = row.strength;
+          replacement.enabled = row.enabled;
+          const index = (character.rows || []).findIndex(function (item) { return item.id === row.id; });
+          if (index >= 0) character.rows[index] = replacement;
+          markDirty();
+          render();
+        },
+      });
+    }
+
+    function characterRowPresets() {
+      return compatibleLibrary().filter(function (preset) {
+        return DIRECTION_CATEGORIES.includes(preset.category) && !preset.disabled;
+      });
+    }
+
+    function characterRowCtx(character, rows) {
+      return {
+        presets: library,
+        conceptColors: state.concept_colors,
+        markDirty: markDirty,
+        persistConceptColors: function () { saveConceptColors(state.concept_colors || {}).catch(function () {}); },
+        refresh: render,
+        removeRow: function (id) { removeCharacterRow(character, id); },
+        onReorder: function (parent) {
+          const ids = Array.prototype.map.call(parent.querySelectorAll(".krea2-row"), function (element) {
+            return element.dataset.rowId;
+          });
+          const reordered = ids.map(function (id) {
+            return (character.rows || []).find(function (row) { return row.id === id; });
+          }).filter(Boolean);
+          const scopedIds = new Set(rows.map(function (row) { return row.id; }));
+          character.rows = (character.rows || []).map(function (row) {
+            return scopedIds.has(row.id) ? reordered.shift() : row;
+          });
+          markDirty();
+        },
+        editRow: function (row) { editCharacterRow(character, row); },
+        onHover: setRowHover,
+      };
+    }
+
+    function characterRowBlock(character, categories, title, emptyHint) {
+      const rows = (character.rows || []).filter(function (row) {
+        return categories.includes(row.category);
+      });
+      const block = el("div", { class: "krea2-direction-block" });
+      const header = el("div", { class: "krea2-direction-block-head" }, [
+        el("strong", null, title),
+        el("span", { class: "krea2-structured-spacer" }),
+        el("button", {
+          type: "button",
+          class: "krea2-wizard-btn krea2-quiet-btn",
+          onClick: function () {
+            showSearchableSelector({
+              presets: characterRowPresets(),
+              title: "Add " + title + " for " + (character.name || "this character"),
+              categories: categories,
+              multiSelect: true,
+              selectedIds: rows.map(function (row) { return row.preset_id; }),
+              onToggle: function (preset, shouldSelect) {
+                if (shouldSelect) {
+                  addCharacterRow(character, preset);
+                } else {
+                  const existing = (character.rows || []).find(function (row) {
+                    return row.preset_id === preset.id;
+                  });
+                  if (existing) removeCharacterRow(character, existing.id);
+                }
+              },
+              onClose: function () { render(); },
+              getConceptColor: function (presetId) { return (state.concept_colors || {})[presetId] || ""; },
+              onColorChange: function (presetId, newColor) {
+                state.concept_colors = state.concept_colors || {};
+                if (newColor) state.concept_colors[presetId] = newColor;
+                else delete state.concept_colors[presetId];
+                markDirty();
+              },
+            });
+          },
+        }, "+ Add"),
+      ]);
+      block.appendChild(header);
+      if (!rows.length) {
+        block.appendChild(el("div", { class: "krea2-wizard-empty" }, emptyHint || "Nothing set yet."));
+        return block;
+      }
+      const content = el("div", { class: "krea2-direction-rows" });
+      for (const row of rows) {
+        content.appendChild(renderRow(row, characterRowCtx(character, rows)));
+      }
+      block.appendChild(content);
+      return block;
+    }
+
+    function toggleEmotionChip(character, preset) {
+      const existing = (character.rows || []).find(function (row) { return row.preset_id === preset.id; });
+      if (existing) removeCharacterRow(character, existing.id);
+      else addCharacterRow(character, preset);
+    }
+
+    function renderEmotionChips(character) {
+      const chips = el("div", { class: "krea2-emotion-chips" });
+      for (const presetId of EMOTION_CHIP_PRESET_IDS) {
+        const preset = library.find(function (item) { return item.id === presetId; });
+        if (!preset) continue;
+        const active = (character.rows || []).some(function (row) { return row.preset_id === presetId; });
+        chips.appendChild(el("button", {
+          type: "button",
+          class: "krea2-emotion-chip" + (active ? " is-active" : ""),
+          title: active ? "Remove " + preset.label : "Add " + preset.label,
+          onClick: function () { toggleEmotionChip(character, preset); },
+        }, preset.label));
+      }
+      return chips;
+    }
+
+    function renderCharacterDirection(character) {
+      const section = el("div", { class: "krea2-character-direction" });
+      section.appendChild(el("div", { class: "krea2-direction-heading" },
+        "Direction — emotions, face, body and placement for this character only"));
+
+      /* Position */
+      const positionPresets = library.filter(function (preset) {
+        return preset.category === "position" && !preset.disabled;
+      });
+      const positionSelect = el("select", {
+        class: "krea2-compact-select",
+        "aria-label": "Position and placement",
+        onChange: function (event) {
+          const preset = positionPresets.find(function (item) { return item.id === event.target.value; });
+          character.position = preset ? preset.phrase : "";
+          markDirty();
+          render();
+        },
+      });
+      positionSelect.appendChild(el("option", { value: "" }, "Position in frame..."));
+      for (const preset of positionPresets) {
+        positionSelect.appendChild(el("option", { value: preset.id }, preset.label));
+      }
+      const currentPosition = positionPresets.find(function (preset) {
+        return preset.phrase === character.position;
+      });
+      positionSelect.value = currentPosition ? currentPosition.id : "";
+      const positionRow = el("div", { class: "krea2-direction-position" }, [
+        el("span", { class: "krea2-direction-label" }, "Placement"),
+        positionSelect,
+        diceButton("Random placement", function () {
+          const preset = randomChoice(positionPresets);
+          if (preset) { character.position = preset.phrase; markDirty(); render(); }
+        }, "krea2-field-random krea2-icon-btn"),
+      ]);
+      if (character.position && !currentPosition) {
+        positionRow.appendChild(el("span", { class: "krea2-direction-custom" }, character.position));
+      }
+      section.appendChild(positionRow);
+
+      /* Emotion chips */
+      section.appendChild(el("div", { class: "krea2-direction-label" }, "Emotion quick picks"));
+      section.appendChild(renderEmotionChips(character));
+      section.appendChild(characterRowBlock(character, EMOTION_CATEGORIES.concat(FACE_CATEGORIES), "Emotion & face", "No emotion or facial guidance yet."));
+      section.appendChild(characterRowBlock(character, BODY_CATEGORIES.concat(POSITION_CATEGORIES), "Body & movement", "No body language or movement set."));
+
+      /* Face guidance free text */
+      const guidance = el("div", { class: "krea2-direction-guidance" });
+      guidance.appendChild(el("div", { class: "krea2-direction-block-head" }, [
+        el("strong", null, "Face guidance triggers"),
+        el("span", { class: "krea2-direction-hint" }, "one (trigger:weight) per line, emitted verbatim"),
+      ]));
+      guidance.appendChild(el("textarea", {
+        class: "krea2-compact-textarea krea2-face-guidance",
+        rows: "3",
+        "aria-label": "Face guidance triggers",
+        placeholder: "(sparkling bright eyes:1.4)\n(genuine warm smile:1.2)",
+        onInput: function (event) { character.face_guidance = event.target.value; markDirty(); },
+      }, character.face_guidance || ""));
+      section.appendChild(guidance);
+
+      /* Interaction with other cast members */
+      const others = (state.characters || []).filter(function (item) {
+        return item.id !== character.id && item.enabled !== false;
+      }).map(function (item) { return item.name; }).filter(Boolean);
+      const interaction = el("div", { class: "krea2-direction-interaction" });
+      interaction.appendChild(el("div", { class: "krea2-direction-block-head" }, [
+        el("strong", null, "Interaction"),
+        el("span", { class: "krea2-direction-hint" }, "e.g. looking at " + (others[0] || "the other character")),
+      ]));
+      const interactionInput = el("input", {
+        type: "text",
+        class: "krea2-compact-input",
+        value: character.interaction || "",
+        placeholder: "looking at Alex",
+        list: "krea2-interaction-suggestions-" + character.id,
+        "aria-label": "Interaction with other characters",
+        onInput: function (event) { character.interaction = event.target.value; markDirty(); },
+      });
+      const suggestions = el("datalist", { id: "krea2-interaction-suggestions-" + character.id });
+      for (const other of others) {
+        suggestions.appendChild(el("option", { value: "looking at " + other }));
+        suggestions.appendChild(el("option", { value: "smiling at " + other }));
+        suggestions.appendChild(el("option", { value: "pointing at " + other }));
+        suggestions.appendChild(el("option", { value: "leaning toward " + other }));
+        suggestions.appendChild(el("option", { value: "facing away from " + other }));
+      }
+      interaction.appendChild(interactionInput);
+      interaction.appendChild(suggestions);
+      section.appendChild(interaction);
+      return section;
     }
 
     function avatarColor(value, fallback) {
@@ -650,6 +1002,11 @@
         const stored = cloneJson(entry.preset.character);
         const replacement = Object.assign(newCharacter(), stored, { id: character.id });
         if (!stored.name) replacement.name = character.name || entry.preset.label;
+        // Applying a look keeps the member's direction block.
+        replacement.position = character.position || "";
+        replacement.face_guidance = character.face_guidance || "";
+        replacement.interaction = character.interaction || "";
+        replacement.rows = Array.isArray(character.rows) ? cloneJson(character.rows) : [];
         const index = state.characters.indexOf(character); state.characters[index] = replacement;
         markDirty(); renderStructuredEditors();
       } }, "Apply");
@@ -709,6 +1066,7 @@
       grid.appendChild(el("label", { class: "krea2-character-field krea2-field-wide" }, [el("span", null, "Adult body description"), adult]));
       details.appendChild(grid);
       section.appendChild(details);
+      section.appendChild(renderCharacterDirection(character));
       return section;
     }
 
@@ -1458,6 +1816,7 @@ function buildGroupPresetPicker(group) {
       const row = state.rows.find(function (item) { return item.id === rowId; });
       if (!row) return;
       const group = groupForCategory(row.category);
+      state.active_tab = "concepts";
       state.collapsed = state.collapsed || {};
       state.collapsed[group] = false;
       render();
@@ -1517,15 +1876,8 @@ function buildGroupPresetPicker(group) {
       });
     }
 
-    function render() {
-      basePromptControl.input.value = state.base_prompt || "";
-      sizeBasePrompt();
-      showWorkToggle.textContent = state.show_work ? "Hide Work" : "Show Work";
-      renderNodeSettings();
-      renderStructuredEditors();
-      categoryBody.innerHTML = "";
-      const visibleGroups = GROUPS;
-      for (const group of visibleGroups) {
+    function renderGroupSections(host, groups) {
+      for (const group of groups) {
         const rows = state.rows.filter(function (row) {
           return groupForCategory(row.category) === group;
         });
@@ -1658,8 +2010,134 @@ function buildGroupPresetPicker(group) {
         section.appendChild(header);
         section.appendChild(actions);
         section.appendChild(content);
-        categoryBody.appendChild(section);
+        host.appendChild(section);
       }
+    }
+
+    /* Groups owned by the Scene tab: camera, lighting, environment, style. */
+    const SCENE_GROUPS = ["camera_film", "lighting", "environment", "style_finish"];
+
+    function renderCastTab() {
+      structuredHost.innerHTML = "";
+      structuredHost.appendChild(renderCharacterEditor());
+      castHost.appendChild(structuredHost);
+    }
+
+    function renderSceneTab() {
+      sceneHost.appendChild(basePromptControl.root);
+      sceneHost.appendChild(savedPresetControl.root);
+      const shotRow = el("div", { class: "krea2-wizard-shot-row" }, [
+        el("strong", { class: "krea2-wizard-shot-label" }, "Shot preset"),
+        masterPresetSelect,
+      ]);
+      sceneHost.appendChild(shotRow);
+      sceneHost.appendChild(renderSettingEditor());
+      categoryBody.innerHTML = "";
+      renderGroupSections(categoryBody, SCENE_GROUPS);
+      sceneHost.appendChild(categoryBody);
+    }
+
+    function renderConceptsTab() {
+      conceptsHost.appendChild(el("div", { class: "krea2-wizard-add-row" }, [addConcept, masterPresetSelect]));
+      categoryBody.innerHTML = "";
+      renderGroupSections(categoryBody, GROUPS);
+      conceptsHost.appendChild(categoryBody);
+    }
+
+    function renderMotionSection() {
+      const section = el("section", { class: "krea2-motion-section" });
+      const enabled = !!state.motion_prompt_enabled;
+      const draft = compilePreview(state).motion_prompt_draft || "";
+      const draftButton = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn",
+        title: "Replace the override below with the current cast draft",
+        onClick: function () {
+          state.motion_prompt = draft;
+          state.motion_prompt_enabled = true;
+          markDirty();
+          render();
+        },
+      }, "Draft from cast");
+      const clearButton = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-quiet-btn",
+        title: "Clear the motion prompt override",
+        onClick: function () {
+          state.motion_prompt = "";
+          state.motion_prompt_enabled = false;
+          markDirty();
+          render();
+        },
+      }, "Clear");
+      section.appendChild(el("div", { class: "krea2-structured-heading" }, [
+        el("strong", null, "Video Motion Prompt (LTX-2.3)"),
+        el("span", { class: "krea2-structured-spacer" }),
+        draftButton,
+        clearButton,
+        el("label", { class: "krea2-inline-check", title: "Emit this prompt from the Video Motion Prompt output" }, [
+          el("input", {
+            type: "checkbox",
+            checked: enabled,
+            onChange: function (event) {
+              state.motion_prompt_enabled = !!event.target.checked;
+              markDirty();
+              render();
+            },
+          }),
+          el("span", null, "Enable output"),
+        ]),
+      ]));
+      section.appendChild(el("div", { class: "krea2-settings-copy" },
+        "One line per character. Feed this to your video model (e.g. LTX-2.3) alongside the generated still."));
+      section.appendChild(el("textarea", {
+        class: "krea2-compact-textarea krea2-motion-prompt",
+        rows: Math.max(2, (state.motion_prompt || draft).split(/\r?\n/).length + 1),
+        "aria-label": "Video motion prompt",
+        placeholder: draft || "Draft from cast…",
+        onInput: function (event) {
+          state.motion_prompt = event.target.value;
+          markDirty();
+        },
+      }, state.motion_prompt || ""));
+      if (draft) {
+        section.appendChild(el("div", { class: "krea2-motion-draft" }, [
+          el("span", { class: "krea2-direction-label" }, "Current draft"),
+          el("code", null, draft),
+        ]));
+      }
+      return section;
+    }
+
+    function renderPromptTab() {
+      promptHost.appendChild(renderMotionSection());
+      showWorkToggle.textContent = state.show_work ? "Hide Work" : "Show Work";
+      const promptHeader = el("div", { class: "krea2-prompt-header" }, [
+        el("strong", null, "Preview"),
+        el("span", { class: "krea2-structured-spacer" }),
+        showWorkToggle,
+      ]);
+      promptHost.appendChild(promptHeader);
+      promptHost.appendChild(livePreview.root);
+      promptHost.appendChild(showWork);
+    }
+
+    function render() {
+      basePromptControl.input.value = state.base_prompt || "";
+      sizeBasePrompt();
+      renderTabBar();
+      renderNodeSettings();
+      const activeTab = state.active_tab || "cast";
+      castHost.innerHTML = "";
+      sceneHost.innerHTML = "";
+      conceptsHost.innerHTML = "";
+      promptHost.innerHTML = "";
+      structuredHost.innerHTML = "";
+      categoryBody.innerHTML = "";
+      if (activeTab === "cast") renderCastTab();
+      else if (activeTab === "scene") renderSceneTab();
+      else if (activeTab === "concepts") renderConceptsTab();
+      else renderPromptTab();
       updateHistoryControls();
       renderLivePreview(true);
       syncNodeHeight();
@@ -1761,6 +2239,11 @@ function buildGroupPresetPicker(group) {
       markDirty: markDirty,
       render: render,
       setState: setState,
+      setTab: function (tabId) {
+        state.active_tab = tabId;
+        persist();
+        render();
+      },
       recordExecution: recordExecution,
       getExecutionHistory: function () { return executionHistory.slice(); },
     };

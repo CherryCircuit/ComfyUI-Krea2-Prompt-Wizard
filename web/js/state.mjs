@@ -34,9 +34,12 @@
   const CATEGORIES = Object.freeze([
     "body",
     "emotion",
+    "emotion_trigger",
     "face",
+    "face_trigger",
     "gaze",
     "mouth",
+    "position",
     "framing",
     "angle",
     "perspective",
@@ -62,9 +65,12 @@
   const CATEGORY_LABELS = Object.freeze({
     body: "Body Language & Pose",
     emotion: "Emotion",
+    emotion_trigger: "Emotion Trigger",
     face: "Facial Action",
+    face_trigger: "Face Trigger",
     gaze: "Gaze",
     mouth: "Mouth & Vocal Action",
+    position: "Position & Placement",
     framing: "Camera Framing",
     angle: "Camera Angle",
     perspective: "Camera Position & Perspective",
@@ -104,7 +110,10 @@
   });
 
   const GROUP_CATEGORIES = Object.freeze({
-    subject_expression: Object.freeze(["body", "subject_movement", "emotion", "gaze", "mouth", "face"]),
+    subject_expression: Object.freeze([
+      "body", "subject_movement", "emotion", "emotion_trigger",
+      "gaze", "mouth", "face", "face_trigger", "position",
+    ]),
     camera_film: Object.freeze([
       "framing", "angle", "perspective", "lens", "aperture",
       "camera_body", "composition", "camera_movement", "lens_family",
@@ -173,6 +182,9 @@
       setting: { enabled: false, name: "", description: "" },
       setting_presets: [],
       setting_random_pool: [],
+      motion_prompt: "",
+      motion_prompt_enabled: false,
+      active_tab: "cast",
     };
   }
 
@@ -204,6 +216,9 @@
       "setting",
       "setting_presets",
       "setting_random_pool",
+      "motion_prompt",
+      "motion_prompt_enabled",
+      "active_tab",
     ]) {
       if (key in raw) base[key] = raw[key];
     }
@@ -221,6 +236,16 @@
     base.characters = base.characters.filter(function (item) {
       return item && typeof item === "object";
     });
+    for (const character of base.characters) {
+      if (!Array.isArray(character.rows)) character.rows = [];
+      character.rows = character.rows.filter(function (r) {
+        return r && typeof r === "object";
+      });
+      if (character.position === undefined) character.position = "";
+      if (character.face_guidance === undefined) character.face_guidance = "";
+      if (character.interaction === undefined) character.interaction = "";
+      if (character.character_ref === undefined) character.character_ref = "";
+    }
     if (!Array.isArray(base.character_presets)) base.character_presets = [];
     if (!base.setting || typeof base.setting !== "object" || Array.isArray(base.setting)) {
       base.setting = { enabled: false, name: "", description: "" };
@@ -544,35 +569,219 @@
   }
 
   /* ------------------- Compile helpers (frontend previews) ----------- */
+  const CATEGORY_ORDER = Object.freeze([
+    "body",
+    "emotion",
+    "emotion_trigger",
+    "face",
+    "face_trigger",
+    "gaze",
+    "mouth",
+    "position",
+    "framing",
+    "angle",
+    "perspective",
+    "lens",
+    "aperture",
+    "camera_body",
+    "composition",
+    "lighting_setup",
+    "lighting_direction",
+    "lighting_effect",
+    "subject_movement",
+    "camera_movement",
+    "environment_movement",
+    "atmosphere",
+    "style",
+    "film_color",
+    "texture",
+    "detail",
+    "lens_family",
+    "custom",
+  ]);
+
+  const CHARACTER_FIELDS = Object.freeze([
+    ["identity", "identity"], ["subject", "subject"], ["expression", "expression"],
+    ["clothing", "clothing and armour"], ["hair_style", "hair style"],
+    ["hair_length", "hair length"], ["hair_color", "hair colour"], ["makeup", "makeup"],
+    ["eyes", "eyes"], ["nose", "nose"], ["mouth", "mouth"], ["chin", "chin"],
+    ["face_shape", "face shape"], ["body_type", "body type"], ["fitness", "fitness"],
+    ["proportions", "proportions"], ["adult_description", "adult body description"],
+  ]);
+
+  const MOTION_VERBS = Object.freeze([
+    [["joy", "happi", "elat", "glee", "delight", "radian", "amuse", "entertain", "content"], "beams with joy"],
+    [["excit", "thrill", "energ", "enthusias", "eager", "pump"], "moves energetically"],
+    [["seren", "calm", "tranqu", "peace", "relief", "relax"], "stays calm"],
+    [["affection", "love", "tender", "warmth", "romantic", "soft-hearted"], "behaves warmly"],
+    [["pride", "proud", "accomplish", "dignif"], "holds their head high"],
+    [["hope", "hopeful", "optimis", "brighten"], "brightens with hope"],
+    [["wonder", "awe", "amaz", "awestruck", "breathless"], "gazes in awe"],
+    [["surpris", "shock", "startl", "astonish", "caught off guard"], "reacts in surprise"],
+    [["confus", "puzzl", "baffl"], "hesitates in confusion"],
+    [["curious", "interest", "intrigu", "fascin", "inquisit"], "leans in curiously"],
+    [["skeptic", "doubt", "wary", "suspic", "distrust", "tentative", "unsure"], "eyes warily"],
+    [["anxi", "nerv", "on edge", "skittish", "worr"], "fidgets nervously"],
+    [["fear", "afraid", "scared", "terrif", "terror", "horr", "dread", "panic", "hysteric"], "flinches in fear"],
+    [["sad", "melanchol", "grief", "mourn", "despair", "hopeless", "lonel", "isolat", "sorrow", "pensiv", "wistful"], "looks sad"],
+    [["disappoint", "let down", "sigh"], "slumps in disappointment"],
+    [["embarrass", "flustered", "awkward", "shy", "shame", "humiliat", "guilt", "remorse"], "looks embarrassed"],
+    [["anger", "mad", "irritat", "annoy", "frustrat", "exasper", "fury", "furious", "enrag", "rage", "raging", "incandesc"], "glowers in anger"],
+    [["defian", "rebell", "stubborn"], "stands defiant"],
+    [["determin", "resolute", "resolve", "assert"], "stands resolute"],
+    [["disgust", "repuls", "contempt", "scorn", "sneer", "disdain"], "sneers with contempt"],
+    [["bored", "apathetic", "numb", "hollow"], "looks bored"],
+    [["fatigue", "exhaust", "weary", "tired", "drained"], "slumps tiredly"],
+  ]);
+
+  function characterHasDirection(character) {
+    if (!character) return false;
+    if (Array.isArray(character.rows) && character.rows.length) return true;
+    if (String(character.face_guidance || "").trim()) return true;
+    if (String(character.interaction || "").trim()) return true;
+    return false;
+  }
+
+  function faceGuidanceLines(guidance) {
+    return String(guidance || "")
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+  }
+
+  function dedupePreservingOrder(items) {
+    const seen = new Set();
+    const out = [];
+    for (const item of items) {
+      const key = String(item).toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(item);
+    }
+    return out;
+  }
+
+  function compileCharacterRows(character) {
+    const categoryOrder = {};
+    CATEGORY_ORDER.forEach(function (cat, index) {
+      categoryOrder[cat] = index;
+    });
+    const rows = (character.rows || []).filter(function (row) {
+      return row && typeof row === "object";
+    }).sort(function (a, b) {
+      const ac = categoryOrder[a.category] === undefined ? 99 : categoryOrder[a.category];
+      const bc = categoryOrder[b.category] === undefined ? 99 : categoryOrder[b.category];
+      return ac - bc;
+    });
+    const fragments = [];
+    for (const row of rows) {
+      if (!row.enabled) continue;
+      if (row.verbatim) {
+        const raw = String(row.phrase || "").trim();
+        if (raw) fragments.push(raw);
+        continue;
+      }
+      const phrase = phraseForRow(row);
+      if (!phrase) continue;
+      const weight = defaultWeightForRow(row);
+      fragments.push(formatPhrase(phrase, weight));
+    }
+    return dedupePreservingOrder(fragments);
+  }
+
+  function compileCharacterClause(character, index) {
+    const name = String(character.name || "Character " + (index + 1)).trim();
+    const position = String(character.position || "").trim();
+    const directed = characterHasDirection(character);
+    const fields = CHARACTER_FIELDS.map(function (entry) {
+      if (directed && entry[0] === "expression") return "";
+      const value = String(character[entry[0]] || "").trim();
+      return value ? entry[1] + ": " + value : "";
+    }).filter(Boolean);
+    const fragments = compileCharacterRows(character);
+    const guidance = faceGuidanceLines(character.face_guidance);
+    for (const line of guidance) fragments.push(line);
+    const interaction = String(character.interaction || "").trim();
+    if (interaction) fragments.push(interaction);
+    const head = position ? name + " (" + position + ")" : name;
+    const parts = [];
+    if (fields.length && fragments.length) {
+      parts.push("Character " + head + ": " + fields.join("; ") + ", " + fragments.join(", "));
+    } else if (fields.length) {
+      parts.push("Character " + head + ": " + fields.join("; "));
+    } else if (fragments.length) {
+      parts.push("Character " + head + ", " + fragments.join(", "));
+    } else {
+      parts.push("Character " + head);
+    }
+    return parts.join("");
+  }
+
+  function motionVerbForRow(row) {
+    const haystack = [
+      row.label,
+      row.phrase,
+      ...(row.aliases || []),
+    ].join(" ").toLowerCase();
+    for (const entry of MOTION_VERBS) {
+      if (entry[0].some(function (keyword) { return haystack.includes(keyword); })) {
+        return entry[1];
+      }
+    }
+    return "reacts";
+  }
+
+  function draftMotionLine(character, index) {
+    const name = String(character.name || "Character " + (index + 1)).trim();
+    const position = String(character.position || "").trim();
+    const rows = (character.rows || []).filter(function (row) {
+      return row && typeof row === "object" && row.enabled !== false;
+    });
+    if (!rows.length && !String(character.interaction || "").trim()) return "";
+    const emotionRows = rows.filter(function (row) { return row.category === "emotion"; });
+    const bodyRows = rows.filter(function (row) { return row.category === "body"; });
+    let strongest = null;
+    for (const row of emotionRows) {
+      if (!strongest || Math.abs(Number(defaultWeightForRow(row))) > Math.abs(Number(defaultWeightForRow(strongest)))) {
+        strongest = row;
+      }
+    }
+    const verb = strongest ? motionVerbForRow(strongest) : "stands";
+    const head = position ? name + " (" + position + ")" : name;
+    const bits = [head + " " + verb];
+    if (bodyRows.length) {
+      const phrase = stripWeighting(String(bodyRows[0].phrase || "")).trim();
+      if (phrase) bits.push(phrase);
+    }
+    const interaction = String(character.interaction || "").trim();
+    if (interaction) bits.push(interaction);
+    return bits.join(", ").trim();
+  }
+
+  function structuredPromptParts(state) {
+    const parts = [];
+    (state.characters || []).forEach(function (character, index) {
+      if (!character || character.enabled === false) return;
+      parts.push(compileCharacterClause(character, index));
+    });
+    const setting = state.setting;
+    if (setting && setting.enabled) {
+      const name = String(setting.name || "Scene").trim();
+      const description = String(setting.description || "").trim();
+      parts.push(description ? "Setting " + name + ": " + description : "Setting: " + name);
+    }
+    return parts;
+  }
+
+  function draftMotionPrompt(state) {
+    if (!state) return "";
+    return (state.characters || []).map(function (character, index) {
+      return draftMotionLine(character, index);
+    }).filter(Boolean).join("\n");
+  }
+
   function compilePreview(state) {
     if (!state) state = emptyState();
-    const CATEGORY_ORDER = [
-      "body",
-      "emotion",
-      "face",
-      "gaze",
-      "mouth",
-      "framing",
-      "angle",
-      "perspective",
-      "lens",
-      "aperture",
-      "camera_body",
-      "composition",
-      "lighting_setup",
-      "lighting_direction",
-      "lighting_effect",
-      "subject_movement",
-      "camera_movement",
-      "environment_movement",
-      "atmosphere",
-      "style",
-      "film_color",
-      "texture",
-      "detail",
-      "lens_family",
-      "custom",
-    ];
     const byCat = {};
     for (const c of CATEGORY_ORDER) byCat[c] = [];
     const plain = {};
@@ -622,35 +831,8 @@
       plain_prompt: plainPrompt,
       category_prompts: byCat,
       fragments: seeFragments,
+      motion_prompt_draft: draftMotionPrompt(state),
     };
-  }
-
-  function structuredPromptParts(state) {
-    const fields = [
-      ["identity", "identity"], ["subject", "subject"], ["expression", "expression"],
-      ["clothing", "clothing and armour"], ["hair_style", "hair style"],
-      ["hair_length", "hair length"], ["hair_color", "hair colour"], ["makeup", "makeup"],
-      ["eyes", "eyes"], ["nose", "nose"], ["mouth", "mouth"], ["chin", "chin"],
-      ["face_shape", "face shape"], ["body_type", "body type"], ["fitness", "fitness"],
-      ["proportions", "proportions"], ["adult_description", "adult body description"],
-    ];
-    const parts = [];
-    (state.characters || []).forEach(function (character, index) {
-      if (!character || character.enabled === false) return;
-      const name = String(character.name || "Character " + (index + 1)).trim();
-      const details = fields.map(function (entry) {
-        const value = String(character[entry[0]] || "").trim();
-        return value ? entry[1] + ": " + value : "";
-      }).filter(Boolean);
-      parts.push(details.length ? "Character " + name + ": " + details.join("; ") : "Character " + name);
-    });
-    const setting = state.setting;
-    if (setting && setting.enabled) {
-      const name = String(setting.name || "Scene").trim();
-      const description = String(setting.description || "").trim();
-      parts.push(description ? "Setting " + name + ": " + description : "Setting: " + name);
-    }
-    return parts;
   }
 
   /* ------------------- Idempotent extension id ------------------------ */
@@ -699,5 +881,11 @@
     saveConceptColors,
     fetchCompiledPreview,
     compilePreview,
+    draftMotionPrompt,
+    draftMotionLine,
+    compileCharacterClause,
+    compileCharacterRows,
+    characterHasDirection,
+    faceGuidanceLines,
   };
 })();

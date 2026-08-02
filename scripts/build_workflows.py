@@ -604,6 +604,228 @@ def make_calibration_workflow() -> dict:
     }
 
 
+def make_two_character_scene_workflow() -> dict:
+    """A two-character scene: each cast member owns their emotion, face
+    guidance, body language, and placement; a motion prompt is emitted
+    for image-to-video models such as LTX-2.3.
+    """
+    state = empty_state()
+    state["base_prompt"] = "A rainy street corner at night, a diner glows in the background"
+    state["motion_prompt_enabled"] = True
+    state["active_tab"] = "cast"
+    state["characters"] = [
+        {
+            "id": "c1",
+            "name": "Mara",
+            "enabled": True,
+            "identity": "A streetwise courier who has seen too many winters",
+            "subject": "adult woman",
+            "clothing": "leather jacket",
+            "hair_color": "red",
+            "hair_length": "shoulder-length",
+            "body_type": "athletic build",
+            "position": "standing on the left side of the frame",
+            "face_guidance": "(sparkling bright eyes:1.4)\n(genuine warm smile:1.2)",
+            "interaction": "looking at Alex",
+            "rows": [
+                {
+                    "id": "r1",
+                    "category": "emotion",
+                    "preset_id": "emotion.joy",
+                    "label": "Joy",
+                    "phrase": "joy",
+                    "control_mode": "scalar",
+                    "intensity": 0,
+                    "strength": 1.5,
+                    "enabled": True,
+                    "verification": "general visual vocabulary",
+                },
+                {
+                    "id": "r2",
+                    "category": "mouth",
+                    "preset_id": "mouth.gentle_smile",
+                    "label": "Gentle smile",
+                    "phrase": "gentle smile",
+                    "control_mode": "scalar",
+                    "intensity": 0,
+                    "strength": 1.25,
+                    "enabled": True,
+                    "verification": "general visual vocabulary",
+                },
+                {
+                    "id": "r3",
+                    "category": "body",
+                    "preset_id": "body.arms_crossed",
+                    "label": "Arms crossed",
+                    "phrase": "arms crossed",
+                    "control_mode": "scalar",
+                    "intensity": 0,
+                    "strength": 1.0,
+                    "enabled": True,
+                    "verification": "general visual vocabulary",
+                },
+            ],
+        },
+        {
+            "id": "c2",
+            "name": "Alex",
+            "enabled": True,
+            "identity": "A weary detective carrying an old case file",
+            "subject": "adult man",
+            "clothing": "rumpled trench coat",
+            "hair_color": "dark brown",
+            "hair_style": "messy layered",
+            "body_type": "average build",
+            "position": "standing on the right side of the frame",
+            "face_guidance": "(a quivering lower lip:1.3)",
+            "interaction": "avoiding eye contact",
+            "rows": [
+                {
+                    "id": "r4",
+                    "category": "emotion",
+                    "preset_id": "emotion.sadness",
+                    "label": "Sadness",
+                    "phrase": "sadness",
+                    "control_mode": "scalar",
+                    "intensity": 0,
+                    "strength": 1.5,
+                    "enabled": True,
+                    "verification": "general visual vocabulary",
+                },
+                {
+                    "id": "r5",
+                    "category": "body",
+                    "preset_id": "body.hunched_shoulders",
+                    "label": "Hunched shoulders",
+                    "phrase": "hunched shoulders",
+                    "control_mode": "scalar",
+                    "intensity": 0,
+                    "strength": 1.0,
+                    "enabled": True,
+                    "verification": "general visual vocabulary",
+                },
+            ],
+        },
+    ]
+    state["rows"] = [
+        {
+            "id": "g1",
+            "category": "framing",
+            "preset_id": "framing.over_the_shoulder_shot",
+            "label": "Over-the-shoulder shot",
+            "phrase": "over-the-shoulder shot",
+            "control_mode": "scalar",
+            "intensity": 0,
+            "strength": 1.0,
+            "enabled": True,
+            "verification": "general visual vocabulary",
+        },
+        {
+            "id": "g2",
+            "category": "lens",
+            "preset_id": "lens.85mm_portrait",
+            "label": "85mm portrait",
+            "phrase": "85mm portrait",
+            "control_mode": "scalar",
+            "intensity": 0,
+            "strength": 1.0,
+            "enabled": True,
+            "verification": "general visual vocabulary",
+        },
+        {
+            "id": "g3",
+            "category": "lighting_setup",
+            "preset_id": "lighting_setup.neon_lighting",
+            "label": "Neon lighting",
+            "phrase": "neon lighting",
+            "control_mode": "scalar",
+            "intensity": 0,
+            "strength": 1.0,
+            "enabled": True,
+            "verification": "general visual vocabulary",
+        },
+        {
+            "id": "g4",
+            "category": "atmosphere",
+            "preset_id": "atmosphere.light_rain",
+            "label": "Light rain",
+            "phrase": "light rain",
+            "control_mode": "scalar",
+            "intensity": 0,
+            "strength": 1.0,
+            "enabled": True,
+            "verification": "general visual vocabulary",
+        },
+    ]
+    state["setting"] = {
+        "enabled": True,
+        "name": "Rainy street",
+        "description": "wet asphalt reflecting neon light",
+    }
+    return {
+        "id": "9e2b6d4f-8a1c-4e7b-93d5-6f2a8c1b4e07",
+        "revision": 1,
+        "last_node_id": 11,
+        "last_link_id": 3,
+        "nodes": [
+            {
+                "id": 10,
+                "type": "Krea2PromptWizard",
+                "pos": [-200, -100],
+                "size": [760, 720],
+                "flags": {},
+                "order": 0,
+                "mode": 0,
+                "inputs": [],
+                "outputs": [
+                    {"name": "Prompt Output", "type": "STRING", "links": [1]},
+                    {"name": "Video Motion Prompt", "type": "STRING", "links": [2]},
+                ],
+                "properties": {
+                    "cnr_id": "comfyui-krea2-prompt-wizard",
+                    "ver": "1.1.0",
+                },
+                "widgets_values": [json.dumps(state)],
+            },
+            {
+                "id": 11,
+                "type": "MarkdownNote",
+                "pos": [-200, 480],
+                "size": [760, 200],
+                "flags": {},
+                "order": 1,
+                "mode": 0,
+                "inputs": [],
+                "outputs": [],
+                "title": "Krea2 Prompt Wizard — Two-Character Scene",
+                "properties": {},
+                "widgets_values": [
+                    "## Two-Character Scene\n\n"
+                    "Two cast members with **separate** emotions and body language: "
+                    "Mara is joyful, Alex is sad.\n\n"
+                    "• **Prompt Output** — the Krea 2 still prompt (feed it to CLIPTextEncode).\n"
+                    "• **Video Motion Prompt** — per-character motion lines for LTX-2.3 "
+                    "image-to-video generation.\n\n"
+                    "Swap emotions, placements, face-guidance triggers, or the shot preset "
+                    "in the wizard's Cast / Scene / Concepts / Prompt tabs."
+                ],
+            },
+        ],
+        "links": [
+            [1, 10, 0, 11, 0, "STRING"],
+            [2, 10, 1, 11, 1, "STRING"],
+        ],
+        "groups": [],
+        "definitions": {"subgraphs": []},
+        "config": {},
+        "extra": {
+            "frontendVersion": "1.42.8",
+            "workflowRendererVersion": "LG",
+        },
+        "version": 0.4,
+    }
+
+
 def main() -> None:
     workflows_dir = os.path.join(ROOT, "workflows")
     subgraphs_dir = os.path.join(ROOT, "subgraphs")
@@ -616,6 +838,7 @@ def main() -> None:
     _write(os.path.join(workflows_dir, "example_multiple_lighting_effects.json"), make_lighting_workflow())
     _write(os.path.join(workflows_dir, "example_transparent_materialization.json"), make_materialize_workflow())
     _write(os.path.join(workflows_dir, "example_calibration.json"), make_calibration_workflow())
+    _write(os.path.join(workflows_dir, "example_two_character_scene.json"), make_two_character_scene_workflow())
 
     sub_workflow = make_basic_workflow()
     sub_workflow["definitions"]["subgraphs"] = [make_subgraph_basic()]

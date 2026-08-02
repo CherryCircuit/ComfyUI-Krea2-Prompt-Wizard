@@ -9,32 +9,55 @@ searchable preset library, dial each concept from -3 to +3, and let
 the wizard render the final prompt plus a Show Work table that lists
 every phrase and weight the wizard contributes.
 
-Every added concept has a direct -3 to +3 slider in 0.25 steps, exact
-numeric value, visibility eye, and delete button. Concepts are grouped into Subject, Expression &
-Pose, Camera & Film, Lighting, Environment, and Style & Finish.
-Randomize one group or all groups, and save either the complete prompt
-or any individual group with its exact values.
+## Mode tabs
 
-Saved group presets can be loaded from that group's action bar. Enable
-**Each job** to generate a fresh random setup for that group on every
-queued execution while leaving the main description unchanged.
+The editor is organised into four tabs so the node stays calm:
 
-People & Characters provides compact named character tabs, a simple
-avatar preview, built-in and user character presets, and expandable
-appearance controls. Setting & Scene includes a large location library,
-user presets, and its own **Each job** option.
+| Tab | Contents |
+|---|---|
+| 🎬 **Cast** | Saved characters, cast members, and per-character direction. |
+| 🎥 **Scene** | Main prompt, setting, shot presets, and the camera / lighting / environment / style concept groups. |
+| ✨ **Concepts** | The full concept grid (all groups), the add-concept picker, and per-group presets / randomize / Each job. |
+| 📜 **Prompt** | Live preview (Pretty / Code), video motion prompt, history, copy buttons, and Show Work. |
 
-Open the gear button to choose the strength range used by every dice
-action. Gentle uses 0 to +1.5, Positive uses 0 to +3, Wild uses -3 to
-+3, and custom quarter-step limits are available.
+## Directing cast members
 
-Click a concept name to replace it with the current choice already
-highlighted. Hover cards or linked phrases in Live Preview to see their
-relationship, and click a preview phrase to reveal its card.
+Each character in the Cast tab is a **cast member** with their own
+direction block:
 
-The Photography / Artwork switch filters incompatible style and camera
-choices from both the concept picker and group randomization. Randomize
-chooses between two and six concepts for a group.
+- **Placement** — position presets such as *standing on the left side
+  of the frame* compile as `Name (position): …`.
+- **Emotion quick picks** — one-click chips (Joy, Sadness, Anger, Fear,
+  Surprise, Disgust, Serenity, Determination). Click again to remove.
+- **Emotion & face** — per-character rows from the emotion, emotion
+  trigger, face, face trigger, gaze, and mouth categories.
+- **Face guidance triggers** — free-text lines emitted verbatim, e.g.
+  `(sparkling bright eyes:1.4)`. Parentheses and weights are preserved.
+- **Body & movement** — per-character body-language rows.
+- **Interaction** — relational direction such as *looking at Alex*.
+
+Characters therefore no longer share one emotion: a cast of two can
+have one member joyful and the other sad in a single prompt.
+
+**Save character preset** stores the appearance (identity, clothing,
+hair, build) for reuse. Applying a saved character to a cast member
+replaces the appearance but keeps the member's emotion, face guidance,
+and position.
+
+## Shot presets
+
+The Scene tab's **Shot preset** picker offers cinematic starting points
+(*Over-the-Shoulder Dialogue*, *Two-Character Conversation*,
+*Reaction Close-Up*, *Reverse Shot*, *Establishing Duo*,
+*Intimate Two-Shot*) plus the existing scene presets.
+
+## Video Motion Prompt
+
+The node exposes a **Video Motion Prompt** STRING output. In the Prompt
+tab, **Draft from cast** builds one motion line per cast member from
+their emotion and body rows; edit the text freely and enable the
+output. Feed the generated still plus this prompt to an image-to-video
+model such as LTX-2.3.
 
 ## Inputs
 
@@ -48,6 +71,7 @@ chooses between two and six concepts for a group.
 | Output | Description |
 |---|---|
 | `Prompt Output` | The final weighted prompt, ready to connect to a text encoder. |
+| `Video Motion Prompt` | Optional per-character motion lines for image-to-video models. Empty until enabled. |
 
 ## Notes
 

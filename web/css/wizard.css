@@ -1374,3 +1374,213 @@ body.dark {
 .krea2-star-btn.color-green { color: #51cf66; }
 .krea2-star-btn.color-blue { color: #339af0; }
 .krea2-star-btn.color-pink { color: #f06595; }
+
+/* ---------------------------------------------------------------------------
+ * Mode tabs (Cast / Scene / Concepts / Prompt)
+ * --------------------------------------------------------------------------- */
+.krea2-wizard-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--krea2-bg-strong);
+  border: 1px solid var(--krea2-border);
+  border-radius: var(--krea2-radius);
+  margin-bottom: 8px;
+  flex: 0 0 auto;
+}
+.krea2-wizard-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  border-radius: var(--krea2-radius);
+  color: var(--krea2-text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.krea2-wizard-tab:hover { background: var(--krea2-bg); color: var(--krea2-text); }
+.krea2-wizard-tab.is-active {
+  background: var(--krea2-accent);
+  color: #fff;
+}
+.tab-host { min-height: 0; }
+
+/* ---------------------------------------------------------------------------
+ * Header overflow menu
+ * --------------------------------------------------------------------------- */
+.krea2-wizard-overflow { position: relative; }
+.krea2-wizard-overflow-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 999;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  background: var(--krea2-panel);
+  border: 1px solid var(--krea2-border);
+  border-radius: var(--krea2-radius);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  min-width: 170px;
+}
+.krea2-wizard-overflow-menu.is-open { display: flex; }
+.krea2-wizard-overflow-menu .krea2-wizard-btn { text-align: left; width: 100%; }
+
+/* ---------------------------------------------------------------------------
+ * Scene tab: shot presets row
+ * --------------------------------------------------------------------------- */
+.krea2-wizard-shot-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+.krea2-wizard-shot-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--krea2-text);
+  white-space: nowrap;
+}
+.krea2-wizard-shot-row .krea2-wizard-master-select { flex: 1 1 auto; max-width: none; }
+
+/* ---------------------------------------------------------------------------
+ * Cast tab: per-character direction
+ * --------------------------------------------------------------------------- */
+.krea2-character-direction {
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid var(--krea2-border);
+  border-radius: var(--krea2-radius);
+  background: var(--krea2-panel);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.krea2-direction-heading {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--krea2-accent-strong);
+}
+.krea2-direction-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--krea2-text-dim);
+}
+.krea2-direction-hint {
+  font-size: 10px;
+  color: var(--krea2-text-dim);
+  font-weight: 400;
+}
+.krea2-direction-position {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.krea2-direction-position .krea2-compact-select { flex: 1 1 auto; }
+.krea2-direction-custom {
+  font-size: 10px;
+  color: var(--krea2-accent-strong);
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+.krea2-direction-block {
+  border: 1px solid var(--krea2-border);
+  border-radius: var(--krea2-radius);
+  background: var(--krea2-bg);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.krea2-direction-block-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.krea2-direction-block-head strong { font-size: 11px; }
+.krea2-direction-block-head .krea2-quiet-btn { margin-left: auto; }
+.krea2-direction-rows {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.krea2-direction-rows .krea2-row { width: 100%; }
+.krea2-direction-guidance,
+.krea2-direction-interaction {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.krea2-face-guidance {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  min-height: 52px;
+}
+.krea2-emotion-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.krea2-emotion-chip {
+  background: var(--krea2-bg);
+  border: 1px solid var(--krea2-border);
+  border-radius: 999px;
+  color: var(--krea2-text-dim);
+  font-size: 10.5px;
+  padding: 2px 10px;
+  cursor: pointer;
+}
+.krea2-emotion-chip:hover { border-color: var(--krea2-accent); color: var(--krea2-text); }
+.krea2-emotion-chip.is-active {
+  background: var(--krea2-accent);
+  border-color: var(--krea2-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------------------
+ * Prompt tab: motion prompt + preview header
+ * --------------------------------------------------------------------------- */
+.krea2-motion-section {
+  border: 1px solid var(--krea2-border);
+  border-radius: var(--krea2-radius);
+  background: var(--krea2-panel);
+  padding: 8px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.krea2-motion-prompt {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  min-height: 44px;
+}
+.krea2-motion-draft {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 10.5px;
+}
+.krea2-motion-draft code {
+  color: var(--krea2-text-dim);
+  word-break: break-word;
+}
+.krea2-prompt-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+.krea2-prompt-header strong { font-size: 11px; }

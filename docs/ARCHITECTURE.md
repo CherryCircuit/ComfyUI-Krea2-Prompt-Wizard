@@ -60,6 +60,7 @@ ComfyUI-Krea2-Prompt-Wizard/
         example_multiple_lighting_effects.json
         example_transparent_materialization.json
         example_calibration.json
+        example_two_character_scene.json
 
     tests/
         __init__.py
@@ -179,9 +180,53 @@ The state shape is:
     }
   ],
   "master_preset_id": "...",
-  "selected_category": "..."
+  "selected_category": "...",
+  "motion_prompt": "...",          // optional video-motion override
+  "motion_prompt_enabled": false,  // emits Video Motion Prompt output
+  "active_tab": "cast",            // last-used mode tab
+  "characters": [ ... cast members ... ]
 }
 ```
+
+## Cast members (per-character direction)
+
+The state's `characters` array holds *cast members*. Each member owns a
+per-character direction block in addition to its appearance fields:
+
+```
+{
+  "id": "character_<random>",
+  "name": "Mara",
+  "enabled": true,
+  "character_ref": "saved_character_...",   // optional saved-character preset
+  "position": "standing on the left side of the frame",
+  "face_guidance": "(sparkling bright eyes:1.4)\n(genuine warm smile:1.2)",
+  "interaction": "looking at Alex",
+  "rows": [ ... per-character direction rows ... ],
+  "subject": "adult woman",
+  "expression": "calm confidence",          // skipped when the member has direction
+  "clothing": "...", "hair_color": "...", ...
+}
+```
+
+`src/compiler.py` compiles each member independently. Direction rows
+(emotion, emotion_trigger, face, face_trigger, gaze, mouth, body,
+position) are weighted per member and emitted inside that member's
+clause, so two characters never share one emotion:
+
+```
+Character Mara (standing on the left side of the frame): subject: adult woman;
+clothing and armour: leather jacket, (joy:1.5), (gentle smile:1.25),
+(sparkling bright eyes:1.4), looking at Alex
+```
+
+Face-guidance lines are emitted verbatim; rows flagged `verbatim` are
+emitted exactly as typed (no stripping or re-weighting). The compiler
+also drafts a per-member **motion line** for video models (LTX-2.3)
+from the strongest emotion and body rows; the draft is exposed as
+`motion_prompt_draft`, and the effective `motion_prompt` is emitted
+from the `Video Motion Prompt` output when `motion_prompt_enabled` is
+set or a `motion_prompt` override exists.
 
 ## Library
 

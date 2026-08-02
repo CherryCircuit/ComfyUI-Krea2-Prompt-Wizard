@@ -184,6 +184,14 @@ def validate_preset(preset: Any, *, path: str = "preset") -> ValidationResult:
             path=f"{path}.phrase",
         )
 
+    if "verbatim" in preset and not isinstance(preset["verbatim"], bool):
+        result.add(
+            "preset.invalid_verbatim",
+            "Preset 'verbatim' must be a boolean",
+            severity="error",
+            path=f"{path}.verbatim",
+        )
+
     default_strength = _coerce_int(preset.get("default_strength", SLIDER_DEFAULT), SLIDER_DEFAULT)
     if default_strength < SLIDER_MIN or default_strength > SLIDER_MAX:
         result.add(
@@ -396,6 +404,14 @@ def validate_row(row: Any, *, path: str = "row") -> ValidationResult:
                 path=f"{path}.strength",
             )
 
+    if "verbatim" in row and not isinstance(row["verbatim"], bool):
+        result.add(
+            "row.invalid_verbatim",
+            "Row 'verbatim' must be a boolean",
+            severity="error",
+            path=f"{path}.verbatim",
+        )
+
     mode = _coerce_str(row.get("control_mode", MODE_SCALAR), MODE_SCALAR)
     if mode not in ALLOWED_MODES:
         result.add(
@@ -524,6 +540,52 @@ def validate_state(state: Any) -> ValidationResult:
         )
 
     result.extend(validate_rows(state.get("rows", [])).issues)
+
+    characters = state.get("characters", [])
+    if not isinstance(characters, list):
+        result.add(
+            "state.invalid_characters",
+            "Wizard 'characters' must be a JSON list",
+            severity="error",
+            path="state.characters",
+        )
+    else:
+        for idx, character in enumerate(characters):
+            cpath = f"state.characters[{idx}]"
+            if not isinstance(character, dict):
+                result.add(
+                    "state.invalid_character",
+                    "Character must be a JSON object",
+                    severity="warning",
+                    path=cpath,
+                )
+                continue
+            name = _coerce_str(character.get("name", ""))
+            if not name:
+                result.add(
+                    "state.character_missing_name",
+                    "Character is missing a name",
+                    severity="warning",
+                    path=f"{cpath}.name",
+                )
+            if "rows" in character:
+                result.extend(validate_rows(character["rows"]).issues)
+            position = _coerce_str(character.get("position", ""))
+            if position.count("(") != position.count(")"):
+                result.add(
+                    "state.character_position_unbalanced",
+                    "Character position has unbalanced parentheses",
+                    severity="warning",
+                    path=f"{cpath}.position",
+                )
+            guidance = _coerce_str(character.get("face_guidance", ""))
+            if guidance.count("(") != guidance.count(")"):
+                result.add(
+                    "state.character_guidance_unbalanced",
+                    "Character face guidance has unbalanced parentheses",
+                    severity="warning",
+                    path=f"{cpath}.face_guidance",
+                )
 
     master_preset_id = _coerce_str(state.get("master_preset_id", "") or "")
     if master_preset_id and not isinstance(master_preset_id, str):
