@@ -229,16 +229,50 @@ if (!structuredPrompt.includes("Character Mara") || !structuredPrompt.includes("
   throw new Error("Multiple characters and the active setting must compile into the prompt preview.");
 }
 switchTab("cast");
-if (findByClass(wizard.root, "krea2-avatar").length !== 1
-    || findByClass(wizard.root, "krea2-character-details").length !== 1
-    || findByClass(wizard.root, "krea2-save-character").length !== 1
-    || findByClass(wizard.root, "krea2-emotion-chips").length !== 1
-    || findByClass(wizard.root, "krea2-face-guidance").length !== 1
-    || findByClass(wizard.root, "krea2-character-direction").length !== 1) {
-  throw new Error("The compact cast editor must keep its avatar, details, preset save, and per-character direction panel.");
+if (findByClass(wizard.root, "krea2-avatar").length !== 2
+    || findByClass(wizard.root, "krea2-character-card").length !== 2
+    || findByClass(wizard.root, "krea2-save-character").length !== 2
+    || findByClass(wizard.root, "krea2-character-columns").length !== 2
+    || findByClass(wizard.root, "krea2-combobox").length < 20
+    || findByClass(wizard.root, "krea2-each-run").length < 20
+    || findByClass(wizard.root, "krea2-lora-section").length !== 2) {
+  throw new Error("Each cast member must render as an expandable card with appearance comboboxes, each-run flags, and a LoRA section.");
+}
+if (findByClass(wizard.root, "krea2-character-tab").length !== 0) {
+  throw new Error("Cast members must be stacked sections, not click-to-switch tabs.");
 }
 if (findByClass(wizard.root, "krea2-icon-btn").length < 8) {
   throw new Error("Randomization controls must use compact dice buttons.");
+}
+const sexFields = findByClass(wizard.root, "krea2-combobox").filter((input) => input["aria-label"] === "Sex");
+if (sexFields.length !== 2) {
+  throw new Error("Each cast member must expose a Sex field.");
+}
+
+/* --- Ensemble / separates exclusivity ------------------------------ */
+const ensembleInput = findByClass(wizard.root, "krea2-combobox")
+  .find((input) => input["aria-label"] === "Ensemble (full costume)");
+const topInput = findByClass(wizard.root, "krea2-combobox")
+  .find((input) => input["aria-label"] === "Top");
+if (!ensembleInput || !topInput) {
+  throw new Error("Ensemble and Top comboboxes must exist.");
+}
+function currentCastMember() {
+  const persisted = JSON.parse(stateWidget.value);
+  return persisted.characters.find((item) => item.id === "d1") || persisted.characters[0];
+}
+ensembleInput.listeners.input({ target: { value: "western cowboy outfit" } });
+const afterEnsemble = currentCastMember();
+if (afterEnsemble.ensemble !== "western cowboy outfit"
+    || afterEnsemble.clothing_top !== "" || afterEnsemble.clothing_bottom !== "") {
+  throw new Error("Choosing an ensemble must clear the separates.");
+}
+const topAfterEnsemble = findByClass(wizard.root, "krea2-combobox")
+  .find((input) => input["aria-label"] === "Top");
+topAfterEnsemble.listeners.input({ target: { value: "flannel shirt" } });
+const afterTop = currentCastMember();
+if (afterTop.ensemble !== "" || afterTop.clothing_top !== "flannel shirt") {
+  throw new Error("Using separates must clear the ensemble.");
 }
 
 const directedState = {
@@ -309,11 +343,69 @@ if (!directedPreview.motion_prompt_draft.includes("beams with joy")
 switchTab("cast");
 await new Promise((resolve) => setTimeout(resolve, 25));
 const emotionChips = findByClass(wizard.root, "krea2-emotion-chip");
-if (emotionChips.length < 4
-    || findByClass(wizard.root, "krea2-direction-rows").length < 1
-    || emotionChips.filter((chip) => (chip.className || "").split(/\s+/).includes("is-active")).length !== 1) {
-  throw new Error("Cast direction must render emotion chips and scoped direction rows.");
+if (emotionChips.length < 8
+    || findByClass(wizard.root, "krea2-direction-rows").length < 2
+    || emotionChips.filter((chip) => (chip.className || "").split(/\s+/).includes("is-active")).length !== 2) {
+  throw new Error("Cast direction must render emotion chips and scoped direction rows for every member.");
 }
+
+/* --- Each-run field randomization contract ------------------------ */
+const eachRunState = JSON.parse(JSON.stringify(directedState));
+eachRunState.characters[0].randomize_fields = {
+  hair_color: ["red", "blonde", "black"],
+  age: ["young adult", "middle aged"],
+};
+if (!window.KREA2.helpers.compilePreview) throw new Error("compilePreview must exist");
+wizard.setState(eachRunState);
+switchTab("cast");
+await new Promise((resolve) => setTimeout(resolve, 25));
+const runFlags = findByClass(wizard.root, "krea2-each-run");
+if (runFlags.length < 20) {
+  throw new Error("Each appearance field must expose an each-run checkbox.");
+}
+
+/* --- Character preset overwrite confirmation ---------------------- */
+const confirmed = [];
+const originalConfirm = window.confirm;
+window.confirm = (message) => {
+  confirmed.push(message);
+  return true;
+};
+const saveButtons = findByClass(wizard.root, "krea2-save-character");
+const firstSave = saveButtons[0];
+firstSave.listeners.click({});
+await new Promise((resolve) => setTimeout(resolve, 10));
+const saveButtonsAfter = findByClass(wizard.root, "krea2-save-character");
+if (saveButtonsAfter.length !== 2) {
+  throw new Error("Saving must not re-render away the cast.");
+}
+const posts = [];
+const originalFetch = window.fetch;
+window.fetch = (url, options) => {
+  const apiPath = String(url).replace(/^.*\/krea2_prompt_wizard/, "/krea2_prompt_wizard");
+  if (apiPath === "/krea2_prompt_wizard/saved_presets" && options && options.method === "POST") {
+    posts.push(options.body || "");
+    return Promise.resolve({
+      ok: true,
+      json: async () => ({ presets: JSON.parse(options.body || "{}").presets || [] }),
+    });
+  }
+  return originalFetch(url, options);
+};
+findByClass(wizard.root, "krea2-save-character")[0].listeners.click({});
+await new Promise((resolve) => setTimeout(resolve, 10));
+findByClass(wizard.root, "krea2-save-character")[0].listeners.click({});
+await new Promise((resolve) => setTimeout(resolve, 10));
+if (confirmed.length < 1) {
+  throw new Error("Saving a character with an existing name must ask before overwriting.");
+}
+const lastPayload = JSON.parse(posts[posts.length - 1]);
+const characterPresets = lastPayload.presets.filter((preset) => preset.scope === "character");
+if (characterPresets.length !== 1) {
+  throw new Error("Overwriting a character preset must replace it, not duplicate it.");
+}
+window.confirm = originalConfirm;
+window.fetch = originalFetch;
 
 wizard.recordExecution("first prompt");
 wizard.recordExecution("second prompt");

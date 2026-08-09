@@ -22,8 +22,11 @@ The editor is organised into four tabs so the node stays calm:
 
 ## Directing cast members
 
-Each character in the Cast tab is a **cast member** with their own
-direction block:
+The Cast tab lists every character as its own **expandable card** with
+a clear divider. Expanding a card reveals everything for that member
+together: appearance, direction, and LoRA triggers.
+
+Each cast member owns:
 
 - **Placement** — position presets such as *standing on the left side
   of the frame* compile as `Name (position): …`.
@@ -34,15 +37,35 @@ direction block:
 - **Face guidance triggers** — free-text lines emitted verbatim, e.g.
   `(sparkling bright eyes:1.4)`. Parentheses and weights are preserved.
 - **Body & movement** — per-character body-language rows.
+- **LoRA trigger words** — free-text lines compiled only inside this
+  character's block, so a LoRA loaded on the model influences this
+  character alone.
 - **Interaction** — relational direction such as *looking at Alex*.
 
 Characters therefore no longer share one emotion: a cast of two can
 have one member joyful and the other sad in a single prompt.
 
-**Save character preset** stores the appearance (identity, clothing,
-hair, build) for reuse. Applying a saved character to a cast member
-replaces the appearance but keeps the member's emotion, face guidance,
-and position.
+## Appearance
+
+Each appearance field is a **combobox**: pick from curated options or
+type anything. Fields are grouped into columns:
+
+- **Identity & basics** — Sex (male / female / unspecified), Age
+  (child, teenager, young adult, adult, middle aged, elderly).
+- **Hair & makeup** — style, length, colour, makeup.
+- **Face** — eyes, nose, mouth, chin, face shape.
+- **Body & fitness** — body type, fitness, proportions.
+- **Clothing & armour** — a full **Ensemble** look *or* separate
+  **Top** / **Bottom** pieces. Choosing one disables the other.
+
+Every field has a dice button and an **each run** checkbox that
+randomizes that one field from its options on every queued job.
+
+**Save** on a character card stores the look as a reusable preset;
+saving with a name that already exists asks for confirmation and
+overwrites instead of duplicating. Applying a saved character to a cast
+member replaces the appearance but keeps the member's emotion, face
+guidance, LoRA triggers, and position.
 
 ## Shot presets
 

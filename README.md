@@ -82,10 +82,15 @@ their own emotion, facial expression, body language, position in the
 frame, face-guidance triggers, and interaction with other characters.
 Two characters in one scene no longer share one emotion.
 
+The Cast tab lists every character as its own **expandable section** —
+one card per character with a clear divider, so you can see and direct
+the whole cast at once. Expanding a character reveals everything for
+that member together: appearance, direction, and LoRA triggers.
+
 For every cast member you can set:
 
 - **Placement** — a position preset such as *standing on the left side
-  of the frame* or *in the background*. It compiles as
+  of the frame*. It compiles as
   `Mara (standing on the left side of the frame): …`.
 - **Emotion quick picks** — one-click chips for Joy, Sadness, Anger,
   Fear, Surprise, Disgust, Serenity, and Determination. Click again to
@@ -101,17 +106,44 @@ For every cast member you can set:
 - **Body & movement** — body-language rows scoped to this character
   only.
 - **Interaction** — relational direction such as *looking at Alex*.
+- **LoRA trigger words** — one line per trigger, compiled only inside
+  this character's block, so a LoRA loaded on the model influences this
+  character alone and the rest of the cast stays distinct.
 
 A character's static *Expression* field is skipped in the compiled
 prompt once the character has direction of its own.
 
+### Appearance (Sex, Age, and the look builder)
+
+Each character's appearance is a set of **comboboxes**: pick a preset
+value from the suggestions or type anything you want. The fields are
+grouped into columns:
+
+- **Identity & basics** — Sex (male / female / unspecified) and Age
+  (child, teenager, young adult, adult, middle aged, elderly).
+- **Hair & makeup** — style, length, colour, and makeup, each with a
+  large curated option list.
+- **Face** — eyes, nose, mouth, chin, and face shape.
+- **Body & fitness** — body type, fitness, and proportions.
+- **Clothing & armour** — either a full **Ensemble** (a complete look
+  such as *western cowboy outfit* or *sci-fi crew uniform*) **or**
+  separate **Top** and **Bottom** pieces. Choosing an ensemble disables
+  the separates, and using separates disables the ensemble.
+
+Every field also has a dice button and an **each run** checkbox.
+Tick “each run” to have that one field randomized from its options
+every time a job executes — mix and match per field, per character.
+
 ### Saving and casting characters
 
-Use **Save character preset** to store a character's appearance
-(identity, clothing, hair, build). To reuse a character later, open any
-cast member's *Character presets* picker, choose your saved character,
-and press **Apply** — the appearance is replaced while the member's
-emotion, face guidance, and position are kept.
+Use **Save** on a character's card to store its appearance (identity,
+sex, age, clothing, hair, build) as a reusable preset. Saving with a
+name that already exists asks for confirmation and then **overwrites**
+the old preset instead of piling up duplicates — the same applies to
+full-prompt, group, and setting presets. To reuse a character later,
+open any cast member's *Character presets* picker, choose your saved
+character, and press **Apply** — the appearance is replaced while the
+member's emotion, face guidance, LoRA triggers, and position are kept.
 
 ### Shot presets and scenes
 

@@ -62,12 +62,51 @@ def _matches_creative_mode(preset: Dict[str, Any], mode: str) -> bool:
 
 def has_job_randomization(state: Dict[str, Any]) -> bool:
     flags = state.get("randomize_on_job")
-    return isinstance(flags, dict) and (
+    if isinstance(flags, dict) and (
         bool(flags.get("setting"))
         or any(
             bool(flags.get(group) or (group == "subject_expression" and (flags.get("subject") or flags.get("expression"))) or (group == "camera_film" and flags.get("camera"))) for group in GROUP_CATEGORIES
         )
-    )
+    ):
+        return True
+    # Per-character appearance fields can carry their own each-job flags.
+    characters = state.get("characters")
+    if isinstance(characters, list):
+        for character in characters:
+            if not isinstance(character, dict):
+                continue
+            pools = character.get("randomize_fields")
+            if isinstance(pools, dict) and any(
+                isinstance(options, list) and options for options in pools.values()
+            ):
+                return True
+    return False
+
+
+def randomize_character_fields(state: Dict[str, Any]) -> Dict[str, Any]:
+    """Pick a fresh value for every per-character field flagged "each run".
+
+    The candidate pool is snapshotted into ``character.randomize_fields``
+    when the user enables the flag, so the backend never depends on
+    frontend-only option lists.
+    """
+    characters = state.get("characters")
+    if not isinstance(characters, list):
+        return state
+    randomizer = secrets.SystemRandom()
+    for character in characters:
+        if not isinstance(character, dict):
+            continue
+        pools = character.get("randomize_fields")
+        if not isinstance(pools, dict):
+            continue
+        for field, options in pools.items():
+            if not isinstance(options, list) or not options:
+                continue
+            values = [str(option) for option in options if str(option).strip()]
+            if values:
+                character[field] = randomizer.choice(values)
+    return state
 
 
 def _random_strength(state: Dict[str, Any], randomizer: secrets.SystemRandom) -> float:
@@ -143,4 +182,6 @@ def randomize_enabled_groups(
             selected = copy.deepcopy(randomizer.choice(pool))
             selected["enabled"] = True
             result["setting"] = selected
+
+    result = randomize_character_fields(result)
     return result

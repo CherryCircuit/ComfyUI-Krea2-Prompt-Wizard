@@ -1,5 +1,45 @@
 # CHANGELOG
 
+## 1.2.0 — 2026-08-09
+
+Cast editor overhaul: stacked character sections, per-character LoRA
+triggers, overwrite-on-save, and the appearance look builder.
+
+### Features
+
+- **Stacked character sections** — the Cast tab lists every character
+  as its own expandable card with clear dividers; expanding a card
+  reveals appearance, direction, and LoRA triggers together (no more
+  click-to-switch character tabs).
+- **Per-character LoRA triggers** — free-text trigger words and a new
+  `lora_trigger` preset category (20 starters, community reported),
+  compiled only inside that character's block so a LoRA loaded on the
+  model influences that character alone.
+- **Appearance look builder** — every field is a combobox (pick a
+  preset or type anything), grouped into columns: Identity & basics
+  (Sex: male/female/unspecified, Age), Hair & makeup, Face,
+  Body & fitness, and Clothing & armour.
+- **Ensembles vs separates** — clothing offers full looks (60+
+  ensembles such as "western cowboy outfit", "sci-fi crew uniform") or
+  separate Top / Bottom pieces; choosing one disables the other.
+- **Each run per field** — every appearance field has a "each run"
+  checkbox that randomizes just that field from its options on every
+  queued job (snapshot pools are compiled in so the backend needs no
+  frontend data).
+- **Overwrite confirmation** — saving a character, full-prompt, group,
+  or setting preset with an existing name asks for confirmation and
+  replaces the old preset instead of duplicating.
+- Expression was removed from the character appearance editor; it now
+  lives only in the per-character direction (emotion) section. Legacy
+  characters with an expression field still compile unchanged.
+- Character presets (builtin + saved) migrated to the new schema.
+
+### Backward compatibility
+
+- Old characters (subject / expression / clothing fields) compile
+  exactly as before.
+- Legacy workflow states without the new fields render with them empty.
+
 ## 1.1.0 — 2026-08-01
 
 Scene-director overhaul: cast members, per-character direction, and a

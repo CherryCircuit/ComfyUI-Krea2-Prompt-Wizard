@@ -5,7 +5,11 @@ import json
 import math
 import unittest
 
-from src.job_randomizer import has_job_randomization, randomize_enabled_groups
+from src.job_randomizer import (
+    has_job_randomization,
+    randomize_character_fields,
+    randomize_enabled_groups,
+)
 from src.library import Library
 from src.nodes import Krea2PromptWizard
 
@@ -161,6 +165,70 @@ class JobRandomizerTests(unittest.TestCase):
             [row["preset_id"] for row in result["rows"]],
             ["style.oil_painting"],
         )
+
+    def test_character_field_randomization_picks_from_the_snapshot_pool(self):
+        state = {
+            "characters": [
+                {
+                    "id": "c1",
+                    "name": "Mara",
+                    "hair_color": "red",
+                    "age": "young adult",
+                    "randomize_fields": {
+                        "hair_color": ["red", "blonde", "black"],
+                        "age": ["young adult", "middle aged"],
+                    },
+                },
+                {
+                    "id": "c2",
+                    "name": "Alex",
+                    "hair_color": "brown",
+                    "randomize_fields": {},
+                },
+            ]
+        }
+        for _ in range(30):
+            result = randomize_character_fields(state)
+            mara = result["characters"][0]
+            self.assertIn(mara["hair_color"], {"red", "blonde", "black"})
+            self.assertIn(mara["age"], {"young adult", "middle aged"})
+            self.assertEqual(result["characters"][1]["hair_color"], "brown")
+
+    def test_character_field_randomization_marks_the_node_as_changed(self):
+        state = json.dumps(
+            {
+                "characters": [
+                    {
+                        "id": "c1",
+                        "name": "Mara",
+                        "randomize_fields": {"hair_color": ["red", "black"]},
+                    }
+                ]
+            }
+        )
+        self.assertTrue(math.isnan(Krea2PromptWizard.IS_CHANGED(state)))
+        self.assertTrue(has_job_randomization(json.loads(state)))
+
+    def test_character_field_randomization_runs_within_execution(self):
+        state = json.dumps(
+            {
+                "base_prompt": "scene",
+                "rows": [],
+                "characters": [
+                    {
+                        "id": "c1",
+                        "name": "Mara",
+                        "enabled": True,
+                        "sex": "female",
+                        "hair_color": "red",
+                        "randomize_fields": {"hair_color": ["red", "blonde"]},
+                    }
+                ],
+            }
+        )
+        result = Krea2PromptWizard().build(state)
+        resolved = json.loads(result["ui"]["krea2_resolved_state"][0])
+        self.assertIn(resolved["characters"][0]["hair_color"], {"red", "blonde"})
 
 
 if __name__ == "__main__":

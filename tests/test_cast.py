@@ -176,6 +176,64 @@ class CastCompilationTests(unittest.TestCase):
         self.assertNotIn("joy", result.category_prompts["emotion"])
         self.assertIn("sadness", result.category_prompts["emotion"])
 
+    def test_sex_and_age_compile_into_the_clause(self):
+        state = empty_state()
+        state["characters"] = [
+            {"id": "c1", "name": "Mara", "enabled": True, "sex": "female", "age": "young adult"},
+        ]
+        result = compile_state(state, _lib())
+        self.assertIn("Character Mara: sex: female; age: young adult", result.final_prompt)
+
+    def test_ensemble_disables_separates(self):
+        state = empty_state()
+        state["characters"] = [
+            {"id": "c1", "name": "Mara", "enabled": True,
+             "ensemble": "western cowboy outfit",
+             "clothing_top": "flannel shirt", "clothing_bottom": "jeans"},
+        ]
+        result = compile_state(state, _lib())
+        self.assertIn("costume: western cowboy outfit", result.final_prompt)
+        self.assertNotIn("top: flannel shirt", result.final_prompt)
+        self.assertNotIn("bottom: jeans", result.final_prompt)
+
+    def test_separates_compile_when_no_ensemble(self):
+        state = empty_state()
+        state["characters"] = [
+            {"id": "c1", "name": "Mara", "enabled": True,
+             "clothing_top": "flannel shirt", "clothing_bottom": "jeans"},
+        ]
+        result = compile_state(state, _lib())
+        self.assertIn("top: flannel shirt; bottom: jeans", result.final_prompt)
+
+    def test_lora_triggers_are_emitted_verbatim_per_character(self):
+        state = empty_state()
+        state["characters"] = [
+            {"id": "c1", "name": "Mara", "enabled": True,
+             "lora_triggers": "young woman\nsemi-realistic art style"},
+            {"id": "c2", "name": "Alex", "enabled": True,
+             "lora_triggers": "older man"},
+        ]
+        result = compile_state(state, _lib())
+        mara_idx = result.final_prompt.index("Mara")
+        alex_idx = result.final_prompt.index("Alex")
+        mara_block = result.final_prompt[mara_idx:alex_idx]
+        self.assertIn("young woman", mara_block)
+        self.assertIn("semi-realistic art style", mara_block)
+        self.assertNotIn("older man", mara_block)
+        self.assertIn("older man", result.final_prompt)
+        self.assertEqual(result.trace["cast"][0]["lora_triggers"], "young woman\nsemi-realistic art style")
+
+    def test_legacy_appearance_fields_still_compile(self):
+        state = empty_state()
+        state["characters"] = [
+            {"id": "c1", "name": "Mara", "enabled": True,
+             "subject": "adult woman", "clothing": "leather jacket", "expression": "calm confidence"},
+        ]
+        result = compile_state(state, _lib())
+        self.assertIn("subject: adult woman", result.final_prompt)
+        self.assertIn("clothing and armour: leather jacket", result.final_prompt)
+        self.assertIn("expression: calm confidence", result.final_prompt)
+
     def test_trace_contains_cast_blocks(self):
         state = empty_state()
         state["characters"] = [

@@ -134,9 +134,14 @@ class CompilationResult:
 
 _CHARACTER_FIELDS = (
     ("identity", "identity"),
-    ("subject", "subject"),
-    ("expression", "expression"),
-    ("clothing", "clothing and armour"),
+    ("sex", "sex"),
+    ("age", "age"),
+    ("subject", "subject"),  # legacy field; kept for older workflows
+    ("expression", "expression"),  # legacy field; skipped when directed
+    ("clothing", "clothing and armour"),  # legacy field; kept for older workflows
+    ("ensemble", "costume"),
+    ("clothing_top", "top"),
+    ("clothing_bottom", "bottom"),
     ("hair_style", "hair style"),
     ("hair_length", "hair length"),
     ("hair_color", "hair colour"),
@@ -435,14 +440,28 @@ def _compile_character(
 
     emitted.extend(guidance)
     plain_emitted.extend(guidance)
+    lora_lines = _face_guidance_lines(character.get("lora_triggers"))
+    emitted.extend(lora_lines)
+    plain_emitted.extend(lora_lines)
     if interaction:
         emitted.append(interaction)
         plain_emitted.append(interaction)
+
+    # Ensemble and separates are mutually exclusive looks. The UI enforces
+    # this too; the compiler resolves any residue deterministically.
+    ensemble = str(character.get("ensemble") or "").strip()
+    top = str(character.get("clothing_top") or "").strip()
+    bottom = str(character.get("clothing_bottom") or "").strip()
+    use_ensemble = bool(ensemble)
 
     fields: List[str] = []
     for key, label in _CHARACTER_FIELDS:
         if directed and key == "expression":
             # A directed character's emotion is owned by its direction rows.
+            continue
+        if key == "ensemble" and not use_ensemble:
+            continue
+        if key in ("clothing_top", "clothing_bottom") and use_ensemble:
             continue
         value = str(character.get(key) or "").strip()
         if value:
@@ -510,6 +529,7 @@ def _compile_characters(
                 "position": str(character.get("position") or ""),
                 "rows": [f.to_dict() for f in char_fragments],
                 "face_guidance": str(character.get("face_guidance") or ""),
+                "lora_triggers": str(character.get("lora_triggers") or ""),
                 "interaction": str(character.get("interaction") or ""),
                 "motion": motion or "",
             }

@@ -142,6 +142,19 @@ def coerce_state(raw: Any) -> Dict[str, Any]:
         character.setdefault("face_guidance", "")
         character.setdefault("interaction", "")
         character.setdefault("character_ref", "")
+        character.setdefault("lora_triggers", "")
+        character.setdefault("sex", "")
+        character.setdefault("age", "")
+        character.setdefault("ensemble", "")
+        character.setdefault("clothing_top", "")
+        character.setdefault("clothing_bottom", "")
+        if not isinstance(character.get("randomize_fields"), dict):
+            character["randomize_fields"] = {}
+        for field, options in list(character["randomize_fields"].items()):
+            if not isinstance(options, list):
+                del character["randomize_fields"][field]
+            else:
+                character["randomize_fields"][field] = [str(o) for o in options if str(o).strip()]
     if not isinstance(state.get("character_presets"), list):
         state["character_presets"] = []
     if not isinstance(state.get("setting"), dict):

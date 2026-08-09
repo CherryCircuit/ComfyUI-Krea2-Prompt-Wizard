@@ -14329,6 +14329,450 @@
       "schema_version": 1
     },
     {
+      "id": "lora_trigger.young_woman",
+      "category": "lora_trigger",
+      "label": "Young woman",
+      "phrase": "young woman",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "female lead"
+      ],
+      "tags": [
+        "lora_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "community reported",
+      "schema_version": 1
+    },
+    {
+      "id": "lora_trigger.older_woman",
+      "category": "lora_trigger",
+      "label": "Older woman",
+      "phrase": "older woman",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "mature woman"
+      ],
+      "tags": [
+        "lora_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "community reported",
+      "schema_version": 1
+    },
+    {
+      "id": "lora_trigger.young_man",
+      "category": "lora_trigger",
+      "label": "Young man",
+      "phrase": "young man",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "male lead"
+      ],
+      "tags": [
+        "lora_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "community reported",
+      "schema_version": 1
+    },
+    {
+      "id": "lora_trigger.older_man",
+      "category": "lora_trigger",
+      "label": "Older man",
+      "phrase": "older man",
+      "default_strength": 55,
+      "control_mode": "scalar",
+      "aliases": [
+        "mature man"
+      ],
+      "tags": [
+        "lora_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "community reported",
+      "schema_version": 1
+    },
+    {
+      "id": "lora_trigger.fantasy_elf",
+      "category": "lora_trigger",
+      "label": "Fantasy elf",
+      "phrase": "fantasy elf",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "elf ears",
+        "pointed ears"
+      ],
+      "tags": [
+        "lora_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "community reported",
+      "schema_version": 1
+    },
+    {
+      "id": "lora_trigger.orc",
+      "category": "lora_trigger",
+      "label": "Orc",
+      "phrase": "orc",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "orc skin",
+        "tusked"
+      ],
+      "tags": [
+        "lora_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "community reported",
+      "schema_version": 1
+    },
+    {
+      "id": "lora_trigger.dwarf",
+      "category": "lora_trigger",
+      "label": "Dwarf",
+      "phrase": "dwarf",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "stocky dwarf"
+      ],
+      "tags": [
+        "lora_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "community reported",
+      "schema_version": 1
+    },
+    {
+      "id": "lora_trigger.vampire",
+      "category": "lora_trigger",
+      "label": "Vampire",
+      "phrase": "vampire",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "undead pale skin"
+      ],
+      "tags": [
+        "lora_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "community reported",
+      "schema_version": 1
+    },
+    {
+      "id": "lora_trigger.cyborg",
+      "category": "lora_trigger",
+      "label": "Cyborg",
+      "phrase": "cyborg",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "mechanical parts"
+      ],
+      "tags": [
+        "lora_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "community reported",
+      "schema_version": 1
+    },
+    {
+      "id": "lora_trigger.android",
+      "category": "lora_trigger",
+      "label": "Android",
+      "phrase": "android",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "robot woman"
+      ],
+      "tags": [
+        "lora_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "community reported",
+      "schema_version": 1
+    },
+    {
+      "id": "lora_trigger.cat_girl",
+      "category": "lora_trigger",
+      "label": "Cat girl",
+      "phrase": "cat girl",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "cat ears"
+      ],
+      "tags": [
+        "lora_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "community reported",
+      "schema_version": 1
+    },
+    {
+      "id": "lora_trigger.wolf_ears",
+      "category": "lora_trigger",
+      "label": "Wolf ears",
+      "phrase": "wolf ears and tail",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "werewolf features"
+      ],
+      "tags": [
+        "lora_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "community reported",
+      "schema_version": 1
+    },
+    {
+      "id": "lora_trigger.fox_features",
+      "category": "lora_trigger",
+      "label": "Fox features",
+      "phrase": "fox ears and tail",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "kitsune"
+      ],
+      "tags": [
+        "lora_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "community reported",
+      "schema_version": 1
+    },
+    {
+      "id": "lora_trigger.angel",
+      "category": "lora_trigger",
+      "label": "Angel",
+      "phrase": "angelic features",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "wings",
+        "halo"
+      ],
+      "tags": [
+        "lora_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "community reported",
+      "schema_version": 1
+    },
+    {
+      "id": "lora_trigger.demon",
+      "category": "lora_trigger",
+      "label": "Demon",
+      "phrase": "demonic features",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "horns",
+        "red skin"
+      ],
+      "tags": [
+        "lora_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "community reported",
+      "schema_version": 1
+    },
+    {
+      "id": "lora_trigger.anime_style",
+      "category": "lora_trigger",
+      "label": "Anime style",
+      "phrase": "anime style character",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "anime face"
+      ],
+      "tags": [
+        "lora_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "community reported",
+      "schema_version": 1
+    },
+    {
+      "id": "lora_trigger.semi_realistic_style",
+      "category": "lora_trigger",
+      "label": "Semi-realistic style",
+      "phrase": "semi-realistic art style",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "semi-real"
+      ],
+      "tags": [
+        "lora_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "community reported",
+      "schema_version": 1
+    },
+    {
+      "id": "lora_trigger.pixel_art",
+      "category": "lora_trigger",
+      "label": "Pixel art",
+      "phrase": "pixel art character",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "pixelated"
+      ],
+      "tags": [
+        "lora_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "community reported",
+      "schema_version": 1
+    },
+    {
+      "id": "lora_trigger.3d_render_style",
+      "category": "lora_trigger",
+      "label": "3D render style",
+      "phrase": "3D render character",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "video game render"
+      ],
+      "tags": [
+        "lora_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "community reported",
+      "schema_version": 1
+    },
+    {
+      "id": "lora_trigger.disney_style",
+      "category": "lora_trigger",
+      "label": "Disney style",
+      "phrase": "disney-style character",
+      "default_strength": 60,
+      "control_mode": "scalar",
+      "aliases": [
+        "disney animation"
+      ],
+      "tags": [
+        "lora_trigger"
+      ],
+      "compatible_profiles": [
+        "generic",
+        "krea2_turbo",
+        "krea2_raw"
+      ],
+      "source": "curated visual vocabulary",
+      "verification": "community reported",
+      "schema_version": 1
+    },
+    {
       "id": "custom.custom_phrase",
       "category": "custom",
       "label": "Custom phrase",

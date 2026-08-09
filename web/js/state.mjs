@@ -40,6 +40,7 @@
     "gaze",
     "mouth",
     "position",
+    "lora_trigger",
     "framing",
     "angle",
     "perspective",
@@ -71,6 +72,7 @@
     gaze: "Gaze",
     mouth: "Mouth & Vocal Action",
     position: "Position & Placement",
+    lora_trigger: "LoRA Trigger Words",
     framing: "Camera Framing",
     angle: "Camera Angle",
     perspective: "Camera Position & Perspective",
@@ -112,7 +114,7 @@
   const GROUP_CATEGORIES = Object.freeze({
     subject_expression: Object.freeze([
       "body", "subject_movement", "emotion", "emotion_trigger",
-      "gaze", "mouth", "face", "face_trigger", "position",
+      "gaze", "mouth", "face", "face_trigger", "position", "lora_trigger",
     ]),
     camera_film: Object.freeze([
       "framing", "angle", "perspective", "lens", "aperture",
@@ -245,6 +247,15 @@
       if (character.face_guidance === undefined) character.face_guidance = "";
       if (character.interaction === undefined) character.interaction = "";
       if (character.character_ref === undefined) character.character_ref = "";
+      if (character.lora_triggers === undefined) character.lora_triggers = "";
+      if (character.sex === undefined) character.sex = "";
+      if (character.age === undefined) character.age = "";
+      if (character.ensemble === undefined) character.ensemble = "";
+      if (character.clothing_top === undefined) character.clothing_top = "";
+      if (character.clothing_bottom === undefined) character.clothing_bottom = "";
+      if (!character.randomize_fields || typeof character.randomize_fields !== "object") {
+        character.randomize_fields = {};
+      }
     }
     if (!Array.isArray(base.character_presets)) base.character_presets = [];
     if (!base.setting || typeof base.setting !== "object" || Array.isArray(base.setting)) {
@@ -601,8 +612,11 @@
   ]);
 
   const CHARACTER_FIELDS = Object.freeze([
-    ["identity", "identity"], ["subject", "subject"], ["expression", "expression"],
-    ["clothing", "clothing and armour"], ["hair_style", "hair style"],
+    ["identity", "identity"], ["sex", "sex"], ["age", "age"],
+    ["subject", "subject"], ["expression", "expression"],
+    ["clothing", "clothing and armour"],
+    ["ensemble", "costume"], ["clothing_top", "top"], ["clothing_bottom", "bottom"],
+    ["hair_style", "hair style"],
     ["hair_length", "hair length"], ["hair_color", "hair colour"], ["makeup", "makeup"],
     ["eyes", "eyes"], ["nose", "nose"], ["mouth", "mouth"], ["chin", "chin"],
     ["face_shape", "face shape"], ["body_type", "body type"], ["fitness", "fitness"],
@@ -693,14 +707,20 @@
     const name = String(character.name || "Character " + (index + 1)).trim();
     const position = String(character.position || "").trim();
     const directed = characterHasDirection(character);
+    const ensemble = String(character.ensemble || "").trim();
+    const useEnsemble = Boolean(ensemble);
     const fields = CHARACTER_FIELDS.map(function (entry) {
       if (directed && entry[0] === "expression") return "";
+      if (entry[0] === "ensemble" && !useEnsemble) return "";
+      if ((entry[0] === "clothing_top" || entry[0] === "clothing_bottom") && useEnsemble) return "";
       const value = String(character[entry[0]] || "").trim();
       return value ? entry[1] + ": " + value : "";
     }).filter(Boolean);
     const fragments = compileCharacterRows(character);
     const guidance = faceGuidanceLines(character.face_guidance);
     for (const line of guidance) fragments.push(line);
+    const loraLines = faceGuidanceLines(character.lora_triggers);
+    for (const line of loraLines) fragments.push(line);
     const interaction = String(character.interaction || "").trim();
     if (interaction) fragments.push(interaction);
     const head = position ? name + " (" + position + ")" : name;

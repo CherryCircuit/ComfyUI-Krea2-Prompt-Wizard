@@ -718,6 +718,31 @@ PRESETS = [
     ("position", "Walking toward camera", "walking toward the camera", 55, ["approaching camera"]),
     ("position", "Walking away from camera", "walking away from the camera", 55, ["receding"]),
     ("position", "At the head of a table", "seated at the head of the table", 55, ["table head"]),
+    # -------------------- LORA TRIGGER WORDS --------------------
+    # Community-reported starter trigger phrases for common character LoRA
+    # styles. Replace with your LoRA's actual trigger words — each cast
+    # member can own a different set so people in one scene do not look
+    # the same.
+    ("lora_trigger", "Young woman", "young woman", 55, ["female lead"], VERIFICATION_COMMUNITY),
+    ("lora_trigger", "Older woman", "older woman", 55, ["mature woman"], VERIFICATION_COMMUNITY),
+    ("lora_trigger", "Young man", "young man", 55, ["male lead"], VERIFICATION_COMMUNITY),
+    ("lora_trigger", "Older man", "older man", 55, ["mature man"], VERIFICATION_COMMUNITY),
+    ("lora_trigger", "Fantasy elf", "fantasy elf", 60, ["elf ears", "pointed ears"], VERIFICATION_COMMUNITY),
+    ("lora_trigger", "Orc", "orc", 60, ["orc skin", "tusked"], VERIFICATION_COMMUNITY),
+    ("lora_trigger", "Dwarf", "dwarf", 60, ["stocky dwarf"], VERIFICATION_COMMUNITY),
+    ("lora_trigger", "Vampire", "vampire", 60, ["undead pale skin"], VERIFICATION_COMMUNITY),
+    ("lora_trigger", "Cyborg", "cyborg", 60, ["mechanical parts"], VERIFICATION_COMMUNITY),
+    ("lora_trigger", "Android", "android", 60, ["robot woman"], VERIFICATION_COMMUNITY),
+    ("lora_trigger", "Cat girl", "cat girl", 60, ["cat ears"], VERIFICATION_COMMUNITY),
+    ("lora_trigger", "Wolf ears", "wolf ears and tail", 60, ["werewolf features"], VERIFICATION_COMMUNITY),
+    ("lora_trigger", "Fox features", "fox ears and tail", 60, ["kitsune"], VERIFICATION_COMMUNITY),
+    ("lora_trigger", "Angel", "angelic features", 60, ["wings", "halo"], VERIFICATION_COMMUNITY),
+    ("lora_trigger", "Demon", "demonic features", 60, ["horns", "red skin"], VERIFICATION_COMMUNITY),
+    ("lora_trigger", "Anime style", "anime style character", 60, ["anime face"], VERIFICATION_COMMUNITY),
+    ("lora_trigger", "Semi-realistic style", "semi-realistic art style", 60, ["semi-real"], VERIFICATION_COMMUNITY),
+    ("lora_trigger", "Pixel art", "pixel art character", 60, ["pixelated"], VERIFICATION_COMMUNITY),
+    ("lora_trigger", "3D render style", "3D render character", 60, ["video game render"], VERIFICATION_COMMUNITY),
+    ("lora_trigger", "Disney style", "disney-style character", 60, ["disney animation"], VERIFICATION_COMMUNITY),
     # -------------------- CUSTOM --------------------
     ("custom", "Custom phrase", "Your custom phrase", 50, ["custom"]),
 ]
@@ -836,7 +861,8 @@ def main() -> None:
     presets: List[Dict[str, Any]] = []
 
     for entry in PRESETS:
-        category, label, phrase, default_strength, aliases = entry
+        category, label, phrase, default_strength, aliases = entry[:5]
+        verification = entry[5] if len(entry) > 5 else VERIFICATION_GENERAL
         presets.append(
             build_preset(
                 category,
@@ -844,7 +870,7 @@ def main() -> None:
                 phrase,
                 default_strength,
                 aliases,
-                verification=VERIFICATION_GENERAL,
+                verification=verification,
             )
         )
 

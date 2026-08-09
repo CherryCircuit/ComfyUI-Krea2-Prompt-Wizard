@@ -41,23 +41,118 @@
   const { materialize: materializeToNodes, createSubgraph: createSubgraphFromWizard } = K.materialize;
   const { render: renderShowWork } = K.inspectorView;
 
-  const CHARACTER_FIELDS = [
-    ["subject", "Subject", ["adult woman", "adult man", "adult nonbinary person", "fantasy hero", "sci-fi officer", "medieval noble", "modern professional"]],
-    ["expression", "Expression", ["calm confidence", "warm smile", "focused determination", "joyful laughter", "quiet sadness", "suspicious stare", "surprised reaction"]],
-    ["clothing", "Clothing & armour", ["modern casual clothing", "modern formal suit", "elegant formal dress", "medieval tunic and cloak", "medieval plate armour", "fantasy leather armour", "fantasy robes", "sci-fi flight suit", "sci-fi powered armour", "masculine streetwear", "feminine streetwear"]],
-    ["hair_style", "Hair style", ["straight", "wavy", "curly", "braided", "ponytail", "loose pigtails", "undercut", "buzz cut", "messy layered"]],
-    ["hair_length", "Hair length", ["shaved", "short", "chin-length", "shoulder-length", "long", "waist-length"]],
-    ["hair_color", "Hair colour", ["black", "dark brown", "auburn", "blonde", "platinum blonde", "silver", "red", "blue", "pink"]],
-    ["makeup", "Makeup", ["no makeup", "natural makeup", "soft glam makeup", "dramatic smoky makeup", "editorial makeup", "theatrical makeup", "dark gothic makeup"]],
-    ["eyes", "Eyes", ["large round eyes", "almond-shaped eyes", "deep-set eyes", "hooded eyes", "bright blue eyes", "green eyes", "brown eyes", "grey eyes"]],
-    ["nose", "Nose", ["straight nose", "button nose", "aquiline nose", "broad nose", "upturned nose"]],
-    ["mouth", "Mouth", ["full lips", "thin lips", "wide mouth", "small mouth", "defined cupid's bow"]],
-    ["chin", "Chin", ["rounded chin", "pointed chin", "strong chin", "cleft chin", "soft chin"]],
-    ["face_shape", "Face shape", ["oval face", "round face", "square face", "heart-shaped face", "diamond-shaped face", "long face"]],
-    ["body_type", "Body type", ["slim build", "average build", "athletic build", "muscular build", "stocky build", "curvy build", "plus-size build"]],
-    ["fitness", "Fitness", ["soft physique", "lightly toned", "fit", "highly athletic", "powerful physique"]],
-    ["proportions", "Proportions", ["natural proportions", "tall proportions", "petite proportions", "broad shoulders", "long legs", "balanced hourglass proportions"]],
+  /* Per-character appearance fields, grouped into display columns. Each
+   * field is a combobox: preset options plus free typing. */
+  const CHARACTER_APPEARANCE = [
+    { group: "basics", key: "sex", label: "Sex", options: ["male", "female", "unspecified"] },
+    { group: "basics", key: "age", label: "Age", options: ["child", "teenager", "young adult", "adult", "middle aged", "elderly"] },
+    { group: "hair", key: "hair_style", label: "Hair style", options: [
+      "straight", "wavy", "curly", "coily", "kinky", "afro", "braided", "cornrows", "dreadlocks",
+      "ponytail", "high ponytail", "low ponytail", "pigtails", "twin tails", "bun", "top knot",
+      "man bun", "space buns", "half-up half-down", "bob", "pixie cut", "undercut", "buzz cut",
+      "shaved", "mohawk", "faux hawk", "mullet", "side part", "middle part", "slicked back",
+      "pompadour", "quiff", "bangs", "curtain bangs", "messy layered", "loose waves",
+      "French braid", "Dutch braid", "fishtail braid", "braided crown", "perm",
+    ] },
+    { group: "hair", key: "hair_length", label: "Hair length", options: [
+      "shaved", "buzz cut", "short", "ear-length", "chin-length", "neck-length",
+      "shoulder-length", "mid-back length", "waist-length", "hip-length", "floor-length",
+    ] },
+    { group: "hair", key: "hair_color", label: "Hair colour", options: [
+      "black", "jet black", "dark brown", "chestnut brown", "auburn", "copper", "red",
+      "ginger", "strawberry blonde", "blonde", "honey blonde", "platinum blonde", "ash blonde",
+      "silver", "white", "grey", "blue", "teal", "purple", "pink", "green", "rainbow",
+      "ombre", "balayage", "highlights", "lowlights", "two-tone",
+    ] },
+    { group: "hair", key: "makeup", label: "Makeup", options: [
+      "no makeup", "natural makeup", "no-makeup makeup", "subtle makeup", "soft glam makeup",
+      "full glam makeup", "dramatic smoky eyes", "smokey eye", "winged eyeliner", "cat eye",
+      "bold red lip", "glossy lip", "nude lip", "editorial makeup", "avant-garde makeup",
+      "gothic makeup", "vintage pin-up makeup", "bridal makeup", "festival glitter makeup",
+      "minimal makeup", "dewy skin makeup",
+    ] },
+    { group: "face", key: "eyes", label: "Eyes", options: [
+      "large round eyes", "almond-shaped eyes", "hooded eyes", "deep-set eyes", "upturned eyes",
+      "downturned eyes", "monolid eyes", "close-set eyes", "wide-set eyes", "bright blue eyes",
+      "icy blue eyes", "green eyes", "hazel eyes", "brown eyes", "dark brown eyes", "black eyes",
+      "grey eyes", "amber eyes", "violet eyes", "heterochromatic eyes",
+    ] },
+    { group: "face", key: "nose", label: "Nose", options: [
+      "straight nose", "button nose", "aquiline nose", "broad nose", "flat nose", "upturned nose",
+      "pointed nose", "wide nose", "thin nose", "snub nose", "Roman nose", "hawk-like nose",
+      "defined nose", "soft nose",
+    ] },
+    { group: "face", key: "mouth", label: "Mouth", options: [
+      "full lips", "thin lips", "wide mouth", "small mouth", "defined cupid's bow",
+      "heart-shaped lips", "pouty lips", "downturned mouth", "upturned mouth", "smile lines",
+    ] },
+    { group: "face", key: "chin", label: "Chin", options: [
+      "rounded chin", "pointed chin", "strong chin", "cleft chin", "soft chin", "square chin",
+      "receding chin", "prominent chin", "dimpled chin",
+    ] },
+    { group: "face", key: "face_shape", label: "Face shape", options: [
+      "oval face", "round face", "square face", "heart-shaped face", "diamond-shaped face",
+      "long face", "rectangular face", "triangular face", "pear-shaped face", "angular face",
+      "soft face",
+    ] },
+    { group: "body", key: "body_type", label: "Body type", options: [
+      "slim build", "average build", "athletic build", "muscular build", "stocky build",
+      "curvy build", "plus-size build", "petite build", "tall build", "lithe build",
+      "willowy build", "broad build",
+    ] },
+    { group: "body", key: "fitness", label: "Fitness", options: [
+      "soft physique", "lightly toned", "fit", "athletic physique", "highly athletic",
+      "powerful physique", "lean physique", "muscular physique", "toned physique",
+    ] },
+    { group: "body", key: "proportions", label: "Proportions", options: [
+      "natural proportions", "tall proportions", "petite proportions", "broad shoulders",
+      "long legs", "short legs", "balanced hourglass proportions", "athletic proportions",
+      "elongated proportions",
+    ] },
+    { group: "clothing", key: "ensemble", label: "Ensemble (full costume)", options: [
+      "western cowboy outfit", "western cowgirl outfit", "medieval knight plate armour",
+      "fantasy leather armour", "fantasy ranger leathers", "medieval bard outfit",
+      "royal mage robes", "wizard robes", "sci-fi flight suit", "sci-fi crew uniform",
+      "spacesuit", "cyberpunk streetwear", "noir trench coat and fedora", "1940s zoot suit",
+      "1920s flapper dress", "Victorian gown", "Edwardian three-piece suit", "Tudor noble attire",
+      "samurai armour", "ninja outfit", "Viking warrior garb", "Roman centurion armour",
+      "Greek hoplite armour", "Egyptian pharaoh attire", "steampunk aviator outfit",
+      "dieselpunk pilot gear", "post-apocalyptic scavenger gear", "superhero costume",
+      "royal ballgown", "gothic lolita dress", "business suit", "power suit", "cocktail dress",
+      "evening gown", "trench coat and scarf", "bomber jacket and jeans", "leather biker outfit",
+      "denim-on-denim look", "hazmat suit", "lab coat and goggles", "chef whites",
+      "surgeon scrubs", "firefighter turnout gear", "police uniform", "military fatigues",
+      "tuxedo", "wedding dress", "kimono", "hanbok", "cheongsam", "sari", "dashiki",
+      "poncho and serape", "fur coat and hat", "parka and snow boots", "preppy cardigan look",
+      "gym wear", "swimwear", "traditional kilt", "lederhosen",
+    ] },
+    { group: "clothing", key: "clothing_top", label: "Top", options: [
+      "plain t-shirt", "graphic t-shirt", "tank top", "button-up shirt", "flannel shirt",
+      "polo shirt", "knit sweater", "turtleneck sweater", "hoodie", "cardigan", "blouse",
+      "crop top", "camisole", "halter top", "off-shoulder top", "corset top", "leather jacket",
+      "denim jacket", "bomber jacket", "blazer", "suit jacket", "trench coat", "peacoat",
+      "parka", "puffer jacket", "vest", "waistcoat", "chainmail shirt", "chestplate armour",
+      "tunic", "robes", "sports jersey", "lab coat", "work shirt", "henley shirt",
+    ] },
+    { group: "clothing", key: "clothing_bottom", label: "Bottom", options: [
+      "skinny jeans", "straight-leg jeans", "wide-leg trousers", "dress trousers",
+      "cargo pants", "chinos", "shorts", "cargo shorts", "athletic shorts", "mini skirt",
+      "midi skirt", "maxi skirt", "pleated skirt", "A-line skirt", "leather pants",
+      "leggings", "joggers", "sweatpants", "overalls", "dungarees", "armoured greaves",
+      "chainmail leggings", "puffy harem pants", "palazzo pants", "capri pants", "kilt",
+      "military trousers", "cargo leggings", "formal culottes", "biker shorts",
+    ] },
   ];
+
+  const CHARACTER_COLUMN_TITLES = {
+    basics: "Identity & basics",
+    hair: "Hair & makeup",
+    face: "Face",
+    body: "Body & fitness",
+    clothing: "Clothing & armour",
+  };
+
+  const CHARACTER_COLUMNS = ["basics", "hair", "face", "body", "clothing"];
 
   /* Per-character direction categories. A cast member owns these so two
    * characters in one scene never share the same emotion or body language. */
@@ -65,8 +160,9 @@
   const FACE_CATEGORIES = ["face", "face_trigger", "gaze", "mouth"];
   const BODY_CATEGORIES = ["body"];
   const POSITION_CATEGORIES = ["position"];
+  const LORA_CATEGORIES = ["lora_trigger"];
   const DIRECTION_CATEGORIES = EMOTION_CATEGORIES.concat(
-    FACE_CATEGORIES, BODY_CATEGORIES, POSITION_CATEGORIES,
+    FACE_CATEGORIES, BODY_CATEGORIES, POSITION_CATEGORIES, LORA_CATEGORIES,
   );
 
   /* One-click emotion chips shown on each cast member. */
@@ -162,16 +258,16 @@
   ];
 
   const CHARACTER_PRESETS = [
-    { label: "Cinematic heroine", character: { subject: "adult woman", expression: "calm confidence", clothing: "elegant formal dress", hair_style: "wavy", hair_length: "long", hair_color: "dark brown", makeup: "soft glam makeup", eyes: "almond-shaped eyes", face_shape: "oval face", body_type: "athletic build", fitness: "fit", proportions: "natural proportions", identity: "A poised cinematic lead with assured presence" } },
-    { label: "Action hero", character: { subject: "adult man", expression: "focused determination", clothing: "fantasy leather armour", hair_style: "messy layered", hair_length: "short", hair_color: "dark brown", makeup: "no makeup", eyes: "deep-set eyes", face_shape: "square face", body_type: "muscular build", fitness: "powerful physique", proportions: "broad shoulders", identity: "A battle-tested protector who remains calm under pressure" } },
-    { label: "Sci-fi commander", character: { subject: "sci-fi officer", expression: "calm confidence", clothing: "sci-fi powered armour", hair_style: "undercut", hair_length: "short", hair_color: "silver", makeup: "natural makeup", eyes: "grey eyes", face_shape: "diamond-shaped face", body_type: "athletic build", fitness: "highly athletic", proportions: "tall proportions", identity: "A decisive starship commander with a disciplined bearing" } },
-    { label: "Veteran pilot", character: { subject: "adult man", expression: "focused determination", clothing: "sci-fi flight suit", hair_style: "messy layered", hair_length: "short", hair_color: "dark brown", makeup: "no makeup", eyes: "brown eyes", nose: "aquiline nose", chin: "cleft chin", face_shape: "long face", body_type: "average build", fitness: "fit", proportions: "natural proportions", identity: "A veteran shuttle pilot with a weathered face and quick instincts" } },
-    { label: "Noir detective", character: { subject: "modern professional", expression: "suspicious stare", clothing: "modern formal suit", hair_style: "straight", hair_length: "short", hair_color: "black", makeup: "no makeup", eyes: "deep-set eyes", nose: "straight nose", mouth: "thin lips", face_shape: "square face", body_type: "average build", fitness: "lightly toned", proportions: "natural proportions", identity: "A private detective who notices every detail" } },
-    { label: "Fantasy ranger", character: { subject: "fantasy hero", expression: "focused determination", clothing: "fantasy leather armour", hair_style: "braided", hair_length: "shoulder-length", hair_color: "auburn", makeup: "no makeup", eyes: "green eyes", face_shape: "heart-shaped face", body_type: "slim build", fitness: "highly athletic", proportions: "long legs", identity: "A quiet woodland ranger and expert tracker" } },
-    { label: "Royal mage", character: { subject: "medieval noble", expression: "calm confidence", clothing: "fantasy robes", hair_style: "wavy", hair_length: "waist-length", hair_color: "platinum blonde", makeup: "editorial makeup", eyes: "bright blue eyes", nose: "straight nose", mouth: "defined cupid's bow", chin: "pointed chin", face_shape: "oval face", body_type: "slim build", fitness: "soft physique", proportions: "tall proportions", identity: "A learned royal mage with an elegant, otherworldly presence" } },
-    { label: "Cyberpunk hacker", character: { subject: "adult nonbinary person", expression: "suspicious stare", clothing: "masculine streetwear", hair_style: "undercut", hair_length: "chin-length", hair_color: "blue", makeup: "dark gothic makeup", eyes: "large round eyes", face_shape: "diamond-shaped face", body_type: "slim build", fitness: "lightly toned", proportions: "petite proportions", identity: "A brilliant underground hacker with restless energy" } },
-    { label: "Cheerful student", character: { subject: "adult woman", expression: "joyful laughter", clothing: "modern casual clothing", hair_style: "ponytail", hair_length: "shoulder-length", hair_color: "auburn", makeup: "natural makeup", eyes: "large round eyes", nose: "button nose", mouth: "wide mouth", chin: "rounded chin", face_shape: "round face", body_type: "average build", fitness: "lightly toned", proportions: "natural proportions", identity: "An outgoing university student with an infectious laugh" } },
-    { label: "Elegant elder", character: { subject: "adult woman", expression: "warm smile", clothing: "modern formal suit", hair_style: "wavy", hair_length: "chin-length", hair_color: "silver", makeup: "natural makeup", eyes: "hooded eyes", nose: "aquiline nose", mouth: "thin lips", chin: "strong chin", face_shape: "long face", body_type: "average build", fitness: "soft physique", proportions: "natural proportions", identity: "An elegant older mentor with warmth, wisdom, and authority" } },
+    { label: "Cinematic heroine", character: { sex: "female", age: "young adult", identity: "A poised cinematic lead with assured presence", ensemble: "evening gown", hair_style: "wavy", hair_length: "long", hair_color: "dark brown", makeup: "soft glam makeup", eyes: "almond-shaped eyes", face_shape: "oval face", body_type: "athletic build", fitness: "fit", proportions: "natural proportions" } },
+    { label: "Action hero", character: { sex: "male", age: "adult", identity: "A battle-tested protector who remains calm under pressure", ensemble: "bomber jacket and jeans", hair_style: "messy layered", hair_length: "short", hair_color: "dark brown", makeup: "no makeup", eyes: "deep-set eyes", face_shape: "square face", body_type: "muscular build", fitness: "powerful physique", proportions: "broad shoulders" } },
+    { label: "Sci-fi commander", character: { sex: "female", age: "adult", identity: "A decisive starship commander with a disciplined bearing", ensemble: "sci-fi crew uniform", hair_style: "undercut", hair_length: "short", hair_color: "silver", makeup: "natural makeup", eyes: "grey eyes", face_shape: "diamond-shaped face", body_type: "athletic build", fitness: "highly athletic", proportions: "tall proportions" } },
+    { label: "Veteran pilot", character: { sex: "male", age: "middle aged", identity: "A veteran shuttle pilot with a weathered face and quick instincts", ensemble: "sci-fi flight suit", hair_style: "messy layered", hair_length: "short", hair_color: "dark brown", makeup: "no makeup", eyes: "brown eyes", nose: "aquiline nose", chin: "cleft chin", face_shape: "long face", body_type: "average build", fitness: "fit", proportions: "natural proportions" } },
+    { label: "Noir detective", character: { sex: "male", age: "middle aged", identity: "A private detective who notices every detail", ensemble: "noir trench coat and fedora", hair_style: "straight", hair_length: "short", hair_color: "black", makeup: "no makeup", eyes: "deep-set eyes", nose: "straight nose", mouth: "thin lips", face_shape: "square face", body_type: "average build", fitness: "lightly toned", proportions: "natural proportions" } },
+    { label: "Fantasy ranger", character: { sex: "unspecified", age: "young adult", identity: "A quiet woodland ranger and expert tracker", ensemble: "fantasy ranger leathers", hair_style: "braided", hair_length: "shoulder-length", hair_color: "auburn", makeup: "no makeup", eyes: "green eyes", face_shape: "heart-shaped face", body_type: "slim build", fitness: "highly athletic", proportions: "long legs" } },
+    { label: "Royal mage", character: { sex: "unspecified", age: "middle aged", identity: "A learned royal mage with an elegant, otherworldly presence", ensemble: "royal mage robes", hair_style: "wavy", hair_length: "waist-length", hair_color: "platinum blonde", makeup: "editorial makeup", eyes: "bright blue eyes", nose: "straight nose", mouth: "defined cupid's bow", chin: "pointed chin", face_shape: "oval face", body_type: "slim build", fitness: "soft physique", proportions: "tall proportions" } },
+    { label: "Cyberpunk hacker", character: { sex: "unspecified", age: "young adult", identity: "A brilliant underground hacker with restless energy", ensemble: "cyberpunk streetwear", hair_style: "undercut", hair_length: "chin-length", hair_color: "blue", makeup: "gothic makeup", eyes: "large round eyes", face_shape: "diamond-shaped face", body_type: "slim build", fitness: "lightly toned", proportions: "petite proportions" } },
+    { label: "Cheerful student", character: { sex: "female", age: "young adult", identity: "An outgoing university student with an infectious laugh", clothing_top: "knit sweater", clothing_bottom: "straight-leg jeans", hair_style: "ponytail", hair_length: "shoulder-length", hair_color: "auburn", makeup: "natural makeup", eyes: "large round eyes", nose: "button nose", mouth: "wide mouth", chin: "rounded chin", face_shape: "round face", body_type: "average build", fitness: "lightly toned", proportions: "natural proportions" } },
+    { label: "Elegant elder", character: { sex: "female", age: "elderly", identity: "An elegant older mentor with warmth, wisdom, and authority", ensemble: "business suit", hair_style: "wavy", hair_length: "chin-length", hair_color: "silver", makeup: "natural makeup", eyes: "hooded eyes", nose: "aquiline nose", mouth: "thin lips", chin: "strong chin", face_shape: "long face", body_type: "average build", fitness: "soft physique", proportions: "natural proportions" } },
   ];
 
   function createWizardWidget(node) {
@@ -565,10 +661,16 @@
         id: id,
         name: "Character " + ((state.characters || []).length + 1),
         enabled: true,
+        expanded: true,
         identity: "",
-        subject: "adult woman",
-        expression: "calm confidence",
-        clothing: "modern casual clothing",
+        sex: "",
+        age: "",
+        subject: "",
+        expression: "",
+        clothing: "",
+        ensemble: "",
+        clothing_top: "",
+        clothing_bottom: "",
         hair_style: "",
         hair_length: "",
         hair_color: "",
@@ -578,15 +680,17 @@
         mouth: "",
         chin: "",
         face_shape: "",
-        body_type: "average build",
+        body_type: "",
         fitness: "",
-        proportions: "natural proportions",
+        proportions: "",
         adult_description: "",
         character_ref: "",
         position: "",
         face_guidance: "",
         interaction: "",
+        lora_triggers: "",
         rows: [],
+        randomize_fields: {},
       };
     }
 
@@ -877,15 +981,30 @@
       return colors[value] || fallback;
     }
 
+    function characterEmotionLabel(character) {
+      const rows = (character.rows || []).filter(function (row) {
+        return row && row.category === "emotion" && row.enabled !== false;
+      });
+      if (rows.length) return String(rows[0].label || rows[0].phrase || "").toLowerCase();
+      return String(character.expression || "").toLowerCase();
+    }
+
     function buildCharacterAvatar(character) {
       const hairColor = avatarColor(character.hair_color, "#4b2e24");
-      const clothing = String(character.clothing || "").toLowerCase();
+      const clothing = String(
+        character.clothing || character.ensemble || character.clothing_top || "",
+      ).toLowerCase();
       const outfitColor = clothing.includes("sci-fi") ? "#405a78"
         : clothing.includes("armour") ? "#6c7582"
         : clothing.includes("fantasy") || clothing.includes("medieval") ? "#72513d"
-        : clothing.includes("formal") ? "#303844"
-        : clothing.includes("streetwear") ? "#8a4160" : "#477f72";
-      const expression = String(character.expression || "").toLowerCase();
+        : clothing.includes("formal") || clothing.includes("suit") || clothing.includes("tuxedo") ? "#303844"
+        : clothing.includes("streetwear") || clothing.includes("biker") ? "#8a4160"
+        : clothing.includes("leather") || clothing.includes("noir") ? "#5c4433"
+        : clothing.includes("flapper") || clothing.includes("gown") || clothing.includes("ballgown") ? "#8a4a6a"
+        : clothing.includes("military") || clothing.includes("fatigues") ? "#4a5c4a"
+        : clothing.includes("lab") || clothing.includes("chef") || clothing.includes("scrubs") ? "#cfd6df"
+        : "#477f72";
+      const expression = characterEmotionLabel(character);
       const avatar = el("div", {
         class: "krea2-avatar",
         role: "img",
@@ -905,7 +1024,7 @@
         el("div", { class: "krea2-avatar-eye left" }),
         el("div", { class: "krea2-avatar-eye right" }),
         el("div", { class: "krea2-avatar-nose" }),
-        el("div", { class: "krea2-avatar-mouth " + (expression.includes("smile") || expression.includes("joy") || expression.includes("laugh") ? "happy" : expression.includes("sad") ? "sad" : expression.includes("suspicious") ? "flat" : "calm") }),
+        el("div", { class: "krea2-avatar-mouth " + (expression.includes("smile") || expression.includes("joy") || expression.includes("laugh") || expression.includes("happy") ? "happy" : expression.includes("sad") || expression.includes("grief") ? "sad" : expression.includes("anger") || expression.includes("fury") ? "flat" : "calm") }),
       );
       avatar.appendChild(head);
       avatar.appendChild(el("div", { class: "krea2-avatar-label" }, character.name || "Character"));
@@ -921,6 +1040,315 @@
         presets.push({ source: "workflow", preset: preset });
       });
       return presets;
+    }
+
+    function characterSummary(character) {
+      const parts = [];
+      if (character.sex) parts.push(String(character.sex));
+      if (character.age) parts.push(String(character.age));
+      const look = character.ensemble || character.clothing_top || character.clothing || "";
+      if (look) parts.push(String(look));
+      const hair = character.hair_color || character.hair_style || "";
+      if (hair) parts.push(String(hair));
+      return parts.join(" · ");
+    }
+
+    function comboboxForField(character, field) {
+      const listId = "krea2-appearance-" + field.key + "-" + (character.id || "char");
+      const input = el("input", {
+        type: "text",
+        class: "krea2-compact-input krea2-combobox",
+        list: listId,
+        value: character[field.key] || "",
+        "aria-label": field.label,
+        placeholder: "Pick or type…",
+        onInput: function (event) {
+          applyAppearanceValue(character, field, event.target.value);
+        },
+      });
+      const datalist = el("datalist", { id: listId });
+      for (const option of field.options) {
+        datalist.appendChild(el("option", { value: option }));
+      }
+      return { input: input, datalist: datalist };
+    }
+
+    function applyAppearanceValue(character, field, rawValue) {
+      const value = String(rawValue || "").trim();
+      character[field.key] = value;
+      if (field.key === "ensemble" && value) {
+        // Choosing an ensemble disables the separates.
+        character.clothing_top = "";
+        character.clothing_bottom = "";
+      }
+      if ((field.key === "clothing_top" || field.key === "clothing_bottom") && value) {
+        // Using separates disables the ensemble.
+        character.ensemble = "";
+      }
+      markDirty();
+      scheduleAppearanceRender();
+    }
+
+    const scheduleAppearanceRender = debounce(function () { render(); }, 350);
+
+    function buildAppearanceFieldRow(character, field) {
+      const combobox = comboboxForField(character, field);
+      const eachRun = (character.randomize_fields || {})[field.key];
+      const useEnsemble = Boolean(String(character.ensemble || "").trim());
+      const isSeparate = field.key === "clothing_top" || field.key === "clothing_bottom";
+      const disabledByEnsemble = useEnsemble && isSeparate;
+      const hint = disabledByEnsemble ? "disabled — an ensemble is chosen" : "";
+      if (disabledByEnsemble) {
+        combobox.input.disabled = true;
+        combobox.input.title = hint;
+      }
+      const row = el("label", { class: "krea2-character-field" + (disabledByEnsemble ? " is-disabled" : "") }, [
+        el("span", null, field.label),
+        el("div", { class: "krea2-field-row" }, [
+          combobox.input,
+          combobox.datalist,
+          diceButton("Randomize only " + field.label, function () {
+            character[field.key] = randomChoice(field.options);
+            if (field.key === "ensemble" && character[field.key]) {
+              character.clothing_top = "";
+              character.clothing_bottom = "";
+            }
+            if ((field.key === "clothing_top" || field.key === "clothing_bottom") && character[field.key]) {
+              character.ensemble = "";
+            }
+            markDirty();
+            render();
+          }, "krea2-field-random krea2-icon-btn"),
+          el("label", {
+            class: "krea2-each-run",
+            title: "Randomize this field for every queued job",
+          }, [
+            el("input", {
+              type: "checkbox",
+              checked: !!eachRun,
+              "aria-label": "Randomize " + field.label + " each run",
+              onChange: function (event) {
+                if (!character.randomize_fields) character.randomize_fields = {};
+                if (event.target.checked) {
+                  character.randomize_fields[field.key] = field.options.slice();
+                } else {
+                  delete character.randomize_fields[field.key];
+                }
+                markDirty();
+                render();
+              },
+            }),
+            el("span", null, "each run"),
+          ]),
+        ]),
+      ]);
+      return row;
+    }
+
+    function appearanceColumns(character) {
+      const grid = el("div", { class: "krea2-character-columns" });
+      for (const column of CHARACTER_COLUMNS) {
+        const fields = CHARACTER_APPEARANCE.filter(function (field) { return field.group === column; });
+        if (!fields.length) continue;
+        const col = el("div", { class: "krea2-character-column" });
+        col.appendChild(el("div", { class: "krea2-character-column-title" },
+          CHARACTER_COLUMN_TITLES[column] || column));
+        for (const field of fields) {
+          col.appendChild(buildAppearanceFieldRow(character, field));
+        }
+        grid.appendChild(col);
+      }
+      const adult = el("label", { class: "krea2-character-field krea2-field-wide" }, [
+        el("span", null, "Adult body description"),
+        el("textarea", { class: "krea2-compact-textarea", rows: "2", "aria-label": "Adult body description", placeholder: "Optional adult body description in your own words", onInput: function (event) {
+          character.adult_description = event.target.value; markDirty();
+        } }, character.adult_description || ""),
+      ]);
+      grid.appendChild(adult);
+      return grid;
+    }
+
+    function renderLoraSection(character) {
+      const section = el("div", { class: "krea2-lora-section" });
+      const picker = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-quiet-btn",
+        onClick: function () {
+          showSearchableSelector({
+            presets: characterRowPresets(),
+            title: "Add LoRA trigger words for " + (character.name || "this character"),
+            categories: LORA_CATEGORIES,
+            multiSelect: true,
+            selectedIds: [],
+            onToggle: function (preset, shouldSelect) {
+              if (!shouldSelect) return;
+              const lines = String(character.lora_triggers || "").split(/\r?\n/)
+                .map(function (line) { return line.trim(); }).filter(Boolean);
+              const phrase = String(preset.phrase || preset.label || "").trim();
+              if (phrase && !lines.includes(phrase)) {
+                lines.push(phrase);
+                character.lora_triggers = lines.join("\n");
+              }
+              markDirty();
+              render();
+            },
+            onClose: function () { render(); },
+            getConceptColor: function (presetId) { return (state.concept_colors || {})[presetId] || ""; },
+            onColorChange: function (presetId, newColor) {
+              state.concept_colors = state.concept_colors || {};
+              if (newColor) state.concept_colors[presetId] = newColor;
+              else delete state.concept_colors[presetId];
+              markDirty();
+            },
+          });
+        },
+      }, "+ Pick trigger words");
+      const randomBtn = diceButton("Random trigger word", function () {
+        const presets = characterRowPresets().filter(function (preset) { return LORA_CATEGORIES.includes(preset.category); });
+        const preset = randomChoice(presets);
+        if (!preset) return;
+        const lines = String(character.lora_triggers || "").split(/\r?\n/)
+          .map(function (line) { return line.trim(); }).filter(Boolean);
+        const phrase = String(preset.phrase || preset.label || "").trim();
+        if (phrase && !lines.includes(phrase)) {
+          lines.push(phrase);
+          character.lora_triggers = lines.join("\n");
+        }
+        markDirty();
+        render();
+      }, "krea2-field-random krea2-icon-btn");
+      section.appendChild(el("div", { class: "krea2-direction-block-head" }, [
+        el("strong", null, "LoRA trigger words"),
+        el("span", { class: "krea2-direction-hint" }, "apply to THIS character only — one per line"),
+        el("span", { class: "krea2-structured-spacer" }),
+        randomBtn,
+        picker,
+      ]));
+      section.appendChild(el("div", { class: "krea2-settings-copy" },
+        "Load the LoRA on the model as usual, then list its trigger words here. Because they compile only inside " +
+        (character.name || "this character") + "\u2019s block, the LoRA's look applies to this character alone."));
+      section.appendChild(el("textarea", {
+        class: "krea2-compact-textarea krea2-lora-triggers",
+        rows: "2",
+        "aria-label": "LoRA trigger words",
+        placeholder: "young woman\nsemi-realistic art style",
+        onInput: function (event) { character.lora_triggers = event.target.value; markDirty(); },
+      }, character.lora_triggers || ""));
+      return section;
+    }
+
+    function renderCharacterCard(character, index) {
+      const expanded = character.expanded !== false;
+      const card = el("section", {
+        class: "krea2-character-card" + (expanded ? " is-expanded" : ""),
+        dataset: { characterId: character.id },
+      });
+      const header = el("div", { class: "krea2-character-card-header" });
+      header.appendChild(buildCharacterAvatar(character));
+      const name = el("input", {
+        type: "text",
+        class: "krea2-compact-input krea2-character-name",
+        value: character.name || "",
+        "aria-label": "Character name",
+        onInput: function (event) { character.name = event.target.value; markDirty(); },
+      });
+      const summary = el("span", { class: "krea2-character-summary" }, characterSummary(character) || "No appearance set yet");
+      const enabled = el("label", { class: "krea2-inline-check", title: "Include this character in the prompt" }, [
+        el("input", { type: "checkbox", checked: character.enabled !== false, onChange: function (event) { character.enabled = !!event.target.checked; markDirty(); render(); } }),
+        el("span", null, "Include"),
+      ]);
+      const randomAll = diceButton("Randomize this entire character's look", function () {
+        CHARACTER_APPEARANCE.forEach(function (field) {
+          character[field.key] = randomChoice(field.options);
+        });
+        markDirty(); render();
+      });
+      const save = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-save-character",
+        title: "Save this character's look as a reusable preset",
+        onClick: function () { saveCharacterPreset(character, name.value || character.name); },
+      }, "Save");
+      const remove = el("button", { type: "button", class: "krea2-wizard-btn krea2-icon-btn", title: "Delete character", "aria-label": "Delete character", onClick: function () {
+        if (!window.confirm("Delete “" + (character.name || "this character") + "” from the cast?")) return;
+        state.characters = state.characters.filter(function (item) { return item.id !== character.id; });
+        if (state.selected_character_id === character.id) {
+          state.selected_character_id = state.characters.length ? state.characters[0].id : null;
+        }
+        markDirty(); render();
+      } }, "×");
+      const expandBtn = el("button", {
+        type: "button",
+        class: "krea2-character-expand krea2-icon-btn",
+        title: character.expanded ? "Collapse this character" : "Expand this character",
+        "aria-label": character.expanded ? "Collapse" : "Expand",
+        onClick: function () { character.expanded = !character.expanded; persist(); render(); },
+      }, character.expanded ? "▾" : "▸");
+      header.append(name, summary, el("span", { class: "krea2-structured-spacer" }), enabled, randomAll, save, remove, expandBtn);
+
+      const body = el("div", { class: "krea2-character-card-body" });
+      if (expanded) {
+        const allPresets = availableCharacterPresets();
+        const presetSelect = el("select", { class: "krea2-compact-select", "aria-label": "Character presets" });
+        presetSelect.appendChild(el("option", { value: "" }, "Character presets..."));
+        allPresets.forEach(function (entry, presetIndex) {
+          const prefix = entry.source === "builtin" ? "Built in · " : entry.source === "saved" ? "My preset · " : "Workflow · ";
+          presetSelect.appendChild(el("option", { value: String(presetIndex) }, prefix + (entry.preset.label || "Character")));
+        });
+        const applyPreset = el("button", { type: "button", class: "krea2-wizard-btn", onClick: function () {
+          const entry = allPresets[Number(presetSelect.value)];
+          if (!entry || !entry.preset.character) return;
+          const stored = cloneJson(entry.preset.character);
+          const replacement = Object.assign(newCharacter(), stored, { id: character.id, expanded: character.expanded !== false });
+          if (!stored.name) replacement.name = character.name || entry.preset.label;
+          // Applying a look keeps the member's direction block.
+          replacement.position = character.position || "";
+          replacement.face_guidance = character.face_guidance || "";
+          replacement.interaction = character.interaction || "";
+          replacement.lora_triggers = character.lora_triggers || "";
+          replacement.rows = Array.isArray(character.rows) ? cloneJson(character.rows) : [];
+          const index = state.characters.indexOf(character); state.characters[index] = replacement;
+          markDirty(); render();
+        } }, "Apply");
+        body.appendChild(el("div", { class: "krea2-character-preset-row" }, [presetSelect, applyPreset]));
+
+        body.appendChild(el("textarea", {
+          class: "krea2-compact-textarea krea2-character-identity",
+          rows: "1",
+          "aria-label": "Character identity",
+          placeholder: "Role, background, distinctive features...",
+          onInput: function (event) { character.identity = event.target.value; markDirty(); },
+        }, character.identity || ""));
+
+        body.appendChild(appearanceColumns(character));
+        body.appendChild(renderCharacterDirection(character));
+        body.appendChild(renderLoraSection(character));
+      }
+      card.appendChild(header);
+      card.appendChild(body);
+      return card;
+    }
+
+    function saveCharacterPreset(character, suggestedLabel) {
+      const label = String(suggestedLabel || character.name || "").trim();
+      if (!label) { showToast("Give the character a name first", "warning"); return; }
+      const stored = cloneJson(character);
+      delete stored.id;
+      delete stored.expanded;
+      const existing = findExistingSavedPreset("character", label);
+      if (existing && !window.confirm(
+        "A character preset named \u201c" + label + "\u201d already exists. Overwrite it?",
+      )) {
+        showToast("Character preset not saved", "info");
+        return;
+      }
+      const payload = { scope: "character", character: stored };
+      if (existing) {
+        Object.assign(existing, payload, { label: label });
+      } else {
+        savedPresets.push(Object.assign({ id: makeSavedPresetId("character", ""), label: label }, payload));
+      }
+      persistSavedPresets(existing ? "Character preset overwritten" : "Character preset saved");
     }
 
     function renderCharacterEditor() {
@@ -942,7 +1370,7 @@
       if (!state.characters.length) {
         const starter = el("select", { class: "krea2-compact-select", "aria-label": "Add a preset character" });
         starter.appendChild(el("option", { value: "" }, "Start with a preset character..."));
-        CHARACTER_PRESETS.forEach(function (preset, index) { starter.appendChild(el("option", { value: String(index) }, preset.label)); });
+        CHARACTER_PRESETS.forEach(function (preset, presetIndex) { starter.appendChild(el("option", { value: String(presetIndex) }, preset.label)); });
         starter.addEventListener("change", function () {
           const preset = CHARACTER_PRESETS[Number(starter.value)];
           if (!preset) return;
@@ -953,120 +1381,9 @@
         section.appendChild(el("div", { class: "krea2-character-empty-row" }, [starter, el("span", { class: "krea2-structured-empty" }, "or create a blank character") ]));
         return section;
       }
-
-      const tabs = el("div", { class: "krea2-character-tabs" });
-      state.characters.forEach(function (character) {
-        tabs.appendChild(el("button", {
-          type: "button",
-          class: "krea2-character-tab" + (character.id === state.selected_character_id ? " is-active" : "") + (character.enabled === false ? " is-disabled" : ""),
-          onClick: function () { state.selected_character_id = character.id; persist(); renderStructuredEditors(); },
-        }, (character.enabled === false ? "○ " : "● ") + (character.name || "Character")));
+      state.characters.forEach(function (character, index) {
+        section.appendChild(renderCharacterCard(character, index));
       });
-      section.appendChild(tabs);
-
-      const character = state.characters.find(function (item) { return item.id === state.selected_character_id; }) || state.characters[0];
-      const compact = el("div", { class: "krea2-character-compact" });
-      compact.appendChild(buildCharacterAvatar(character));
-      const content = el("div", { class: "krea2-character-content" });
-
-      const toolbar = el("div", { class: "krea2-structured-toolbar krea2-character-toolbar" });
-      const name = el("input", { type: "text", class: "krea2-compact-input krea2-character-name", value: character.name || "", "aria-label": "Character name", onInput: function (event) {
-        character.name = event.target.value; markDirty();
-      } });
-      const enabled = el("label", { class: "krea2-inline-check" }, [
-        el("input", { type: "checkbox", checked: character.enabled !== false, onChange: function (event) { character.enabled = !!event.target.checked; markDirty(); renderStructuredEditors(); } }),
-        el("span", null, "Include"),
-      ]);
-      const randomAll = diceButton("Randomize this entire character", function () {
-        CHARACTER_FIELDS.forEach(function (field) { character[field[0]] = randomChoice(field[2]); });
-        markDirty(); renderStructuredEditors();
-      });
-      const remove = el("button", { type: "button", class: "krea2-wizard-btn krea2-icon-btn", title: "Delete character", "aria-label": "Delete character", onClick: function () {
-        state.characters = state.characters.filter(function (item) { return item.id !== character.id; });
-        state.selected_character_id = state.characters.length ? state.characters[0].id : null;
-        markDirty(); renderStructuredEditors();
-      } }, "×");
-      toolbar.append(name, enabled, randomAll, remove);
-      content.appendChild(toolbar);
-
-      const allPresets = availableCharacterPresets();
-      const presetSelect = el("select", { class: "krea2-compact-select", "aria-label": "Character presets" });
-      presetSelect.appendChild(el("option", { value: "" }, "Character presets..."));
-      allPresets.forEach(function (entry, index) {
-        const prefix = entry.source === "builtin" ? "Built in · " : entry.source === "saved" ? "My preset · " : "Workflow · ";
-        presetSelect.appendChild(el("option", { value: String(index) }, prefix + (entry.preset.label || "Character")));
-      });
-      const applyPreset = el("button", { type: "button", class: "krea2-wizard-btn", onClick: function () {
-        const entry = allPresets[Number(presetSelect.value)];
-        if (!entry || !entry.preset.character) return;
-        const stored = cloneJson(entry.preset.character);
-        const replacement = Object.assign(newCharacter(), stored, { id: character.id });
-        if (!stored.name) replacement.name = character.name || entry.preset.label;
-        // Applying a look keeps the member's direction block.
-        replacement.position = character.position || "";
-        replacement.face_guidance = character.face_guidance || "";
-        replacement.interaction = character.interaction || "";
-        replacement.rows = Array.isArray(character.rows) ? cloneJson(character.rows) : [];
-        const index = state.characters.indexOf(character); state.characters[index] = replacement;
-        markDirty(); renderStructuredEditors();
-      } }, "Apply");
-      content.appendChild(el("div", { class: "krea2-character-preset-row" }, [presetSelect, applyPreset]));
-
-      const identity = el("textarea", { class: "krea2-compact-textarea krea2-character-identity", rows: "1", "aria-label": "Character identity", placeholder: "Role, age, heritage, distinctive features...", onInput: function (event) {
-        character.identity = event.target.value; markDirty();
-      } }, character.identity || "");
-      content.appendChild(identity);
-
-      const presetName = el("input", { type: "text", class: "krea2-compact-input", value: character.name || "", "aria-label": "Character preset name", placeholder: "Character preset name" });
-      const saveCharacter = el("button", { type: "button", class: "krea2-wizard-btn krea2-save-character", onClick: function () {
-        const label = String(presetName.value || character.name || "Character preset").trim();
-        if (!label) { showToast("Give the character preset a name", "warning"); return; }
-        const stored = cloneJson(character);
-        delete stored.id;
-        delete stored.details_open;
-        savedPresets.push({
-          id: makeSavedPresetId("character", ""),
-          label: label,
-          scope: "character",
-          character: stored,
-        });
-        persistSavedPresets("Character preset saved").then(function () { renderStructuredEditors(); });
-      } }, "Save character preset");
-      content.appendChild(el("div", { class: "krea2-character-save-row" }, [presetName, saveCharacter]));
-
-      compact.appendChild(content);
-      section.appendChild(compact);
-
-      const details = el("details", {
-        class: "krea2-character-details",
-        open: !!character.details_open,
-        onToggle: function (event) { character.details_open = !!event.target.open; persist(); },
-      });
-      const summaryText = [character.subject, character.expression, character.clothing, character.hair_color].filter(Boolean).join(" · ");
-      details.appendChild(el("summary", null, summaryText || "Appearance & body"));
-      const grid = el("div", { class: "krea2-character-grid" });
-      CHARACTER_FIELDS.forEach(function (field) {
-        const select = el("select", { class: "krea2-compact-select", "aria-label": field[1], onChange: function (event) {
-          character[field[0]] = event.target.value; markDirty(); renderStructuredEditors();
-        } });
-        select.appendChild(el("option", { value: "" }, "Not specified"));
-        field[2].forEach(function (value) { select.appendChild(el("option", { value: value }, value)); });
-        if (character[field[0]] && !field[2].includes(character[field[0]])) select.appendChild(el("option", { value: character[field[0]] }, character[field[0]]));
-        select.value = character[field[0]] || "";
-        grid.appendChild(el("label", { class: "krea2-character-field" }, [
-          el("span", null, field[1]),
-          el("div", { class: "krea2-field-row" }, [select, diceButton("Randomize only " + field[1], function () {
-            character[field[0]] = randomChoice(field[2]); markDirty(); renderStructuredEditors();
-          }, "krea2-field-random krea2-icon-btn")]),
-        ]));
-      });
-      const adult = el("textarea", { class: "krea2-compact-textarea", rows: "2", "aria-label": "Adult body description", placeholder: "Optional adult body description in your own words", onInput: function (event) {
-        character.adult_description = event.target.value; markDirty();
-      } }, character.adult_description || "");
-      grid.appendChild(el("label", { class: "krea2-character-field krea2-field-wide" }, [el("span", null, "Adult body description"), adult]));
-      details.appendChild(grid);
-      section.appendChild(details);
-      section.appendChild(renderCharacterDirection(character));
       return section;
     }
 
@@ -1124,8 +1441,17 @@
         el("button", { type: "button", class: "krea2-wizard-btn", onClick: function () {
           const label = String(settingPresetName.value || setting.name || "Setting").trim();
           if (!label) { showToast("Give the setting preset a name", "warning"); return; }
-          savedPresets.push({ id: makeSavedPresetId("setting", ""), label: label, scope: "setting", setting: cloneJson(setting) });
-          persistSavedPresets("Setting preset saved").then(function () { renderStructuredEditors(); });
+          const existing = findExistingSavedPreset("setting", label);
+          if (existing && !window.confirm(
+            "A setting preset named \u201c" + label + "\u201d already exists. Overwrite it?",
+          )) return;
+          const payload = { scope: "setting", setting: cloneJson(setting) };
+          if (existing) {
+            Object.assign(existing, payload, { label: label });
+          } else {
+            savedPresets.push(Object.assign({ id: makeSavedPresetId("setting", ""), label: label }, payload));
+          }
+          persistSavedPresets(existing ? "Setting preset overwritten" : "Setting preset saved").then(function () { renderStructuredEditors(); });
         } }, "Save setting preset"),
       ]));
       if (settingEachJob) section.appendChild(el("div", { class: "krea2-settings-copy" },
@@ -1439,6 +1765,14 @@
       return name && name.trim() ? name.trim() : "";
     }
 
+    function findExistingSavedPreset(scope, label) {
+      const needle = String(label || "").trim().toLowerCase();
+      if (!needle) return null;
+      return savedPresets.find(function (preset) {
+        return preset.scope === scope && String(preset.label || "").trim().toLowerCase() === needle;
+      }) || null;
+    }
+
     function persistSavedPresets(successMessage) {
       return saveSavedPresets(savedPresets).then(function (presets) {
         savedPresets = presets;
@@ -1453,17 +1787,24 @@
     function saveFullPreset() {
       const label = askPresetName("Name this full prompt preset");
       if (!label) return;
-      savedPresets.push({
-        id: makeSavedPresetId("full", ""),
-        label: label,
+      const existing = findExistingSavedPreset("full", label);
+      if (existing && !window.confirm(
+        "A full prompt preset named \u201c" + label + "\u201d already exists. Overwrite it?",
+      )) return;
+      const payload = {
         scope: "full",
         group: "",
         base_prompt: state.base_prompt || "",
         randomize_on_job: JSON.parse(JSON.stringify(state.randomize_on_job || {})),
         creative_mode: state.creative_mode || "photo",
         rows: JSON.parse(JSON.stringify(state.rows)),
-      });
-      persistSavedPresets("Full prompt preset saved");
+      };
+      if (existing) {
+        Object.assign(existing, payload, { label: label });
+      } else {
+        savedPresets.push(Object.assign({ id: makeSavedPresetId("full", ""), label: label }, payload));
+      }
+      persistSavedPresets(existing ? "Full prompt preset overwritten" : "Full prompt preset saved");
     }
 
     function saveGroupPreset(group) {
@@ -1476,15 +1817,25 @@
       }
       const label = askPresetName("Name this " + GROUP_LABELS[group] + " preset");
       if (!label) return;
-      savedPresets.push({
-        id: makeSavedPresetId("group", group),
-        label: label,
+      const existing = savedPresets.find(function (preset) {
+        return preset.scope === "group" && preset.group === group
+          && String(preset.label || "").trim().toLowerCase() === label.toLowerCase();
+      }) || null;
+      if (existing && !window.confirm(
+        "A " + GROUP_LABELS[group] + " preset named \u201c" + label + "\u201d already exists. Overwrite it?",
+      )) return;
+      const payload = {
         scope: "group",
         group: group,
         base_prompt: "",
         rows: JSON.parse(JSON.stringify(rows)),
-      });
-      persistSavedPresets(GROUP_LABELS[group] + " preset saved");
+      };
+      if (existing) {
+        Object.assign(existing, payload, { label: label });
+      } else {
+        savedPresets.push(Object.assign({ id: makeSavedPresetId("group", group), label: label }, payload));
+      }
+      persistSavedPresets(existing ? GROUP_LABELS[group] + " preset overwritten" : GROUP_LABELS[group] + " preset saved");
     }
 
     function loadSelectedSavedPreset() {

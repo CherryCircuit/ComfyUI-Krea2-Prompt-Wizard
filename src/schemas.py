@@ -74,6 +74,7 @@ CATEGORIES: List[str] = [
     "gaze",
     "mouth",  # mouth and vocal action
     "position",  # character placement inside the frame
+    "lora_trigger",  # per-character LoRA trigger words
     "framing",  # camera framing / shot size
     "angle",  # camera angle
     "perspective",  # camera position and perspective
@@ -105,6 +106,7 @@ CATEGORY_LABELS: Dict[str, str] = {
     "gaze": "Gaze",
     "mouth": "Mouth and Vocal Action",
     "position": "Position and Placement",
+    "lora_trigger": "LoRA Trigger Words",
     "framing": "Camera Framing",
     "angle": "Camera Angle",
     "perspective": "Camera Position and Perspective",
