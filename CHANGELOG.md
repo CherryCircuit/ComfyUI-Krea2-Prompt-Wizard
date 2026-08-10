@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 1.4.0 — Apple-style prompt exploration UI
+
+- Reworked the wizard chrome toward a calmer Apple-style interface: soft surfaces, fewer borders, larger readable type, and spacing-based grouping.
+- Added a sticky PROMPT chip that keeps the compiled prompt, cast/concept/LoRA counts, and copy action visible while editing.
+- Compressed appearance randomization to one per-field icon: click 🎲 to roll once, Shift-click to toggle 🔀 each-run randomization.
+- Retired the separate Concepts tab from normal UI chrome; scene-level concepts remain on Scene, and per-character direction/concepts remain on Cast.
+- Removed the fixed 700×720 auto-grow floor so the node can shrink when the content is compact.
+- Bumped frontend cache imports to `?v=5` so ComfyUI reloads the updated assets.
+
+
 ## 1.3.4 — 2026-08-10
 
 ### Fixes

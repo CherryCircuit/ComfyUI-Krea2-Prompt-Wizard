@@ -355,6 +355,7 @@
     /* --- Top section: base prompt, mode, library button --- */
     const basePromptControl = buildBasePrompt();
     const livePreview = buildLivePreview();
+    const stickyPromptChip = el("div", { class: "krea2-prompt-chip", role: "status", "aria-live": "polite" });
     const showWorkToggle = buildShowWorkToggle(state);
     const libraryBtn = el("button", { type: "button", class: "krea2-wizard-btn", onClick: openLibrary }, "Library");
     const randomAllBtn = diceButton(
@@ -488,7 +489,11 @@
     function renderTabBar() {
       tabBar.innerHTML = "";
       const tabs = TABS.slice();
-      if (state.show_concepts_tab) tabs.push(CONCEPTS_TAB);
+      // v1.4.0: Concepts tab is retired. Global concepts live in Scene;
+      // per-character concepts/directions live in Cast. Keep the old
+      // renderConceptsTab function as a fallback for old workflows, but do
+      // not expose the tab in normal UI chrome.
+      if (false && state.show_concepts_tab) tabs.push(CONCEPTS_TAB);
       if (!tabs.some(function (tab) { return tab[0] === (state.active_tab || "cast"); })) {
         state.active_tab = tabs[0][0];
       }
@@ -510,6 +515,7 @@
     }
 
     root.appendChild(topBar);
+    root.appendChild(stickyPromptChip);
     root.appendChild(editorBody);
     root.appendChild(footerHost);
 
@@ -1553,42 +1559,45 @@
         combobox.input.disabled = true;
         combobox.input.title = hint;
       }
-      const shuffleBtn = el("button", {
+      const randomBtn = el("button", {
         type: "button",
-        class: "krea2-wizard-btn krea2-icon-btn krea2-shuffle krea2-field-shuffle" + (eachRun ? " is-active" : ""),
+        class: "krea2-wizard-btn krea2-icon-btn krea2-field-random" + (eachRun ? " is-active" : ""),
         title: eachRun
-          ? "Shuffle on: " + field.label + " is randomized for every queued job. Click to stop."
-          : "Shuffle off: " + field.label + " stays as set. Click to randomize it every queued job.",
-        "aria-label": "Randomize " + field.label + " each run",
-        onClick: function () {
-          if (!character.randomize_fields) character.randomize_fields = {};
-          if (character.randomize_fields[field.key]) {
-            delete character.randomize_fields[field.key];
-          } else {
-            character.randomize_fields[field.key] = field.options.slice();
+          ? field.label + " randomizes every queued job. Click to roll once; Shift-click to turn each-run off."
+          : "Roll " + field.label + " once. Shift-click toggles randomize-each-run.",
+        "aria-label": eachRun
+          ? field.label + " randomizes each run"
+          : "Randomize " + field.label,
+        onClick: function (event) {
+          if (event && event.shiftKey) {
+            if (!character.randomize_fields) character.randomize_fields = {};
+            if (character.randomize_fields[field.key]) {
+              delete character.randomize_fields[field.key];
+            } else {
+              character.randomize_fields[field.key] = field.options.slice();
+            }
+            markDirty();
+            render();
+            return;
+          }
+          character[field.key] = randomChoice(field.options);
+          if (field.key === "ensemble" && character[field.key]) {
+            character.clothing_top = "";
+            character.clothing_bottom = "";
+          }
+          if ((field.key === "clothing_top" || field.key === "clothing_bottom") && character[field.key]) {
+            character.ensemble = "";
           }
           markDirty();
           render();
         },
-      }, "🔀");
+      }, eachRun ? "🔀" : "🎲");
       const row = el("label", { class: "krea2-character-field" + (disabledByEnsemble ? " is-disabled" : "") }, [
         el("span", null, field.label),
         el("div", { class: "krea2-field-row" }, [
           combobox.input,
           combobox.datalist,
-          diceButton("Randomize only " + field.label, function () {
-            character[field.key] = randomChoice(field.options);
-            if (field.key === "ensemble" && character[field.key]) {
-              character.clothing_top = "";
-              character.clothing_bottom = "";
-            }
-            if ((field.key === "clothing_top" || field.key === "clothing_bottom") && character[field.key]) {
-              character.ensemble = "";
-            }
-            markDirty();
-            render();
-          }, "krea2-field-random krea2-icon-btn"),
-          shuffleBtn,
+          randomBtn,
         ]),
       ]);
       return row;
@@ -2573,12 +2582,41 @@ function buildGroupPresetPicker(group) {
       return { root: root, previewBody: prettyBody, prettyBody: prettyBody, codeText: codeText, historySelect: historySelect };
     }
 
+    function renderStickyPromptChip(compiled) {
+      stickyPromptChip.innerHTML = "";
+      const prompt = (compiled && compiled.prompt) || compilePreview(state).prompt || "";
+      const motion = (compiled && (compiled.motion_prompt || compiled.motion_prompt_draft)) || "";
+      const enabledCharacters = (state.characters || []).filter(function (character) {
+        return character && character.enabled !== false;
+      }).length;
+      const activeConcepts = (state.rows || []).filter(function (row) {
+        return row && row.enabled !== false;
+      }).length;
+      const activeLoras = (state.characters || []).filter(function (character) {
+        return character && character.enabled !== false && String(character.lora_name || "").trim();
+      }).length;
+      const tokens = prompt.trim() ? prompt.trim().split(/\s+/).length : 0;
+      const preview = prompt || motion || "No generation prompt yet";
+      stickyPromptChip.appendChild(el("div", { class: "krea2-prompt-chip-label" }, "PROMPT"));
+      stickyPromptChip.appendChild(el("div", { class: "krea2-prompt-chip-text", title: preview }, preview));
+      stickyPromptChip.appendChild(el("div", { class: "krea2-prompt-chip-meta" },
+        tokens + " words · " + enabledCharacters + " cast · " + activeConcepts + " concepts · " + activeLoras + " LoRA"));
+      stickyPromptChip.appendChild(el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-icon-btn krea2-prompt-chip-copy",
+        title: "Copy compiled prompt",
+        "aria-label": "Copy compiled prompt",
+        onClick: function () { copy(prompt); },
+      }, "📋"));
+    }
+
     function renderLivePreview(requestAuthoritativePreview) {
       try {
         var signature = JSON.stringify(state);
         var compiled = latestPreview && latestPreview.signature === signature
           ? latestPreview.result
           : compilePreview(state);
+        renderStickyPromptChip(compiled);
         renderPrettyPreview(compiled);
         renderCodePreview(compiled);
         showWork.innerHTML = "";
@@ -3093,10 +3131,11 @@ function buildGroupPresetPicker(group) {
       };
       schedule(function () {
         if (!root.isConnected || !node.setSize) return;
-        const current = node.size || [700, 720];
-        const desiredHeight = Math.max(720, Math.ceil(root.scrollHeight + 90));
-        if (current[1] < desiredHeight) {
-          node.setSize([Math.max(current[0] || 0, 700), desiredHeight]);
+        const current = node.size || [root.offsetWidth || 520, root.offsetHeight || 1];
+        const desiredHeight = Math.ceil(root.scrollHeight + 24);
+        const desiredWidth = Math.ceil(root.scrollWidth || current[0] || 520);
+        if (current[1] < desiredHeight || current[0] < desiredWidth) {
+          node.setSize([Math.max(current[0] || 0, desiredWidth), Math.max(current[1] || 0, desiredHeight)]);
         }
         if (node.setDirtyCanvas) node.setDirtyCanvas(true);
       });

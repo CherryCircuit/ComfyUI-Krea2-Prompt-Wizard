@@ -176,10 +176,10 @@ wizard.setState({
   show_concepts_tab: true,
   rows: [{
     id: "row_smoke",
-    category: "emotion",
-    preset_id: "emotion.joy",
-    label: "Joy",
-    phrase: "joy",
+    category: "framing",
+    preset_id: "framing.close_up",
+    label: "Close-up",
+    phrase: "close-up framing",
     control_mode: "scalar",
     intensity: 42,
     strength: -1.25,
@@ -188,13 +188,13 @@ wizard.setState({
     verification: "general visual vocabulary",
   }],
 });
-if (findByClass(wizard.root, "krea2-wizard-tab").length !== 3) {
-  throw new Error("Enabling the advanced Concepts tab in settings must reveal it.");
+if (findByClass(wizard.root, "krea2-wizard-tab").length !== 2) {
+  throw new Error("The retired Concepts tab must stay hidden even when old workflows carry show_concepts_tab.");
 }
-switchTab("concepts");
+switchTab("scene");
 const sliders = findByClass(wizard.root, "krea2-row-intensity");
 if (sliders.length !== 1 || sliders[0].min !== "-3" || sliders[0].max !== "3") {
-  throw new Error("Concept cards must expose the compact -3 to +3 strength control.");
+  throw new Error("Scene concept cards must expose the compact -3 to +3 strength control.");
 }
 if (sliders[0].step !== "0.25" || sliders[0].value !== "-1.25") {
   throw new Error("Concept strength must be stored and displayed as exact quarter steps.");
@@ -208,13 +208,13 @@ if (findByClass(wizard.root, "krea2-row-preview").length !== 0
     || findByClass(wizard.root, "krea2-row-group").length !== 0) {
   throw new Error("Compact concept cards must not render legacy detail controls.");
 }
-if (findByClass(wizard.root, "krea2-wizard-category").length !== 5) {
-  throw new Error("The Concepts tab must show all five concept groups.");
+if (findByClass(wizard.root, "krea2-wizard-category").length !== 4) {
+  throw new Error("The Scene tab must absorb the four global concept groups.");
 }
-if (findByClass(wizard.root, "krea2-wizard-random-controls").length !== 5) {
-  throw new Error("Each concept group must keep its dice and shuffle controls.");
+if (findByClass(wizard.root, "krea2-wizard-random-controls").length !== 4) {
+  throw new Error("Each scene concept group must keep its dice and shuffle controls.");
 }
-if (findByClass(wizard.root, "krea2-shuffle").length < 5) {
+if (findByClass(wizard.root, "krea2-shuffle").length < 4) {
   throw new Error("Group each-job flags must use the shuffle icon.");
 }
 if (findByClass(wizard.root, "krea2-wizard-category-load").length !== 0) {
@@ -284,17 +284,23 @@ if (findByClass(wizard.root, "krea2-avatar").length !== 2
     || findByClass(wizard.root, "krea2-save-character").length !== 2
     || findByClass(wizard.root, "krea2-character-columns").length !== 2
     || findByClass(wizard.root, "krea2-combobox").length < 20
-    || findByClass(wizard.root, "krea2-shuffle").length < 20
+    || findByClass(wizard.root, "krea2-field-random").length < 20
     || findByClass(wizard.root, "krea2-lora-section").length !== 2
     || findByClass(wizard.root, "krea2-quick-directions").length !== 2
     || findByClass(wizard.root, "krea2-character-category").length < 6) {
-  throw new Error("Each cast member must render as an expandable card with appearance comboboxes, shuffle flags, quick directions, direction sections, and a LoRA section.");
+  throw new Error("Each cast member must render as an expandable card with appearance comboboxes, shift-aware random controls, quick directions, direction sections, and a LoRA section.");
 }
 if (findByClass(wizard.root, "krea2-character-tab").length !== 0) {
   throw new Error("Cast members must be stacked sections, not click-to-switch tabs.");
 }
 if (findByClass(wizard.root, "krea2-icon-btn").length < 8) {
   throw new Error("Randomization controls must use compact dice buttons.");
+}
+
+const firstAppearanceRandom = findByClass(wizard.root, "krea2-field-random")[0];
+firstAppearanceRandom.listeners.click({ shiftKey: true });
+if (findByClass(wizard.root, "krea2-field-random").filter((btn) => btn.className.includes("is-active")).length < 1) {
+  throw new Error("Shift-click on an appearance random icon must toggle each-run mode.");
 }
 const sexFields = findByClass(wizard.root, "krea2-combobox").filter((input) => input["aria-label"] === "Sex");
 if (sexFields.length !== 2) {
@@ -496,9 +502,12 @@ if (!window.KREA2.helpers.compilePreview) throw new Error("compilePreview must e
 wizard.setState(eachRunState);
 switchTab("cast");
 await new Promise((resolve) => setTimeout(resolve, 25));
-const runFlags = findByClass(wizard.root, "krea2-shuffle");
+const runFlags = findByClass(wizard.root, "krea2-field-random");
 if (runFlags.length < 25) {
-  throw new Error("Each appearance field must expose a shuffle (each-run) control.");
+  throw new Error("Each appearance field must expose a compressed random/each-run control.");
+}
+if (runFlags.filter((btn) => btn.className.includes("is-active")).length < 2) {
+  throw new Error("Fields flagged for each-run randomization must render as active shuffle icons.");
 }
 
 /* --- Character preset overwrite confirmation ---------------------- */
