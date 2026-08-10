@@ -3,11 +3,13 @@
 A **transparent, database-driven visual prompt builder for Krea 2 image
 generation inside ComfyUI**.
 
-The wizard ships with four nodes:
+The wizard ships with six nodes:
 
 | Node | Purpose |
 |---|---|
 | `Krea2 Prompt Wizard` | The main all-in-one visual prompt builder. |
+| `Krea2 Save Image` | Saves images with the exact prompt embedded as PNG metadata. |
+| `Krea2 Prompt Saver` | Records every generated prompt to a JSONL history file. |
 | `Krea2 Weighted Phrase` | A small, transparent primitive that renders one `(phrase:weight)` fragment. |
 | `Krea2 Prompt Assembler` | A pure assembler for fragment lists (no visual builder). |
 | `Krea2 Prompt Inspector` | A read-only inspector that formats a trace JSON into a table. |
@@ -372,7 +374,7 @@ The `Krea2 Prompt Wizard` exposes three outputs:
 
 KJNodes is **not** required. The wizard works without it. If you have
 KJNodes installed (`kijai/ComfyUI-KJNodes`), you can route the
-`FINAL_PROMPT` STRING into the `Krea2 Prompt Weight` node to apply
+`Prompt Output` STRING into the `Krea2 Prompt Weight` node to apply
 Krea 2's attention-patched weighting. See
 [`docs/KJNODES_INTEGRATION.md`](docs/KJNODES_INTEGRATION.md) and the
 `subgraphs/Krea2_Prompt_Wizard_KJNodes.json` blueprint.
@@ -420,6 +422,7 @@ local ComfyUI host. The full security review is in
 | [`docs/KREA2_PROMPT_RESEARCH.md`](docs/KREA2_PROMPT_RESEARCH.md) | Krea 2 prompt weighting research notes. |
 | [`docs/KJNODES_INTEGRATION.md`](docs/KJNODES_INTEGRATION.md) | Optional KJNodes integration details. |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Backend / frontend architecture. |
+| [`docs/AGENTS.md`](docs/AGENTS.md) | Handoff notes for future agents: status, gotchas, workarounds. |
 | [`docs/TRANSPARENCY.md`](docs/TRANSPARENCY.md) | How transparency is enforced. |
 | [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) | Threat model. |
 | [`docs/USER_LIBRARY.md`](docs/USER_LIBRARY.md) | User library location and format. |

@@ -36,14 +36,14 @@ ComfyUI-Krea2-Prompt-Wizard/
 
     web/
         js/
-            krea2_prompt_wizard_v3.js
-            state.js
-            searchable_selector.js
-            preset_row.js
-            library_editor.js
-            materialize.js
-            inspector.js
-            wizard_widget.js
+            krea2_prompt_wizard_v3.js     # entry point (helpers are .mjs)
+            state.mjs                     # schema, helpers, compile mirror
+            searchable_selector.mjs
+            preset_row.mjs
+            library_editor.mjs
+            materialize.mjs
+            inspector.mjs
+            wizard_widget.mjs             # the visual editor
         css/wizard.css
         docs/                       # per-node web documentation
 
@@ -74,9 +74,14 @@ ComfyUI-Krea2-Prompt-Wizard/
         test_migrations.py
         test_workflow_snapshots.py
         test_conflicts.py
-        golden/                      # golden prompt tests + fixtures
+        test_cast.py                    # per-character direction / appearance
+        test_loras.py                   # LoRA pipeline, Prompt Saver, Save Image, Timesaver compat
+        test_subgraphs.py               # blueprint schema + node-contract checks
+        frontend_smoke.mjs              # DOM-level smoke test (fake DOM)
+        frontend_state_contract.mjs     # state helper round-trip checks
+        golden/                         # golden prompt tests + fixtures
             test_golden.py
-            golden/                  # recorded golden outputs
+            golden/                     # recorded golden outputs
 
     scripts/
         build_default_library.py
@@ -92,6 +97,7 @@ ComfyUI-Krea2-Prompt-Wizard/
         KREA2_PROMPT_RESEARCH.md
         KJNODES_INTEGRATION.md
         ARCHITECTURE.md
+        AGENTS.md                       # handoff notes for future agents
         TRANSPARENCY.md
         THREAT_MODEL.md
         USER_LIBRARY.md
@@ -106,11 +112,14 @@ imports `NODE_CLASS_MAPPINGS` and `NODE_DISPLAY_NAME_MAPPINGS` from
 `src.nodes`. The `WEB_DIRECTORY` constant points to `./web`, which is
 how ComfyUI mounts the static extension folder.
 
-`src/nodes.py` defines four node classes. Each class uses the V3
-node API pattern (subclassing nothing, declaring `INPUT_TYPES` /
-`RETURN_TYPES` / `FUNCTION` / `CATEGORY` class methods). They never
-import from `comfy` or `comfy_extras` directly — the wizard is a
-pure-Python package with optional ComfyUI integration.
+`src/nodes.py` defines six node classes: the wizard, a metadata-writing
+save node (`Krea2SaveImage`), a prompt-recording node
+(`Krea2PromptSaver`), the weighted-phrase primitive, the assembler, and
+the inspector. Each class uses the V3 node API pattern (subclassing
+nothing, declaring `INPUT_TYPES` / `RETURN_TYPES` / `FUNCTION` /
+`CATEGORY` class methods). They never import from `comfy` or
+`comfy_extras` at module level — all ComfyUI/PIL imports are lazy so
+the package stays testable without the ComfyUI runtime.
 
 The compiler, weight mapping, conflicts, and migrations modules are
 imported by the wizard's backend but have no ComfyUI dependencies and
@@ -155,7 +164,7 @@ The state shape is:
 ```
 {
   "schema_version": 1,
-  "base_prompt": "string",
+  "base_prompt": "string",           // UI label: "Additional info"
   "model_profile": "generic" | "krea2_turbo" | "krea2_raw",
   "interface_mode": "simple" | "advanced",
   "show_work": false,
@@ -184,6 +193,11 @@ The state shape is:
   "motion_prompt": "...",          // optional video-motion override
   "motion_prompt_enabled": false,  // emits Video Motion Prompt output
   "active_tab": "cast",            // last-used mode tab
+  "footer_open": false,            // collapsible prompt footer
+  "show_concepts_tab": false,      // advanced Concepts tab visibility
+  "show_face_guidance": false,     // per-character face-guidance fields
+  "show_motion_prompt": false,     // motion prompt section visibility
+  "prompt_metadata_override": false, // plain-text "prompt" metadata chunk
   "characters": [ ... cast members ... ]
 }
 ```
@@ -203,11 +217,28 @@ per-character direction block in addition to its appearance fields:
   "face_guidance": "(sparkling bright eyes:1.4)\n(genuine warm smile:1.2)",
   "interaction": "looking at Alex",
   "rows": [ ... per-character direction rows ... ],
-  "subject": "adult woman",
+  "lora_name": "style_x.safetensors",       // applied via the Model input
+  "lora_strength": 0.8,
+  "lora_triggers": "young woman\n...",
+  "randomize_fields": { "hair_color": ["red", "blonde"] },   // each-run appearance pools
+  "randomize_direction_groups": { "face": true },            // each-run direction flags
+  "expanded": true,
+  "additional_open": false,
+  "sex": "female", "age": "young adult", "ethnicity": "Vulcan",
+  "ensemble": "western cowboy outfit",      // or clothing_top / clothing_bottom
+  "additional_info": "...",
+  "subject": "adult woman",                 // legacy; kept for old workflows
   "expression": "calm confidence",          // skipped when the member has direction
-  "clothing": "...", "hair_color": "...", ...
+  "clothing": "...",                        // legacy; migrates to ensemble, suppressed when a new look is set
+  "hair_color": "...", ...
 }
 ```
+
+Direction rows are grouped into four per-character sections with the
+full Concepts-tab action set (add, presets, save, randomize, each-run
+shuffle): `emotion`, `face`, `body`, `placement`. The backend mirrors
+the group→category mapping in `src/job_randomizer.py`
+(`DIRECTION_GROUP_CATEGORIES`).
 
 `src/compiler.py` compiles each member independently. Direction rows
 (emotion, emotion_trigger, face, face_trigger, gaze, mouth, body,
@@ -215,9 +246,9 @@ position) are weighted per member and emitted inside that member's
 clause, so two characters never share one emotion:
 
 ```
-Character Mara (standing on the left side of the frame): subject: adult woman;
-clothing and armour: leather jacket, (joy:1.5), (gentle smile:1.25),
-(sparkling bright eyes:1.4), looking at Alex
+Character Mara (standing on the left side of the frame): sex: female;
+age: young adult; ethnicity: Vulcan; costume: western cowboy outfit,
+(joy:1.5), (gentle smile:1.25), (sparkling bright eyes:1.4), looking at Alex
 ```
 
 Face-guidance lines are emitted verbatim; rows flagged `verbatim` are
@@ -227,6 +258,29 @@ from the strongest emotion and body rows; the draft is exposed as
 `motion_prompt_draft`, and the effective `motion_prompt` is emitted
 from the `Video Motion Prompt` output when `motion_prompt_enabled` is
 set or a `motion_prompt` override exists.
+
+## Image output and metadata
+
+`Krea2SaveImage` writes the standard `prompt` / `workflow` chunks plus
+the resolved prompt as its own `krea2_prompt` chunk (and
+`krea2_motion_prompt` when provided). With `plain_prompt_metadata` it
+writes the prompt text as the `prompt` chunk itself — the format the
+Timesaver Artius Browser and A1111-style viewers display as "Positive
+Prompt" (see `docs/AGENTS.md` §4.2 for the full mechanism).
+
+`Krea2PromptSaver` records every execution's prompt (with timestamp)
+to `ComfyUI/output/krea2_prompt_history.jsonl` and re-asserts the
+metadata keys — the workflow-independent fallback when a Save Image
+variant ignores `extra_pnginfo` keys.
+
+## Subgraph blueprints
+
+The four `subgraphs/*.json` files are frontend "subgraph blueprints":
+workflows whose `definitions.subgraphs` hold reusable node groups. The
+ComfyUI frontend validates them strictly — slot ids must be UUIDs,
+`version` must be 1, and node input/output names must exist on the
+registered nodes. Regenerate with `scripts/build_workflows.py`; the
+contract is enforced by `tests/test_subgraphs.py`.
 
 ## Library
 

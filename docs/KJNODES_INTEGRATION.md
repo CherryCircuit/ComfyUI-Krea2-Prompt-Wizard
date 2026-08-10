@@ -6,13 +6,13 @@ implements `(phrase:weight)` weighting for Krea 2 by patching the
 attention layers of the underlying MMDiT model.
 
 The wizard **does not** implement `(phrase:weight)` by itself. It
-generates the syntax and emits it through `FINAL_PROMPT`. Whether the
+generates the syntax and emits it through `Prompt Output`. Whether the
 syntax is actually applied to the model depends on the consumer of
-the `FINAL_PROMPT` output.
+the `Prompt Output` output.
 
 ## When to use KJNodes
 
-| Consumer of FINAL_PROMPT | Behaviour |
+| Consumer of Prompt Output | Behaviour |
 |---|---|
 | A standard `CLIPTextEncode` node | The syntax is treated as literal text. Weights are not applied. This is **not** recommended for Krea 2. |
 | A `Krea2PromptWeight` node from KJNodes | The syntax is parsed and applied to the model via attention patching. **This is the recommended consumer for Krea 2.** |
@@ -44,10 +44,10 @@ applying the prompt to the Krea 2 model.
 
 ## Wizard behaviour
 
-The wizard's `FINAL_PROMPT` output is identical regardless of whether
+The wizard's `Prompt Output` output is identical regardless of whether
 KJNodes is installed. The wizard is **unaware** of KJNodes and does
 not check for it. The user is responsible for wiring the
-`FINAL_PROMPT` into the right consumer.
+`Prompt Output` into the right consumer.
 
 The bundled `subgraphs/Krea2_Prompt_Wizard_KJNodes.json` blueprint
 demonstrates the recommended wiring. It uses the wizard to generate
@@ -57,11 +57,11 @@ the prompt and the KJNodes `Krea2PromptWeight` node to apply it.
 
 ```
 [Krea2 Prompt Wizard]
-    .FINAL_PROMPT
+    .Prompt Output
         |
         v
 [Krea2PromptWeight]
-    .text = FINAL_PROMPT
+    .text = Prompt Output
     .clip = CLIP
     .model = MODEL
     .strength = 1.0
@@ -85,7 +85,7 @@ may fail to apply the weighting if:
 - The model architecture does not match the Krea 2 MMDiT (i.e. the
   user is using a different Krea 2 model checkpoint).
 
-In all cases, the wizard's `FINAL_PROMPT` is unchanged. The trace
+In all cases, the wizard's `Prompt Output` is unchanged. The trace
 JSON accurately reflects what the wizard produced.
 
 ## Compatibility matrix
@@ -101,7 +101,7 @@ JSON accurately reflects what the wizard produced.
 To verify the integration is working:
 
 1. Open the bundled `workflows/example_basic.json`.
-2. Connect `Krea2PromptWizard.FINAL_PROMPT` to a `CLIPTextEncode` node
+2. Connect `Krea2PromptWizard.Prompt Output` to a `CLIPTextEncode` node
    and a `KSampler`.
 3. Run the workflow. Inspect the generated image and the prompt.
 4. Open the bundled `subgraphs/Krea2_Prompt_Wizard_KJNodes.json`. The
