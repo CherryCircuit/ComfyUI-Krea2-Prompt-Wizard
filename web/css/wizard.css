@@ -1817,21 +1817,6 @@ body.dark {
   color: var(--krea2-text-dim);
   font-weight: 400;
 }
-.krea2-direction-position {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.krea2-direction-position .krea2-compact-select { flex: 1 1 auto; }
-.krea2-direction-custom {
-  font-size: 10px;
-  color: var(--krea2-accent-strong);
-  font-style: italic;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 180px;
-}
 .krea2-direction-block {
   border: 1px solid var(--krea2-border);
   border-radius: var(--krea2-radius);
@@ -2493,6 +2478,11 @@ body.dark {
   border: 0 !important;
   border-radius: 14px;
 }
+/* Sex accent survives the borderless Apple-style layer: a soft tinted ring
+ * keeps the Mii preview readable on the character card. */
+.krea2-avatar.is-male { box-shadow: inset 0 0 0 2px rgba(79, 141, 255, 0.55); }
+.krea2-avatar.is-female { box-shadow: inset 0 0 0 2px rgba(240, 101, 149, 0.55); }
+.krea2-avatar.is-unspecified { box-shadow: inset 0 0 0 2px rgba(161, 161, 170, 0.4); }
 
 .krea2-character-columns {
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;

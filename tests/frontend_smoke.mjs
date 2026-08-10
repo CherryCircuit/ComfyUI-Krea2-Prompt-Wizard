@@ -8,17 +8,37 @@ const libraryPayload = JSON.parse(
 );
 
 class ClassList {
-  constructor() { this.values = new Set(); }
-  add(...values) { values.forEach((value) => this.values.add(value)); }
-  remove(...values) { values.forEach((value) => this.values.delete(value)); }
+  constructor(element) {
+    this.element = element;
+  }
+  _classes() {
+    return new Set(String(this.element.className || "").split(/\s+/).filter(Boolean));
+  }
+  _write(set) {
+    this.element.className = Array.from(set).join(" ");
+  }
+  add(...values) {
+    const set = this._classes();
+    values.forEach((value) => { if (value) set.add(value); });
+    this._write(set);
+  }
+  remove(...values) {
+    const set = this._classes();
+    values.forEach((value) => set.delete(value));
+    this._write(set);
+  }
   toggle(value, force) {
+    const set = this._classes();
+    let next;
     if (force === undefined) {
-      if (this.values.has(value)) { this.values.delete(value); return false; }
-      this.values.add(value);
-      return true;
+      if (set.has(value)) { set.delete(value); next = false; }
+      else { set.add(value); next = true; }
+    } else {
+      force ? set.add(value) : set.delete(value);
+      next = force;
     }
-    force ? this.values.add(value) : this.values.delete(value);
-    return force;
+    this._write(set);
+    return next;
   }
 }
 
@@ -28,7 +48,7 @@ class Element {
     this.children = [];
     this.style = {};
     this.dataset = {};
-    this.classList = new ClassList();
+    this.classList = new ClassList(this);
     this.value = "";
     this.textContent = "";
     this.parentNode = null;
@@ -386,6 +406,7 @@ const directedState = {
       id: "d1",
       name: "Mara",
       enabled: true,
+      sex: "female",
       position: "standing on the left side of the frame",
       rows: [{
         id: "dr1",
@@ -405,6 +426,7 @@ const directedState = {
       id: "d2",
       name: "Alex",
       enabled: true,
+      sex: "male",
       position: "standing on the right side of the frame",
       rows: [{
         id: "dr2",
@@ -508,6 +530,63 @@ if (runFlags.length < 25) {
 }
 if (runFlags.filter((btn) => btn.className.includes("is-active")).length < 2) {
   throw new Error("Fields flagged for each-run randomization must render as active shuffle icons.");
+}
+
+/* --- Direction sections collapse per character -------------------- */
+const collapseSections = findByClass(wizard.root, "krea2-character-category");
+const emotionSection = collapseSections.find((section) => {
+  const titles = findByClass(section, "krea2-wizard-category-title");
+  return titles.length && textOf(titles[0]) === "Emotion";
+});
+if (!emotionSection) {
+  throw new Error("Each cast member must render an Emotion direction section.");
+}
+const emotionHeader = findByClass(emotionSection, "krea2-wizard-category-header")[0];
+const emotionActions = findByClass(emotionSection, "krea2-wizard-category-actions")[0];
+const emotionContent = findByClass(emotionSection, "krea2-wizard-category-content")[0];
+if ((emotionSection.className || "").split(/\s+/).includes("is-collapsed")) {
+  throw new Error("Direction sections must start expanded on first render.");
+}
+emotionHeader.listeners.click({ target: {} });
+if (!(emotionSection.className || "").split(/\s+/).includes("is-collapsed")
+    || emotionActions.style.display !== "none"
+    || emotionContent.style.display !== "none") {
+  throw new Error("Clicking a direction header must collapse its content and actions.");
+}
+const collapsePersisted = JSON.parse(stateWidget.value).characters.find((item) => item.id === "d1");
+if (!collapsePersisted.collapsed_direction || collapsePersisted.collapsed_direction.emotion !== true) {
+  throw new Error("Direction collapse state must persist per character.");
+}
+emotionHeader.listeners.click({ target: {} });
+if ((emotionSection.className || "").split(/\s+/).includes("is-collapsed")) {
+  throw new Error("Clicking a collapsed header must expand it again.");
+}
+
+/* --- The useless "or type a position" row is gone ------------------ */
+if (findByClass(wizard.root, "krea2-direction-position").length !== 0) {
+  throw new Error("The position select row must not render on cast members.");
+}
+const positionPersisted = JSON.parse(stateWidget.value).characters.find((item) => item.id === "d1");
+if (positionPersisted.position !== "standing on the left side of the frame") {
+  throw new Error("Removing the position row must not clear the character's position field.");
+}
+
+/* --- Avatar art carries identity modifier classes ------------------ */
+const avatars = findByClass(wizard.root, "krea2-avatar");
+if (avatars.length !== 2) {
+  throw new Error("Each cast member must render an avatar.");
+}
+const maraAvatar = avatars.find((avatar) => (avatar.className || "").split(/\s+/).includes("is-female"));
+const alexAvatar = avatars.find((avatar) => (avatar.className || "").split(/\s+/).includes("is-male"));
+if (!maraAvatar || !alexAvatar) {
+  throw new Error("Avatars must paint sex-based modifier classes from identity fields.");
+}
+const maraArt = findByClass(maraAvatar, "krea2-avatar-art")[0];
+if (!maraArt
+    || !findByClass(maraArt, "krea2-avatar-head").length
+    || !findByClass(maraArt, "krea2-avatar-hair-back").length
+    || !findByClass(maraArt, "krea2-avatar-hair-front").length) {
+  throw new Error("The avatar art layer must contain head and hair pieces with modifier classes.");
 }
 
 /* --- Character preset overwrite confirmation ---------------------- */

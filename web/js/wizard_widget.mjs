@@ -1137,6 +1137,8 @@
         return group.categories.includes(row.category);
       });
       const section = el("section", { class: "krea2-wizard-category krea2-character-category" });
+      const collapsed = !!(character.collapsed_direction || {})[groupKey];
+      section.classList.toggle("is-collapsed", collapsed);
       const header = el("div", { class: "krea2-wizard-category-header" }, [
         el("strong", { class: "krea2-wizard-category-title" }, group.label),
         el("span", { class: "krea2-wizard-category-summary", title: rows.map(function (row) {
@@ -1229,6 +1231,22 @@
           content.appendChild(renderRow(row, characterRowCtx(character, rows)));
         }
       }
+      if (collapsed) {
+        actions.style.display = "none";
+        content.style.display = "none";
+      }
+      header.addEventListener("click", function (event) {
+        const target = event && event.target;
+        if (target && typeof target.closest === "function"
+            && target.closest("button,select,input,label,.krea2-wizard-category-actions")) return;
+        character.collapsed_direction = character.collapsed_direction || {};
+        const next = !character.collapsed_direction[groupKey];
+        character.collapsed_direction[groupKey] = next;
+        actions.style.display = next ? "none" : "";
+        content.style.display = next ? "none" : "";
+        section.classList.toggle("is-collapsed", next);
+        markDirty();
+      });
       section.appendChild(header);
       section.appendChild(actions);
       section.appendChild(content);
@@ -1248,41 +1266,6 @@
       for (const group of DIRECTION_GROUPS) {
         section.appendChild(renderCharacterDirectionBlock(character, group.id));
       }
-
-      /* Position (legacy free-form field kept in sync with placement rows) */
-      const positionPresets = library.filter(function (preset) {
-        return preset.category === "position" && !preset.disabled;
-      });
-      const positionSelect = el("select", {
-        class: "krea2-compact-select",
-        "aria-label": "Position and placement (free text)",
-        onChange: function (event) {
-          const preset = positionPresets.find(function (item) { return item.id === event.target.value; });
-          character.position = preset ? preset.phrase : "";
-          markDirty();
-          render();
-        },
-      });
-      positionSelect.appendChild(el("option", { value: "" }, "Position in frame..."));
-      for (const preset of positionPresets) {
-        positionSelect.appendChild(el("option", { value: preset.id }, preset.label));
-      }
-      const currentPosition = positionPresets.find(function (preset) {
-        return preset.phrase === character.position;
-      });
-      positionSelect.value = currentPosition ? currentPosition.id : "";
-      const positionRow = el("div", { class: "krea2-direction-position" }, [
-        el("span", { class: "krea2-direction-label" }, "or type a position"),
-        positionSelect,
-        diceButton("Random placement", function () {
-          const preset = randomChoice(positionPresets);
-          if (preset) { character.position = preset.phrase; markDirty(); render(); }
-        }, "krea2-field-random krea2-icon-btn"),
-      ]);
-      if (character.position && !currentPosition) {
-        positionRow.appendChild(el("span", { class: "krea2-direction-custom" }, character.position));
-      }
-      section.appendChild(positionRow);
 
       /* Face guidance free text (advanced, hidden by default) */
       if (state.show_face_guidance) {

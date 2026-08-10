@@ -1,5 +1,39 @@
 # CHANGELOG
 
+## 1.4.1 — v1.4.0 regression fixes
+
+### Fixes
+
+- **Cast direction sections now collapse.** Each per-character section
+  (Emotion, Face & gaze, Body & movement, Placement) responds to header
+  clicks again, exactly like the Scene groups: click the header to
+  collapse or expand, and the collapse state is remembered per
+  character (`character.collapsed_direction`) so one member's
+  collapse choices never affect another. New characters start fully
+  expanded, matching v1.4.0's first-run behaviour.
+- **Removed the useless "or type a position" row on every cast
+  member.** The old row built a select listing every position concept
+  (not just positions) plus a dice that picked one at random — the
+  label promised free text but the control was a fixed dropdown. The
+  row, its dice, and its dead CSS are gone. `character.position` is
+  untouched in state, so existing prompts still compile
+  "Character X (standing on the left side of the frame)" exactly as
+  before.
+- **The Mii-style avatar lost its definition.** The v1.4.0 borderless
+  styling also stripped the avatar's sex-accent border, leaving the
+  little box on the card looking blank. The sex accent is restored as
+  a soft tinted ring (`is-male` blue, `is-female` pink, unspecified
+  grey) around the avatar art, and the smoke test now asserts that
+  identity fields reach the avatar as modifier classes.
+- Bumped frontend cache imports to `?v=6` so ComfyUI reloads the
+  updated assets.
+
+### Notes
+
+- Appearance-field randomization needs no change: the v1.4.0 dice
+  already supports click-to-roll and Shift-click to toggle 🔀 each-run
+  randomization; this release verifies it and keeps its CSS.
+
 ## 1.4.0 — Apple-style prompt exploration UI
 
 - Reworked the wizard chrome toward a calmer Apple-style interface: soft surfaces, fewer borders, larger readable type, and spacing-based grouping.
