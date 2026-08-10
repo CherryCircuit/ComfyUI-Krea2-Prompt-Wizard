@@ -677,7 +677,7 @@
           onChange: function (event) {
             state.show_concepts_tab = !!event.target.checked;
             markDirty();
-            renderNodeSettings();
+            render();
           },
         }),
         el("span", null, "Show the advanced Concepts tab"),
@@ -689,10 +689,22 @@
           onChange: function (event) {
             state.show_face_guidance = !!event.target.checked;
             markDirty();
-            renderNodeSettings();
+            render();
           },
         }),
         el("span", null, "Show face guidance trigger fields on cast members"),
+      ]));
+      panel.appendChild(el("label", { class: "krea2-inline-check" }, [
+        el("input", {
+          type: "checkbox",
+          checked: !!state.show_motion_prompt,
+          onChange: function (event) {
+            state.show_motion_prompt = !!event.target.checked;
+            markDirty();
+            render();
+          },
+        }),
+        el("span", null, "Show the video motion prompt section (LTX-2.3)"),
       ]));
       settingsHost.appendChild(panel);
     }
@@ -1399,10 +1411,7 @@
         }),
         el("span", null, "Additional info"),
       ]);
-      const gridWrap = el("div", { class: "krea2-character-grid-wrap" }, [
-        el("div", { class: "krea2-character-columns" }, grid.children),
-        additionalCheck,
-      ]);
+      const gridWrap = el("div", { class: "krea2-character-grid-wrap" }, [grid, additionalCheck]);
       if (additionalOpen) {
         const additional = el("textarea", {
           class: "krea2-compact-textarea krea2-additional-info",
@@ -1572,7 +1581,7 @@
         title: "Save this character's look as a reusable preset",
         onClick: function () { saveCharacterPreset(character, name.value || character.name); },
       }, "Save");
-      const remove = el("button", { type: "button", class: "krea2-wizard-btn krea2-icon-btn", title: "Delete character", "aria-label": "Delete character", onClick: function () {
+      const remove = el("button", { type: "button", class: "krea2-wizard-btn krea2-icon-btn krea2-danger", title: "Delete character", "aria-label": "Delete character", onClick: function () {
         if (!window.confirm("Delete “" + (character.name || "this character") + "” from the cast?")) return;
         state.characters = state.characters.filter(function (item) { return item.id !== character.id; });
         if (state.selected_character_id === character.id) {
@@ -1986,7 +1995,7 @@
     function buildBasePrompt() {
       const ta = el("textarea", {
         class: "krea2-wizard-base",
-        "aria-label": "Describe the image you want to create",
+        "aria-label": "Additional scene information",
         placeholder: "Describe the scene, subject, mood, lighting, camera, or style.",
         onInput: function (e) {
           state.base_prompt = e.target.value;
@@ -1998,8 +2007,8 @@
       return {
         root: el("div", { class: "krea2-wizard-prompt-field" }, [
           el("div", { class: "krea2-wizard-prompt-label-row" }, [
-            el("label", { class: "krea2-wizard-prompt-title" }, "Main prompt"),
-            el("span", { class: "krea2-wizard-prompt-helper" }, "Describe what you want to create"),
+            el("label", { class: "krea2-wizard-prompt-title" }, "Additional info"),
+            el("span", { class: "krea2-wizard-prompt-helper" }, "Scene, mood, camera or style notes"),
           ]),
           ta,
         ]),
@@ -2032,12 +2041,13 @@
       }, "Load");
       const remove = el("button", {
         type: "button",
-        class: "krea2-wizard-btn",
+        class: "krea2-wizard-btn krea2-danger",
         onClick: deleteSelectedSavedPreset,
       }, "Delete");
       const save = el("button", {
         type: "button",
         class: "krea2-wizard-btn krea2-wizard-save",
+        title: "Save the entire node setup (prompt, characters, scene, concepts) as a preset",
         onClick: saveFullPreset,
       }, "Save Full Prompt");
       return {
@@ -2322,24 +2332,9 @@ function buildGroupPresetPicker(group) {
     }
 
     function buildLivePreview() {
-      var previewActiveTab = "pretty";
       var codeText = el("div", { class: "krea2-wizard-preview" }, "");
-      codeText.hidden = true;
       var prettyBody = el("div", { class: "krea2-preview-pretty" });
-      prettyBody.hidden = false;
-      var tabPretty = el("button", { type: "button", class: "krea2-preview-tab is-active" }, "Pretty");
-      var tabCode = el("button", { type: "button", class: "krea2-preview-tab" }, "Code");
-      var switchTab = function (tab) {
-        previewActiveTab = tab;
-        tabPretty.classList.toggle("is-active", tab === "pretty");
-        tabCode.classList.toggle("is-active", tab === "code");
-        prettyBody.hidden = tab !== "pretty";
-        codeText.hidden = tab !== "code";
-      };
-      tabPretty.onclick = function () { switchTab("pretty"); };
-      tabCode.onclick = function () { switchTab("code"); };
-      var tabBar = el("div", { class: "krea2-preview-tabs" }, [tabPretty, tabCode]);
-      var previewBody = el("div", { class: "krea2-preview-body" }, [prettyBody, codeText]);
+      var codeLabel = el("div", { class: "krea2-preview-cat-label" }, "Prompt code");
       var copyBtn = el("button", { type: "button", class: "krea2-wizard-btn", onClick: function () {
         copy(codeText.textContent);
       } }, "Copy shown prompt");
@@ -2350,7 +2345,6 @@ function buildGroupPresetPicker(group) {
           const prompt = executionHistory[Number(historySelect.value)];
           if (!prompt) return;
           codeText.textContent = prompt;
-          switchTab("code");
         },
       });
       historySelect.appendChild(el("option", { value: "" }, "No generated prompts yet"));
@@ -2359,9 +2353,13 @@ function buildGroupPresetPicker(group) {
         if (!prompt) { showToast("Run the workflow first", "warning"); return; }
         copy(prompt);
       } }, "Copy generated prompt");
-      var header = el("h3", null, "Preview");
-      var root = el("div", { class: "krea2-wizard-preview-host" }, [header, tabBar, previewBody, el("div", { class: "krea2-wizard-preview-buttons" }, [historySelect, copyGenerated, copyBtn])]);
-      return { root: root, tabBar: tabBar, previewBody: previewBody, prettyBody: prettyBody, codeText: codeText, historySelect: historySelect };
+      var root = el("div", { class: "krea2-wizard-preview-host" }, [
+        prettyBody,
+        codeLabel,
+        codeText,
+        el("div", { class: "krea2-wizard-preview-buttons" }, [historySelect, copyGenerated, copyBtn]),
+      ]);
+      return { root: root, previewBody: prettyBody, prettyBody: prettyBody, codeText: codeText, historySelect: historySelect };
     }
 
     function renderLivePreview(requestAuthoritativePreview) {
@@ -2718,7 +2716,12 @@ function buildGroupPresetPicker(group) {
         el("span", { class: "krea2-direction-hint" }, "sets camera, lighting, atmosphere and the scene together"),
       ]);
       sceneHost.appendChild(shotRow);
-      sceneHost.appendChild(renderSettingEditor());
+      /* Main prompt (additional info) beside the Scene container. */
+      const topGrid = el("div", { class: "krea2-scene-top" }, [
+        basePromptControl.root,
+        renderSettingEditor(),
+      ]);
+      sceneHost.appendChild(topGrid);
       categoryBody.innerHTML = "";
       renderGroupSections(categoryBody, SCENE_GROUPS);
       sceneHost.appendChild(categoryBody);
@@ -2815,7 +2818,9 @@ function buildGroupPresetPicker(group) {
       footerHost.appendChild(header);
       if (!open) return;
       const body = el("div", { class: "krea2-footer-body" });
-      body.appendChild(renderMotionSection());
+      if (state.show_motion_prompt) {
+        body.appendChild(renderMotionSection());
+      }
       showWorkToggle.textContent = state.show_work ? "Hide Work" : "Show Work";
       const promptHeader = el("div", { class: "krea2-prompt-header" }, [
         el("strong", null, "Preview"),
@@ -2829,6 +2834,22 @@ function buildGroupPresetPicker(group) {
     }
 
     function render() {
+      try {
+        renderUnsafe();
+      } catch (error) {
+        console.error("[Krea2PromptWizard] render failed", error);
+        castHost.innerHTML = "";
+        sceneHost.innerHTML = "";
+        conceptsHost.innerHTML = "";
+        castHost.appendChild(el("div", { class: "krea2-wizard-fatal" }, [
+          el("strong", null, "The wizard hit an error while rendering."),
+          el("code", null, String(error && error.message ? error.message : error)),
+        ]));
+        renderFooter();
+      }
+    }
+
+    function renderUnsafe() {
       basePromptControl.input.value = state.base_prompt || "";
       sizeBasePrompt();
       renderTabBar();
@@ -2963,6 +2984,7 @@ function buildGroupPresetPicker(group) {
         const uiKeys = [
           "active_tab", "footer_open", "settings_open", "collapsed",
           "selected_character_id", "show_work",
+          "show_motion_prompt", "show_face_guidance", "show_concepts_tab",
         ];
         for (const key of uiKeys) {
           if (key in state) merged[key] = state[key];

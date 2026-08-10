@@ -42,7 +42,14 @@ class Element {
   get innerHTML() {
     return this._innerHTML;
   }
-  appendChild(child) { this.children.push(child); child.parentNode = this; return child; }
+  appendChild(child) {
+    if (!child || typeof child !== "object" || !child.tagName) {
+      throw new Error("appendChild requires a DOM node (caught a non-node being appended).");
+    }
+    this.children.push(child);
+    child.parentNode = this;
+    return child;
+  }
   append(...children) { children.forEach((child) => this.appendChild(child)); }
   setAttribute(name, value) { this[name] = value; }
   addEventListener(name, listener) { this.listeners[name] = listener; }
@@ -225,9 +232,34 @@ if (findByClass(wizard.root, "krea2-wizard-preview-host").length !== 1
     || findByClass(wizard.root, "krea2-wizard-preview").length !== 1) {
   throw new Error("The Prompt footer must render both readable and prompt-code preview views.");
 }
+if (findByClass(wizard.root, "krea2-preview-tab").length !== 0) {
+  throw new Error("The preview must be stacked, not hidden behind Pretty/Code tabs.");
+}
+if (findByClass(wizard.root, "krea2-motion-section").length !== 0) {
+  throw new Error("The video motion prompt must be hidden by default.");
+}
+/* Enable it via Node settings */
+function clickNode(node) {
+  node.listeners.click({ stopPropagation() {} });
+}
+const moreBtn = findByClass(wizard.root, "krea2-wizard-overflow")
+  .flatMap((wrap) => findByClass(wrap, "krea2-wizard-btn"))
+  .find((btn) => textOf(btn) === "···");
+clickNode(moreBtn);
+const settingsMenuItem = findByClass(wizard.root, "krea2-wizard-overflow-menu")
+  .flatMap((menu) => findByClass(menu, "krea2-wizard-btn"))
+  .find((btn) => textOf(btn).includes("Node settings"));
+clickNode(settingsMenuItem);
+const motionToggle = findByClass(wizard.root, "krea2-inline-check")
+  .find((label) => textOf(label).includes("video motion prompt"));
+if (!motionToggle) {
+  throw new Error("Node settings must offer the video motion prompt toggle.");
+}
+const motionCheckbox = motionToggle.children[0];
+motionCheckbox.listeners.change({ target: { checked: true } });
 if (findByClass(wizard.root, "krea2-motion-section").length !== 1
     || findByClass(wizard.root, "krea2-motion-prompt").length !== 1) {
-  throw new Error("The Prompt footer must expose the video motion prompt editor.");
+  throw new Error("Enabling the motion section in settings must reveal the video motion prompt editor.");
 }
 
 const structuredState = {
@@ -371,7 +403,9 @@ if (quickChips.length < 30
 
 /* --- Quick direction applies multiple concepts at once -------------- */
 function textOf(element) {
-  return (element.children || []).map((child) => child.textContent || "").join("");
+  if (!element) return "";
+  if (element.tagName === "#text") return element.textContent || "";
+  return (element.children || []).map((child) => textOf(child)).join("");
 }
 const quickMara = quickChips.find((chip) => textOf(chip) === "Triumphant");
 quickMara.listeners.click({});

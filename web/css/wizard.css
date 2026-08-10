@@ -664,19 +664,19 @@ body.dark {
 }
 
 .krea2-wizard-saved {
-  display: grid;
-  grid-template-columns: auto minmax(150px, 1fr) auto auto auto;
+  display: flex;
   align-items: center;
   gap: 5px;
-  padding: 6px;
-  border: 1px solid var(--krea2-border);
-  border-radius: var(--krea2-radius);
-  background: var(--krea2-bg);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .krea2-wizard-saved-label {
   font-weight: 600;
   color: var(--krea2-text-dim);
+  white-space: nowrap;
 }
 
 .krea2-wizard-saved-select {
@@ -1024,9 +1024,9 @@ body.dark {
 
 .krea2-row-head {
   display: grid;
-  grid-template-columns: 18px 18px minmax(0, 1fr) auto 20px;
+  grid-template-columns: 14px 14px minmax(0, 1fr) 88px 40px 16px 18px;
   align-items: center;
-  gap: 1px;
+  gap: 2px;
 }
 
 .krea2-row-drag {
@@ -1055,7 +1055,11 @@ body.dark {
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  line-height: 1.25;
+  max-height: 2.6em;
+  word-break: break-word;
+  min-width: 0;
 }
 
 .krea2-row-label:hover {
@@ -1142,28 +1146,21 @@ body.dark {
   text-decoration: underline;
 }
 
-.krea2-row-controls {
-  display: grid;
-  grid-template-columns: minmax(70px, 1fr) 48px;
-  align-items: center;
-  gap: 5px;
-  padding-left: 47px;
-}
-
 .krea2-row-intensity {
   width: 100%;
   min-width: 0;
 }
 
 .krea2-row-numeric {
-  width: 48px;
+  width: 40px;
   background: var(--krea2-bg);
   color: var(--krea2-text);
   border: 1px solid var(--krea2-border);
   border-radius: var(--krea2-radius);
-  padding: 2px 4px;
-  font-size: 11px;
+  padding: 1px 2px;
+  font-size: 10.5px;
   box-sizing: border-box;
+  text-align: center;
 }
 
 .krea2-row-remove {
@@ -1171,13 +1168,16 @@ body.dark {
   border: 0;
   border-radius: var(--krea2-radius);
   color: var(--krea2-text-dim);
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
   padding: 0;
-  font-size: 16px;
+  font-size: 14px;
+  line-height: 1;
   cursor: pointer;
 }
 
+/* Danger (delete) buttons turn red on hover. */
+.krea2-danger:hover { background: var(--krea2-error); color: white; }
 .krea2-row-remove:hover { background: var(--krea2-error); color: white; }
 
 
@@ -2155,7 +2155,7 @@ body.dark {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
-.krea2-row-head { grid-template-columns: 14px 14px minmax(0, 1fr) auto 18px; }
+.krea2-row-head { grid-template-columns: 14px 14px minmax(0, 1fr) 88px 40px 16px 18px; }
 .krea2-row-label {
   white-space: normal;
   line-height: 1.25;
@@ -2163,4 +2163,66 @@ body.dark {
   overflow: hidden;
   word-break: break-word;
 }
-.krea2-row-controls { grid-template-columns: minmax(0, 1fr) 40px; }
+
+/* ---------------------------------------------------------------------------
+ * Scene tab: additional info + scene side by side
+ * --------------------------------------------------------------------------- */
+.krea2-scene-top {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 4px;
+}
+.krea2-scene-top .krea2-wizard-prompt-field { min-width: 0; }
+.krea2-scene-top .krea2-structured-section {
+  margin: 0;
+  border: 1px solid var(--krea2-border);
+  border-radius: var(--krea2-radius);
+  padding: 8px;
+  background: var(--krea2-panel);
+}
+.krea2-wizard-shot-row { margin-bottom: 8px; }
+.krea2-wizard-categories { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+
+/* ---------------------------------------------------------------------------
+ * Bigger shuffle emoji
+ * --------------------------------------------------------------------------- */
+.krea2-shuffle { font-size: 15px; line-height: 1; padding: 1px 5px; }
+
+/* ---------------------------------------------------------------------------
+ * Stacked preview (visual first, code below)
+ * --------------------------------------------------------------------------- */
+.krea2-wizard-preview-host .krea2-preview-cat-label { margin-top: 0; }
+.krea2-wizard-preview {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  background: var(--krea2-bg-strong);
+  border: 1px solid var(--krea2-border);
+  border-radius: var(--krea2-radius);
+  padding: 6px;
+  word-break: break-word;
+}
+
+/* ---------------------------------------------------------------------------
+ * Fatal render error box
+ * --------------------------------------------------------------------------- */
+.krea2-wizard-fatal {
+  border: 1px solid var(--krea2-error);
+  border-radius: var(--krea2-radius);
+  background: color-mix(in srgb, var(--krea2-error) 10%, var(--krea2-bg));
+  color: var(--krea2-text);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.krea2-wizard-fatal code { white-space: pre-wrap; word-break: break-word; font-size: 10.5px; }
+
+/* Additional info box matches the Scene box in the two-column layout. */
+.krea2-scene-top .krea2-wizard-prompt-field {
+  border: 1px solid var(--krea2-border);
+  border-radius: var(--krea2-radius);
+  padding: 8px;
+  background: var(--krea2-panel);
+}

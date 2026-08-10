@@ -134,7 +134,7 @@
 
     const remove = el("button", {
       type: "button",
-      class: "krea2-row-remove",
+      class: "krea2-row-remove krea2-danger",
       title: "Delete concept",
       "aria-label": "Delete concept",
       onClick: function () { ctx.removeRow(row.id); },
@@ -179,6 +179,8 @@
       dragHandle,
       starBtn,
       label,
+      slider,
+      number,
       enabled,
       remove,
     ]));
@@ -191,10 +193,6 @@
       wrap.classList.remove("is-hovered");
       if (ctx.onHover) ctx.onHover(row.id, false);
     });
-    wrap.appendChild(el("div", { class: "krea2-row-controls" }, [
-      slider,
-      number,
-    ]));
 
     dragHandle.addEventListener("mousedown", function (event) {
       if (event.button !== 0) return;

@@ -118,6 +118,7 @@ def coerce_state(raw: Any) -> Dict[str, Any]:
         "footer_open",
         "show_face_guidance",
         "show_concepts_tab",
+        "show_motion_prompt",
     ):
         if key in raw:
             state[key] = raw[key]

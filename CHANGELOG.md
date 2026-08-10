@@ -1,5 +1,40 @@
 # CHANGELOG
 
+## 1.3.1 — 2026-08-09
+
+Fixes and polish from the 1.3.0 round.
+
+### Fixes
+
+- **Cast tab no longer blanks out when adding a character.** The
+  appearance grid passed a live `HTMLCollection` where a node was
+  expected, which crashed rendering in real browsers only. The grid now
+  builds its columns directly, the test harness rejects non-node
+  appends, and any future render error is shown inside the node instead
+  of a blank panel.
+- **Video motion prompt is hidden by default** and lives behind a
+  "Show the video motion prompt section (LTX-2.3)" toggle in Node
+  settings.
+- Settings toggles (Concepts tab, face guidance, motion section) now
+  re-render immediately.
+- Frontend assets bumped to `?v=4` to clear stale browser caches.
+
+### UI polish
+
+- The preview is now stacked — the visual preview followed by the raw
+  prompt code — instead of Pretty/Code tabs, with a single Preview
+  heading.
+- Top bar: the "My presets" row lost its box/background and fits on one
+  line; Save Full Prompt is expanded.
+- Shuffle (🔀) buttons are larger.
+- The Scene tab lays the **Additional info** box and the Scene box side
+  by side, with a clear gap before the Camera & Film section.
+- "Main prompt" is now labelled **Additional info**.
+- Delete buttons (concepts, characters, presets) turn red on hover;
+  the concept delete button is compact and no longer overflows its row.
+- Concept rows are single-line: the title wraps to two lines beside
+  the slider and the numeric readout.
+
 ## 1.3.0 — 2026-08-09
 
 Built-in LoRA support, Mii-style character previews, and a decluttered

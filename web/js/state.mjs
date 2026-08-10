@@ -190,6 +190,7 @@
       footer_open: false,
       show_face_guidance: false,
       show_concepts_tab: false,
+      show_motion_prompt: false,
     };
   }
 
@@ -227,6 +228,7 @@
       "footer_open",
       "show_face_guidance",
       "show_concepts_tab",
+      "show_motion_prompt",
     ]) {
       if (key in raw) base[key] = raw[key];
     }
