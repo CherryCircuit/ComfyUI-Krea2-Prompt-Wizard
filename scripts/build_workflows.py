@@ -934,25 +934,17 @@ def main() -> None:
     _write(os.path.join(workflows_dir, "example_calibration.json"), make_calibration_workflow())
     _write(os.path.join(workflows_dir, "example_two_character_scene.json"), make_two_character_scene_workflow())
 
-    sub_workflow = make_basic_workflow()
-    sub_workflow["definitions"]["subgraphs"] = [make_subgraph_basic()]
-    sub_workflow["nodes"] = []
-    _write(os.path.join(subgraphs_dir, "Krea2_Prompt_Wizard_Basic.json"), sub_workflow)
-
-    sub_transparent = make_basic_workflow()
-    sub_transparent["definitions"]["subgraphs"] = [make_subgraph_transparent()]
-    sub_transparent["nodes"] = []
-    _write(os.path.join(subgraphs_dir, "Krea2_Prompt_Wizard_Transparent.json"), sub_transparent)
-
-    sub_kj = make_basic_workflow()
-    sub_kj["definitions"]["subgraphs"] = [make_subgraph_kj_nodes()]
-    sub_kj["nodes"] = []
-    _write(os.path.join(subgraphs_dir, "Krea2_Prompt_Wizard_KJNodes.json"), sub_kj)
-
-    sub_calibration = make_basic_workflow()
-    sub_calibration["definitions"]["subgraphs"] = [make_subgraph_basic()]
-    sub_calibration["nodes"] = []
-    _write(os.path.join(subgraphs_dir, "Krea2_Prompt_Calibration.json"), sub_calibration)
+    # ComfyUI loads blueprint files as BARE subgraph definitions, not as
+    # workflow envelopes. Earlier versions wrapped each subgraph inside a
+    # full workflow skeleton with `definitions.subgraphs: [<the actual>]`,
+    # which the ComfyUI frontend's `zSubgraphDefinition` schema rejects —
+    # triggering the `Failed to load subgraph blueprints x4` toast on every
+    # load. The fix is to write the bare blueprint object as the file
+    # content directly. See docs/AGENTS.md §4.1.
+    _write(os.path.join(subgraphs_dir, "Krea2_Prompt_Wizard_Basic.json"), make_subgraph_basic())
+    _write(os.path.join(subgraphs_dir, "Krea2_Prompt_Wizard_Transparent.json"), make_subgraph_transparent())
+    _write(os.path.join(subgraphs_dir, "Krea2_Prompt_Wizard_KJNodes.json"), make_subgraph_kj_nodes())
+    _write(os.path.join(subgraphs_dir, "Krea2_Prompt_Calibration.json"), make_subgraph_basic())
 
 
 if __name__ == "__main__":

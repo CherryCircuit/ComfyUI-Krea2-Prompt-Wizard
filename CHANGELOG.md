@@ -34,6 +34,15 @@
   already supports click-to-roll and Shift-click to toggle 🔀 each-run
   randomization; this release verifies it and keeps its CSS.
 
+## 1.4.2 — Fix "Failed to load subgraph blueprints x4"
+
+- Bundled subgraph blueprint files were being written as full workflow envelopes (the actual blueprint nested under `definitions.subgraphs`). The ComfyUI frontend's `zSubgraphDefinition` schema expects each file to BE the bare blueprint, so all four blueprints (`Krea2_Prompt_Wizard_Basic/Transparent/KJNodes`, `Krea2_Prompt_Calibration`) were rejected on every load, producing the `Failed to load subgraph blueprints x4` toast.
+- `scripts/build_workflows.py` now writes each subgraph as the bare blueprint object (`make_subgraph_*()` already returned the correct shape).
+- `tests/test_subgraphs.py` and `scripts/validate_workflows.py` updated to accept either the new bare format or the legacy wrapped format, so downstream forks stay green.
+- Versions bumped 1.4.1 → 1.4.2.
+
+## 1.4.1 — Fix v1.4.0 regressions
+
 ## 1.4.0 — Apple-style prompt exploration UI
 
 - Reworked the wizard chrome toward a calmer Apple-style interface: soft surfaces, fewer borders, larger readable type, and spacing-based grouping.

@@ -1,209 +1,190 @@
 {
-  "id": "8a4f72d6-2f1c-4b21-9d8a-1c3e7f9b4a01",
-  "revision": 1,
-  "last_node_id": 12,
-  "last_link_id": 6,
-  "nodes": [],
-  "links": [],
-  "groups": [],
-  "definitions": {
-    "subgraphs": [
-      {
-        "id": "a7b2c4d8-9e3f-4a16-83b5-2c4e7d9a1f08",
-        "version": 1,
-        "state": {
-          "lastGroupId": 0,
-          "lastNodeId": 10,
-          "lastLinkId": 5,
-          "lastRerouteId": 0
-        },
-        "revision": 0,
-        "config": {},
-        "name": "Krea2 Wizard — Transparent",
-        "inputNode": {
-          "id": -10,
-          "bounding": [
-            -80,
-            220,
-            120,
-            60
-          ]
-        },
-        "outputNode": {
-          "id": -20,
-          "bounding": [
-            800,
-            220,
-            120,
-            60
-          ]
-        },
-        "inputs": [
-          {
-            "id": "6a2f3b8c-4d5e-4f6a-9b0c-1d2e3f4a5b01",
-            "name": "wizard_state_json",
-            "type": "STRING",
-            "linkIds": [
-              1
-            ],
-            "pos": [
-              20,
-              230
-            ]
-          },
-          {
-            "id": "7b3f4c9d-5e6f-4a7b-8c1d-2e3f4a5b6c01",
-            "name": "model",
-            "type": "MODEL",
-            "linkIds": [
-              2
-            ],
-            "pos": [
-              20,
-              250
-            ]
-          }
-        ],
-        "outputs": [
-          {
-            "id": "8c4f5da0-6f7a-4b8c-9d2e-3f4a5b6c7d01",
-            "name": "Prompt Output",
-            "type": "STRING",
-            "linkIds": [
-              3
-            ],
-            "pos": [
-              820,
-              230
-            ]
-          },
-          {
-            "id": "9d5f6ea1-7f8b-4c9d-ae3f-4a5b6c7d8e01",
-            "name": "Video Motion Prompt",
-            "type": "STRING",
-            "linkIds": [
-              4
-            ],
-            "pos": [
-              820,
-              250
-            ]
-          },
-          {
-            "id": "0e6f7fa2-8f9c-4dae-bf40-5a6b7c8d9f01",
-            "name": "Model",
-            "type": "MODEL",
-            "linkIds": [
-              5
-            ],
-            "pos": [
-              820,
-              270
-            ]
-          }
-        ],
-        "widgets": [],
-        "nodes": [
-          {
-            "id": 10,
-            "type": "Krea2PromptWizard",
-            "pos": [
-              60,
-              80
-            ],
-            "size": [
-              320,
-              200
-            ],
-            "flags": {},
-            "order": 0,
-            "mode": 0,
-            "inputs": [
-              {
-                "name": "wizard_state_json",
-                "type": "STRING",
-                "widget": {
-                  "name": "wizard_state_json"
-                },
-                "link": 1
-              },
-              {
-                "name": "model",
-                "type": "MODEL",
-                "link": 2
-              }
-            ],
-            "outputs": [
-              {
-                "name": "Prompt Output",
-                "type": "STRING",
-                "links": [
-                  3
-                ]
-              },
-              {
-                "name": "Video Motion Prompt",
-                "type": "STRING",
-                "links": [
-                  4
-                ]
-              },
-              {
-                "name": "Model",
-                "type": "MODEL",
-                "links": [
-                  5
-                ]
-              }
-            ],
-            "properties": {
-              "cnr_id": "comfyui-krea2-prompt-wizard",
-              "ver": "1.0.0"
-            },
-            "widgets_values": [
-              "{\"schema_version\": 1, \"base_prompt\": \"\", \"model_profile\": \"generic\", \"interface_mode\": \"simple\", \"show_work\": false, \"rows\": [], \"master_preset_id\": null, \"selected_category\": \"emotion\", \"randomize_on_job\": {}, \"random_strength_min\": 0.0, \"random_strength_max\": 3.0, \"embed_prompt_metadata\": true, \"creative_mode\": \"photo\", \"collapsed\": {}, \"prompt_metadata_override\": false, \"characters\": [], \"selected_character_id\": null, \"character_presets\": [], \"setting\": {\"enabled\": false, \"name\": \"\", \"description\": \"\"}, \"setting_presets\": [], \"setting_random_pool\": [], \"motion_prompt\": \"\", \"motion_prompt_enabled\": false, \"active_tab\": \"cast\", \"footer_open\": false, \"show_face_guidance\": false, \"show_concepts_tab\": false}",
-              false
-            ]
-          }
-        ],
-        "groups": [],
-        "links": [
-          {
-            "id": 3,
-            "origin_id": 10,
-            "origin_slot": 0,
-            "target_id": -20,
-            "target_slot": 0,
-            "type": "STRING"
-          },
-          {
-            "id": 4,
-            "origin_id": 10,
-            "origin_slot": 1,
-            "target_id": -20,
-            "target_slot": 1,
-            "type": "STRING"
-          },
-          {
-            "id": 5,
-            "origin_id": 10,
-            "origin_slot": 2,
-            "target_id": -20,
-            "target_slot": 2,
-            "type": "MODEL"
-          }
-        ],
-        "extra": {
-          "frontendVersion": "1.42.8",
-          "workflowRendererVersion": "LG"
-        }
-      }
+  "id": "a7b2c4d8-9e3f-4a16-83b5-2c4e7d9a1f08",
+  "version": 1,
+  "state": {
+    "lastGroupId": 0,
+    "lastNodeId": 10,
+    "lastLinkId": 5,
+    "lastRerouteId": 0
+  },
+  "revision": 0,
+  "config": {},
+  "name": "Krea2 Wizard — Transparent",
+  "inputNode": {
+    "id": -10,
+    "bounding": [
+      -80,
+      220,
+      120,
+      60
     ]
   },
-  "config": {},
+  "outputNode": {
+    "id": -20,
+    "bounding": [
+      800,
+      220,
+      120,
+      60
+    ]
+  },
+  "inputs": [
+    {
+      "id": "6a2f3b8c-4d5e-4f6a-9b0c-1d2e3f4a5b01",
+      "name": "wizard_state_json",
+      "type": "STRING",
+      "linkIds": [
+        1
+      ],
+      "pos": [
+        20,
+        230
+      ]
+    },
+    {
+      "id": "7b3f4c9d-5e6f-4a7b-8c1d-2e3f4a5b6c01",
+      "name": "model",
+      "type": "MODEL",
+      "linkIds": [
+        2
+      ],
+      "pos": [
+        20,
+        250
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "id": "8c4f5da0-6f7a-4b8c-9d2e-3f4a5b6c7d01",
+      "name": "Prompt Output",
+      "type": "STRING",
+      "linkIds": [
+        3
+      ],
+      "pos": [
+        820,
+        230
+      ]
+    },
+    {
+      "id": "9d5f6ea1-7f8b-4c9d-ae3f-4a5b6c7d8e01",
+      "name": "Video Motion Prompt",
+      "type": "STRING",
+      "linkIds": [
+        4
+      ],
+      "pos": [
+        820,
+        250
+      ]
+    },
+    {
+      "id": "0e6f7fa2-8f9c-4dae-bf40-5a6b7c8d9f01",
+      "name": "Model",
+      "type": "MODEL",
+      "linkIds": [
+        5
+      ],
+      "pos": [
+        820,
+        270
+      ]
+    }
+  ],
+  "widgets": [],
+  "nodes": [
+    {
+      "id": 10,
+      "type": "Krea2PromptWizard",
+      "pos": [
+        60,
+        80
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "wizard_state_json",
+          "type": "STRING",
+          "widget": {
+            "name": "wizard_state_json"
+          },
+          "link": 1
+        },
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Prompt Output",
+          "type": "STRING",
+          "links": [
+            3
+          ]
+        },
+        {
+          "name": "Video Motion Prompt",
+          "type": "STRING",
+          "links": [
+            4
+          ]
+        },
+        {
+          "name": "Model",
+          "type": "MODEL",
+          "links": [
+            5
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-krea2-prompt-wizard",
+        "ver": "1.0.0"
+      },
+      "widgets_values": [
+        "{\"schema_version\": 1, \"base_prompt\": \"\", \"model_profile\": \"generic\", \"interface_mode\": \"simple\", \"show_work\": false, \"rows\": [], \"master_preset_id\": null, \"selected_category\": \"emotion\", \"randomize_on_job\": {}, \"random_strength_min\": 0.0, \"random_strength_max\": 3.0, \"embed_prompt_metadata\": true, \"creative_mode\": \"photo\", \"collapsed\": {}, \"prompt_metadata_override\": false, \"characters\": [], \"selected_character_id\": null, \"character_presets\": [], \"setting\": {\"enabled\": false, \"name\": \"\", \"description\": \"\"}, \"setting_presets\": [], \"setting_random_pool\": [], \"motion_prompt\": \"\", \"motion_prompt_enabled\": false, \"active_tab\": \"cast\", \"footer_open\": false, \"show_face_guidance\": false, \"show_concepts_tab\": false}",
+        false
+      ]
+    }
+  ],
+  "groups": [],
+  "links": [
+    {
+      "id": 3,
+      "origin_id": 10,
+      "origin_slot": 0,
+      "target_id": -20,
+      "target_slot": 0,
+      "type": "STRING"
+    },
+    {
+      "id": 4,
+      "origin_id": 10,
+      "origin_slot": 1,
+      "target_id": -20,
+      "target_slot": 1,
+      "type": "STRING"
+    },
+    {
+      "id": 5,
+      "origin_id": 10,
+      "origin_slot": 2,
+      "target_id": -20,
+      "target_slot": 2,
+      "type": "MODEL"
+    }
+  ],
   "extra": {
     "frontendVersion": "1.42.8",
     "workflowRendererVersion": "LG"
-  },
-  "version": 0.4
+  }
 }

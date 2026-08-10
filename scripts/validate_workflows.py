@@ -67,9 +67,15 @@ def _validate_subgraph_file(path: str) -> None:
     data = _load(path)
     if not isinstance(data, dict):
         sys.exit(f"{path}: subgraph top-level must be a JSON object")
-    if "definitions" not in data:
+    # ComfyUI loads each blueprint file as a BARE subgraph definition
+    # (the file itself is the blueprint, not a workflow envelope with a
+    # nested `definitions.subgraphs` array). See docs/AGENTS.md §4.1.
+    if "id" in data and "nodes" in data and "name" in data and "inputNode" in data and "outputNode" in data:
+        subgraphs = [data]
+    elif "definitions" in data:
+        subgraphs = data["definitions"].get("subgraphs", [])
+    else:
         sys.exit(f"{path}: missing definitions block")
-    subgraphs = data["definitions"].get("subgraphs", [])
     if not subgraphs:
         sys.exit(f"{path}: no subgraphs in definitions")
     for sub in subgraphs:

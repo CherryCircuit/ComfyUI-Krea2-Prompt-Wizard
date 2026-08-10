@@ -24,12 +24,27 @@ UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]
 
 
 def _load_subgraphs():
+    """Read bundled subgraph blueprints.
+
+    ComfyUI loads each file in `subgraphs/` as a BARE subgraph definition
+    (the file itself is the blueprint, not a workflow envelope). Earlier
+    versions wrapped the blueprint inside a workflow skeleton, which the
+    ComfyUI frontend's `zSubgraphDefinition` schema rejected, and which
+    this test loader mirrored. Now the file IS the blueprint, so we
+    accept either shape for back-compat with older checkouts and
+    downstream forks.
+    """
     blueprints = []
     for name in sorted(os.listdir(SUBGRAPHS_DIR)):
         if not name.endswith(".json"):
             continue
         with open(os.path.join(SUBGRAPHS_DIR, name), "r", encoding="utf-8") as handle:
             data = json.load(handle)
+        # Bare format (v1.4.2+): file top-level is the blueprint itself.
+        if isinstance(data, dict) and "id" in data and "name" in data and "nodes" in data:
+            blueprints.append((name, data))
+            continue
+        # Wrapped format (legacy): extract from definitions.subgraphs.
         for subgraph in (data.get("definitions") or {}).get("subgraphs") or []:
             blueprints.append((name, subgraph))
     return blueprints

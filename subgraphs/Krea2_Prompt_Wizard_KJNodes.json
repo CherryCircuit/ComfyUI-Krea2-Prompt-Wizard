@@ -1,253 +1,234 @@
 {
-  "id": "8a4f72d6-2f1c-4b21-9d8a-1c3e7f9b4a01",
-  "revision": 1,
-  "last_node_id": 12,
-  "last_link_id": 6,
-  "nodes": [],
-  "links": [],
-  "groups": [],
-  "definitions": {
-    "subgraphs": [
-      {
-        "id": "e9c5b7d3-1a4f-4b86-92c5-7d3e8f1a2b09",
-        "version": 1,
-        "state": {
-          "lastGroupId": 0,
-          "lastNodeId": 11,
-          "lastLinkId": 6,
-          "lastRerouteId": 0
-        },
-        "revision": 0,
-        "config": {},
-        "name": "Krea2 Wizard — KJNodes integration",
-        "inputNode": {
-          "id": -10,
-          "bounding": [
-            -80,
-            220,
-            120,
-            60
-          ]
-        },
-        "outputNode": {
-          "id": -20,
-          "bounding": [
-            1200,
-            220,
-            120,
-            60
-          ]
-        },
-        "inputs": [
-          {
-            "id": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c01",
-            "name": "wizard_state_json",
-            "type": "STRING",
-            "linkIds": [
-              1
-            ],
-            "pos": [
-              20,
-              230
-            ]
-          },
-          {
-            "id": "2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d01",
-            "name": "model",
-            "type": "MODEL",
-            "linkIds": [
-              2
-            ],
-            "pos": [
-              20,
-              250
-            ]
-          },
-          {
-            "id": "3c4d5e6f-7a8b-4c9d-ae0f-2a3b4c5d6e01",
-            "name": "clip",
-            "type": "CLIP",
-            "linkIds": [
-              3
-            ],
-            "pos": [
-              20,
-              270
-            ]
-          }
-        ],
-        "outputs": [
-          {
-            "id": "4d5e6f70-8a9b-4dae-bf01-3a4b5c6d7e01",
-            "name": "Prompt Output",
-            "type": "STRING",
-            "linkIds": [
-              6
-            ],
-            "pos": [
-              1220,
-              230
-            ]
-          },
-          {
-            "id": "5e6f7081-9a0b-4ebf-c012-4a5b6c7d8e01",
-            "name": "Conditioning",
-            "type": "CONDITIONING",
-            "linkIds": [
-              7
-            ],
-            "pos": [
-              1220,
-              250
-            ]
-          }
-        ],
-        "widgets": [],
-        "nodes": [
-          {
-            "id": 10,
-            "type": "Krea2PromptWizard",
-            "pos": [
-              60,
-              80
-            ],
-            "size": [
-              300,
-              200
-            ],
-            "flags": {},
-            "order": 0,
-            "mode": 0,
-            "inputs": [
-              {
-                "name": "wizard_state_json",
-                "type": "STRING",
-                "widget": {
-                  "name": "wizard_state_json"
-                },
-                "link": 1
-              }
-            ],
-            "outputs": [
-              {
-                "name": "Prompt Output",
-                "type": "STRING",
-                "links": [
-                  4
-                ]
-              },
-              {
-                "name": "Video Motion Prompt",
-                "type": "STRING",
-                "links": []
-              },
-              {
-                "name": "Model",
-                "type": "MODEL",
-                "links": []
-              }
-            ],
-            "properties": {
-              "cnr_id": "comfyui-krea2-prompt-wizard",
-              "ver": "1.0.0"
-            },
-            "widgets_values": [
-              "{\"schema_version\": 1, \"base_prompt\": \"\", \"model_profile\": \"generic\", \"interface_mode\": \"simple\", \"show_work\": false, \"rows\": [], \"master_preset_id\": null, \"selected_category\": \"emotion\", \"randomize_on_job\": {}, \"random_strength_min\": 0.0, \"random_strength_max\": 3.0, \"embed_prompt_metadata\": true, \"creative_mode\": \"photo\", \"collapsed\": {}, \"prompt_metadata_override\": false, \"characters\": [], \"selected_character_id\": null, \"character_presets\": [], \"setting\": {\"enabled\": false, \"name\": \"\", \"description\": \"\"}, \"setting_presets\": [], \"setting_random_pool\": [], \"motion_prompt\": \"\", \"motion_prompt_enabled\": false, \"active_tab\": \"cast\", \"footer_open\": false, \"show_face_guidance\": false, \"show_concepts_tab\": false}"
-            ]
-          },
-          {
-            "id": 11,
-            "type": "Krea2PromptWeight",
-            "pos": [
-              400,
-              80
-            ],
-            "size": [
-              300,
-              200
-            ],
-            "flags": {},
-            "order": 1,
-            "mode": 0,
-            "inputs": [
-              {
-                "name": "clip",
-                "type": "CLIP",
-                "link": 3
-              },
-              {
-                "name": "model",
-                "type": "MODEL",
-                "link": 2
-              },
-              {
-                "name": "text",
-                "type": "STRING",
-                "link": 4
-              }
-            ],
-            "outputs": [
-              {
-                "name": "model",
-                "type": "MODEL",
-                "links": []
-              },
-              {
-                "name": "conditioning",
-                "type": "CONDITIONING",
-                "links": [
-                  7
-                ]
-              }
-            ],
-            "properties": {
-              "cnr_id": "comfyui-kj-nodes",
-              "ver": "1.4.7"
-            },
-            "widgets_values": [
-              "",
-              1.0
-            ]
-          }
-        ],
-        "groups": [],
-        "links": [
-          {
-            "id": 7,
-            "origin_id": 11,
-            "origin_slot": 1,
-            "target_id": -20,
-            "target_slot": 1,
-            "type": "CONDITIONING"
-          },
-          {
-            "id": 4,
-            "origin_id": 10,
-            "origin_slot": 0,
-            "target_id": 11,
-            "target_slot": 2,
-            "type": "STRING"
-          },
-          {
-            "id": 6,
-            "origin_id": 10,
-            "origin_slot": 0,
-            "target_id": -20,
-            "target_slot": 0,
-            "type": "STRING"
-          }
-        ],
-        "extra": {
-          "frontendVersion": "1.42.8",
-          "workflowRendererVersion": "LG"
-        }
-      }
+  "id": "e9c5b7d3-1a4f-4b86-92c5-7d3e8f1a2b09",
+  "version": 1,
+  "state": {
+    "lastGroupId": 0,
+    "lastNodeId": 11,
+    "lastLinkId": 6,
+    "lastRerouteId": 0
+  },
+  "revision": 0,
+  "config": {},
+  "name": "Krea2 Wizard — KJNodes integration",
+  "inputNode": {
+    "id": -10,
+    "bounding": [
+      -80,
+      220,
+      120,
+      60
     ]
   },
-  "config": {},
+  "outputNode": {
+    "id": -20,
+    "bounding": [
+      1200,
+      220,
+      120,
+      60
+    ]
+  },
+  "inputs": [
+    {
+      "id": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c01",
+      "name": "wizard_state_json",
+      "type": "STRING",
+      "linkIds": [
+        1
+      ],
+      "pos": [
+        20,
+        230
+      ]
+    },
+    {
+      "id": "2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d01",
+      "name": "model",
+      "type": "MODEL",
+      "linkIds": [
+        2
+      ],
+      "pos": [
+        20,
+        250
+      ]
+    },
+    {
+      "id": "3c4d5e6f-7a8b-4c9d-ae0f-2a3b4c5d6e01",
+      "name": "clip",
+      "type": "CLIP",
+      "linkIds": [
+        3
+      ],
+      "pos": [
+        20,
+        270
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "id": "4d5e6f70-8a9b-4dae-bf01-3a4b5c6d7e01",
+      "name": "Prompt Output",
+      "type": "STRING",
+      "linkIds": [
+        6
+      ],
+      "pos": [
+        1220,
+        230
+      ]
+    },
+    {
+      "id": "5e6f7081-9a0b-4ebf-c012-4a5b6c7d8e01",
+      "name": "Conditioning",
+      "type": "CONDITIONING",
+      "linkIds": [
+        7
+      ],
+      "pos": [
+        1220,
+        250
+      ]
+    }
+  ],
+  "widgets": [],
+  "nodes": [
+    {
+      "id": 10,
+      "type": "Krea2PromptWizard",
+      "pos": [
+        60,
+        80
+      ],
+      "size": [
+        300,
+        200
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "wizard_state_json",
+          "type": "STRING",
+          "widget": {
+            "name": "wizard_state_json"
+          },
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Prompt Output",
+          "type": "STRING",
+          "links": [
+            4
+          ]
+        },
+        {
+          "name": "Video Motion Prompt",
+          "type": "STRING",
+          "links": []
+        },
+        {
+          "name": "Model",
+          "type": "MODEL",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-krea2-prompt-wizard",
+        "ver": "1.0.0"
+      },
+      "widgets_values": [
+        "{\"schema_version\": 1, \"base_prompt\": \"\", \"model_profile\": \"generic\", \"interface_mode\": \"simple\", \"show_work\": false, \"rows\": [], \"master_preset_id\": null, \"selected_category\": \"emotion\", \"randomize_on_job\": {}, \"random_strength_min\": 0.0, \"random_strength_max\": 3.0, \"embed_prompt_metadata\": true, \"creative_mode\": \"photo\", \"collapsed\": {}, \"prompt_metadata_override\": false, \"characters\": [], \"selected_character_id\": null, \"character_presets\": [], \"setting\": {\"enabled\": false, \"name\": \"\", \"description\": \"\"}, \"setting_presets\": [], \"setting_random_pool\": [], \"motion_prompt\": \"\", \"motion_prompt_enabled\": false, \"active_tab\": \"cast\", \"footer_open\": false, \"show_face_guidance\": false, \"show_concepts_tab\": false}"
+      ]
+    },
+    {
+      "id": 11,
+      "type": "Krea2PromptWeight",
+      "pos": [
+        400,
+        80
+      ],
+      "size": [
+        300,
+        200
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 3
+        },
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 2
+        },
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "links": []
+        },
+        {
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "links": [
+            7
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-kj-nodes",
+        "ver": "1.4.7"
+      },
+      "widgets_values": [
+        "",
+        1.0
+      ]
+    }
+  ],
+  "groups": [],
+  "links": [
+    {
+      "id": 7,
+      "origin_id": 11,
+      "origin_slot": 1,
+      "target_id": -20,
+      "target_slot": 1,
+      "type": "CONDITIONING"
+    },
+    {
+      "id": 4,
+      "origin_id": 10,
+      "origin_slot": 0,
+      "target_id": 11,
+      "target_slot": 2,
+      "type": "STRING"
+    },
+    {
+      "id": 6,
+      "origin_id": 10,
+      "origin_slot": 0,
+      "target_id": -20,
+      "target_slot": 0,
+      "type": "STRING"
+    }
+  ],
   "extra": {
     "frontendVersion": "1.42.8",
     "workflowRendererVersion": "LG"
-  },
-  "version": 0.4
+  }
 }
