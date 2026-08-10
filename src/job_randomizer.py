@@ -29,6 +29,14 @@ ALL_GROUP_CATEGORIES = {
     "style_finish": {"style", "texture", "detail", "custom"},
 }
 
+# Per-character direction groups, mirroring the frontend's DIRECTION_GROUPS.
+DIRECTION_GROUP_CATEGORIES = {
+    "emotion": ("emotion", "emotion_trigger"),
+    "face": ("face", "face_trigger", "gaze", "mouth"),
+    "body": ("body",),
+    "placement": ("position",),
+}
+
 
 def _preset_media(preset: Dict[str, Any]) -> str:
     category = str(preset.get("category") or "")
@@ -80,7 +88,60 @@ def has_job_randomization(state: Dict[str, Any]) -> bool:
                 isinstance(options, list) and options for options in pools.values()
             ):
                 return True
+            direction_flags = character.get("randomize_direction_groups")
+            if isinstance(direction_flags, dict) and any(
+                bool(value) for value in direction_flags.values()
+            ):
+                return True
     return False
+
+
+def randomize_character_direction(state: Dict[str, Any], library: Library) -> Dict[str, Any]:
+    """Replace a character's direction rows for every direction group that
+    is flagged "each run" with fresh random concepts from the library."""
+    characters = state.get("characters")
+    if not isinstance(characters, list):
+        return state
+    randomizer = secrets.SystemRandom()
+    for character in characters:
+        if not isinstance(character, dict) or character.get("enabled", True) is False:
+            continue
+        direction_flags = character.get("randomize_direction_groups")
+        if not isinstance(direction_flags, dict):
+            continue
+        rows = character.get("rows")
+        if not isinstance(rows, list):
+            rows = []
+        for group_key, enabled in direction_flags.items():
+            if not enabled:
+                continue
+            categories = DIRECTION_GROUP_CATEGORIES.get(group_key)
+            if not categories:
+                continue
+            category_set = set(categories)
+            rows = [
+                row
+                for row in rows
+                if not isinstance(row, dict) or row.get("category") not in category_set
+            ]
+            candidates = [
+                preset
+                for category in categories
+                for preset in library.by_category(category)
+                if not preset.get("disabled")
+            ]
+            randomizer.shuffle(candidates)
+            minimum = min(2, len(candidates))
+            maximum = min(6, len(candidates))
+            count = secrets.randbelow(maximum - minimum + 1) + minimum if maximum else 0
+            added: list = []
+            for preset in candidates[:count]:
+                add_row(character, preset, category=preset.get("category"))
+                character["rows"][-1]["strength"] = _random_strength(state, randomizer)
+                added.append(character["rows"][-1])
+            rows = rows + added
+        character["rows"] = rows
+    return state
 
 
 def randomize_character_fields(state: Dict[str, Any]) -> Dict[str, Any]:
@@ -134,7 +195,7 @@ def randomize_enabled_groups(
     result = copy.deepcopy(state)
     flags = result.get("randomize_on_job")
     if not isinstance(flags, dict):
-        return result
+        flags = {}
     randomizer = secrets.SystemRandom()
 
     rows = result.get("rows")
@@ -184,4 +245,5 @@ def randomize_enabled_groups(
             result["setting"] = selected
 
     result = randomize_character_fields(result)
+    result = randomize_character_direction(result, library)
     return result

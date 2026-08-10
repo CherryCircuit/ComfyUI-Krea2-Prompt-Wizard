@@ -300,6 +300,50 @@ const sexFields = findByClass(wizard.root, "krea2-combobox").filter((input) => i
 if (sexFields.length !== 2) {
   throw new Error("Each cast member must expose a Sex field.");
 }
+const ethnicityFields = findByClass(wizard.root, "krea2-combobox").filter((input) => input["aria-label"] === "Ethnicity");
+if (ethnicityFields.length !== 2) {
+  throw new Error("Each cast member must expose an Ethnicity field.");
+}
+
+/* --- Direction sections carry the full Concepts-tab action set --------- */
+const directionSections = findByClass(wizard.root, "krea2-character-category");
+if (directionSections.length < 6) {
+  throw new Error("Each cast member must render Concepts-style direction sections.");
+}
+function insideEach(sectionClass, childClass) {
+  return findByClass(wizard.root, sectionClass)
+    .every((section) => findByClass(section, childClass).length >= 1);
+}
+if (!insideEach("krea2-character-category", "krea2-wizard-category-count")
+    || !insideEach("krea2-character-category", "krea2-wizard-category-random")
+    || !insideEach("krea2-character-category", "krea2-wizard-category-save")
+    || !insideEach("krea2-character-category", "krea2-wizard-category-add")) {
+  throw new Error("Direction sections must expose count, dice, save-preset, and add controls like the Concepts tab.");
+}
+
+/* --- Avatar art layer -------------------------------------------------- */
+if (findByClass(wizard.root, "krea2-avatar-art").length !== 2) {
+  throw new Error("Each avatar must render its art inside the scalable art layer.");
+}
+
+/* --- Legacy clothing migrates into the editable ensemble field --------- */
+const legacyState = {
+  schema_version: 1,
+  base_prompt: "test",
+  rows: [],
+  characters: [
+    { id: "lg", name: "Old", enabled: true, clothing: "elegant formal dress", expression: "calm confidence" },
+  ],
+};
+const migrated = window.KREA2.helpers.coerceState(JSON.parse(JSON.stringify(legacyState)));
+if (migrated.characters[0].ensemble !== "elegant formal dress" || migrated.characters[0].clothing) {
+  throw new Error("Legacy clothing must migrate into the editable ensemble field.");
+}
+const legacyPreview = window.KREA2.helpers.compilePreview(migrated).final_prompt;
+if (!legacyPreview.includes("costume: elegant formal dress")
+    || legacyPreview.includes("clothing and armour")) {
+  throw new Error("Migrated legacy clothing must compile as the costume field only.");
+}
 
 /* --- Ensemble / separates exclusivity ------------------------------ */
 const ensembleInput = findByClass(wizard.root, "krea2-combobox")

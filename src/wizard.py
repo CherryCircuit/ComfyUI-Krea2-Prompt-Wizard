@@ -154,6 +154,12 @@ def coerce_state(raw: Any) -> Dict[str, Any]:
         character.setdefault("lora_triggers", "")
         character.setdefault("lora_name", "")
         character.setdefault("additional_info", "")
+        character.setdefault("ethnicity", "")
+        if not isinstance(character.get("randomize_direction_groups"), dict):
+            character["randomize_direction_groups"] = {}
+        for group_key, enabled in list(character["randomize_direction_groups"].items()):
+            if not isinstance(enabled, bool):
+                character["randomize_direction_groups"][group_key] = bool(enabled)
         try:
             strength = float(character.get("lora_strength", 0.8))
         except (TypeError, ValueError):

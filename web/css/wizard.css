@@ -216,13 +216,22 @@ body.dark {
   --krea2-avatar-iris: #5b3a24;
   --krea2-avatar-iris-r: #5b3a24;
   position: relative;
-  width: 92px;
-  height: 126px;
+  width: 104px;
+  height: 154px;
   overflow: hidden;
   border: 3px solid var(--krea2-border);
   border-radius: 12px;
   background: linear-gradient(160deg, color-mix(in srgb, var(--krea2-accent) 14%, var(--krea2-bg)), var(--krea2-bg-strong));
-  flex: 0 0 92px;
+  flex: 0 0 104px;
+}
+.krea2-avatar-art {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 92px;
+  height: 126px;
+  transform: scale(1.12);
+  transform-origin: top left;
 }
 .krea2-avatar.is-male { border-color: #4f8dff; }
 .krea2-avatar.is-female { border-color: #f06595; }
@@ -230,12 +239,12 @@ body.dark {
 
 /* Compact header variant: uniform scale, no squishing. */
 .krea2-character-card-header .krea2-avatar {
-  width: 74px;
-  height: 101px;
-  flex: 0 0 74px;
+  width: 84px;
+  height: 124px;
+  flex: 0 0 84px;
   transform: scale(0.8);
   transform-origin: top left;
-  margin-right: -16px;
+  margin-right: -12px;
 }
 .krea2-character-card-header .krea2-avatar-label { display: none; }
 
@@ -1024,9 +1033,9 @@ body.dark {
 
 .krea2-row-head {
   display: grid;
-  grid-template-columns: 14px 14px minmax(0, 1fr) 88px 40px 16px 18px;
+  grid-template-columns: 14px 14px minmax(0, 1fr) 88px 46px 16px 18px;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
 }
 
 .krea2-row-drag {
@@ -1152,7 +1161,7 @@ body.dark {
 }
 
 .krea2-row-numeric {
-  width: 40px;
+  width: 46px;
   background: var(--krea2-bg);
   color: var(--krea2-text);
   border: 1px solid var(--krea2-border);
@@ -1161,6 +1170,13 @@ body.dark {
   font-size: 10.5px;
   box-sizing: border-box;
   text-align: center;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.krea2-row-numeric::-webkit-outer-spin-button,
+.krea2-row-numeric::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .krea2-row-remove {
@@ -2155,7 +2171,7 @@ body.dark {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
-.krea2-row-head { grid-template-columns: 14px 14px minmax(0, 1fr) 88px 40px 16px 18px; }
+.krea2-row-head { grid-template-columns: 14px 14px minmax(0, 1fr) 88px 46px 16px 18px; gap: 4px; }
 .krea2-row-label {
   white-space: normal;
   line-height: 1.25;

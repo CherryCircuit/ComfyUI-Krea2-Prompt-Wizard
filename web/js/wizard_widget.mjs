@@ -47,6 +47,24 @@
   const CHARACTER_APPEARANCE = [
     { group: "basics", key: "sex", label: "Sex", options: ["male", "female", "unspecified"] },
     { group: "basics", key: "age", label: "Age", options: ["child", "teenager", "young adult", "adult", "middle aged", "elderly"] },
+    { group: "basics", key: "ethnicity", label: "Ethnicity", options: [
+      "East Asian", "Chinese", "Japanese", "Korean", "Southeast Asian", "Vietnamese", "Filipino", "Thai",
+      "South Asian", "Indian", "Pakistani", "Bangladeshi", "Sri Lankan",
+      "Middle Eastern", "Arab", "Persian", "Turkish", "Israeli",
+      "Mediterranean", "Greek", "Italian", "Spanish", "Portuguese",
+      "Northern European", "Scandinavian", "British", "Irish", "French", "German",
+      "Slavic", "Russian", "Polish", "Ukrainian", "Eastern European",
+      "Central Asian", "Kazakh", "Mongolian",
+      "Black / African", "African American", "Afro-Caribbean", "Afro-Latino",
+      "Indigenous American", "Native American", "First Nations", "Inuit",
+      "Pacific Islander", "Polynesian", "Hawaiian", "Maori", "Aboriginal Australian",
+      "Latin American", "Mexican", "Brazilian", "Colombian", "Puerto Rican", "Cuban",
+      "Multiracial", "Ambiguous",
+      "Vulcan", "Romulan", "Klingon", "Ferengi", "Bajoran", "Cardassian", "Trill", "Betazoid", "Andorian",
+      "Twi'lek", "Togruta", "Zabrak", "Mirialan", "Chiss", "Pantoran", "Miraluka", "Rodian", "Wookiee",
+      "Asari", "Turian", "Salarian", "Krogan", "Quarian", "Drell", "Protoss",
+      "Na'vi", "Martian", "Xenomorph", "Yautja", "Sontaran", "Ood", "Silurian", "Time Lord",
+    ] },
     { group: "hair", key: "hair_style", label: "Hair style", options: [
       "straight", "wavy", "curly", "coily", "kinky", "afro", "braided", "cornrows", "dreadlocks",
       "ponytail", "high ponytail", "low ponytail", "pigtails", "twin tails", "bun", "top knot",
@@ -731,6 +749,7 @@
         identity: "",
         sex: "",
         age: "",
+        ethnicity: "",
         subject: "",
         expression: "",
         clothing: "",
@@ -761,6 +780,7 @@
         additional_open: false,
         rows: [],
         randomize_fields: {},
+        randomize_direction_groups: {},
       };
     }
 
@@ -972,15 +992,152 @@
       return chips;
     }
 
-    /* Direction sections styled like the Concepts tab: header, blue "+ Add",
-     * and the standard row cards. */
-    function renderCharacterDirectionBlock(character, categories, title, emptyHint) {
+    /* Direction groups: the same category structure as the Concepts tab,
+     * scoped to one cast member. */
+    const DIRECTION_GROUPS = [
+      { id: "emotion", label: "Emotion", categories: EMOTION_CATEGORIES, emptyHint: "No emotion set." },
+      { id: "face", label: "Face & gaze", categories: FACE_CATEGORIES, emptyHint: "No facial action set." },
+      { id: "body", label: "Body & movement", categories: BODY_CATEGORIES, emptyHint: "No body language set." },
+      { id: "placement", label: "Placement", categories: POSITION_CATEGORIES, emptyHint: "No placement set." },
+    ];
+
+    function directionGroupPresetId(groupKey) {
+      return "direction_" + groupKey;
+    }
+
+    function randomizeCharacterDirection(character, group) {
+      if (!library.length) {
+        showToast("The concept library is still loading.", "warning");
+        return;
+      }
       const rows = (character.rows || []).filter(function (row) {
-        return categories.includes(row.category);
+        return !group.categories.includes(row.category);
+      });
+      character.rows = rows;
+      const candidates = compatibleLibrary().filter(function (preset) {
+        return group.categories.includes(preset.category) && !preset.disabled;
+      });
+      for (let i = candidates.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const swap = candidates[i];
+        candidates[i] = candidates[j];
+        candidates[j] = swap;
+      }
+      const minimum = Math.min(2, candidates.length);
+      const maximum = Math.min(6, candidates.length);
+      const count = minimum + Math.floor(Math.random() * (maximum - minimum + 1));
+      for (const preset of candidates.slice(0, count)) {
+        const row = presetToRow(preset, state);
+        row.id = uniqueCharacterRowId(character);
+        row.strength = randomStrengthValue();
+        character.rows.push(row);
+      }
+      markDirty();
+      render();
+    }
+
+    function saveCharacterDirectionPreset(character, groupKey, suggestedLabel) {
+      const label = String(suggestedLabel || "").trim();
+      if (!label) { showToast("Name the preset first", "warning"); return; }
+      const group = DIRECTION_GROUPS.find(function (item) { return item.id === groupKey; });
+      const rows = (character.rows || []).filter(function (row) {
+        return group.categories.includes(row.category);
+      });
+      if (!rows.length) {
+        showToast("Add at least one concept to this direction first.", "warning");
+        return;
+      }
+      const existing = savedPresets.find(function (preset) {
+        return preset.scope === "group" && preset.group === directionGroupPresetId(groupKey)
+          && String(preset.label || "").trim().toLowerCase() === label.toLowerCase();
+      }) || null;
+      if (existing && !window.confirm(
+        "A " + group.label + " preset named \u201c" + label + "\u201d already exists. Overwrite it?",
+      )) return;
+      const payload = {
+        scope: "group",
+        group: directionGroupPresetId(groupKey),
+        base_prompt: "",
+        rows: JSON.parse(JSON.stringify(rows)),
+      };
+      if (existing) {
+        Object.assign(existing, payload, { label: label });
+      } else {
+        savedPresets.push(Object.assign({ id: makeSavedPresetId("group", directionGroupPresetId(groupKey)), label: label }, payload));
+      }
+      persistSavedPresets(existing ? group.label + " preset overwritten" : group.label + " preset saved");
+    }
+
+    function loadCharacterDirectionPreset(character, groupKey, presetId) {
+      const group = DIRECTION_GROUPS.find(function (item) { return item.id === groupKey; });
+      const preset = savedPresets.find(function (item) {
+        return item.id === presetId && item.scope === "group" && item.group === directionGroupPresetId(groupKey);
+      });
+      if (!preset) return;
+      if (!library.length) {
+        showToast("The concept library is still loading. Please try again in a moment.", "warning");
+        return;
+      }
+      const rows = (character.rows || []).filter(function (row) {
+        return !group.categories.includes(row.category);
+      });
+      for (const stored of (preset.rows || [])) {
+        const libPreset = library.find(function (p) { return p.id === stored.preset_id; });
+        if (!libPreset) continue;
+        const row = presetToRow(libPreset, state);
+        row.id = uniqueCharacterRowId(character);
+        if (Number.isFinite(Number(stored.strength))) row.strength = Number(stored.strength);
+        rows.push(row);
+      }
+      character.rows = rows;
+      if (!character.loaded_direction_presets) character.loaded_direction_presets = {};
+      character.loaded_direction_presets[groupKey] = presetId;
+      markDirty();
+      render();
+      showToast(preset.label + " loaded", "info");
+    }
+
+    function buildCharacterDirectionPresetPicker(character, groupKey) {
+      const select = el("select", {
+        class: "krea2-wizard-group-preset",
+        "aria-label": groupKey + " direction presets",
+        onChange: function (event) {
+          const presetId = event.target.value;
+          select.value = "";
+          if (presetId) loadCharacterDirectionPreset(character, groupKey, presetId);
+        },
+      });
+      select.appendChild(el("option", { value: "" }, "Load preset..."));
+      const groupPresets = savedPresets.filter(function (item) {
+        return item.scope === "group" && item.group === directionGroupPresetId(groupKey)
+          && Array.isArray(item.rows);
+      });
+      for (const preset of groupPresets) {
+        select.appendChild(el("option", { value: preset.id }, preset.label));
+      }
+      const lastLoaded = (character.loaded_direction_presets || {})[groupKey];
+      if (lastLoaded && groupPresets.some(function (p) { return p.id === lastLoaded; })) {
+        select.value = lastLoaded;
+      }
+      return select;
+    }
+
+    /* Direction sections styled like the Concepts tab: header with the
+     * count on the right, and the full action set (Add, presets, save,
+     * randomize, shuffle each job). */
+    function renderCharacterDirectionBlock(character, groupKey) {
+      const group = DIRECTION_GROUPS.find(function (item) { return item.id === groupKey; });
+      const rows = (character.rows || []).filter(function (row) {
+        return group.categories.includes(row.category);
       });
       const section = el("section", { class: "krea2-wizard-category krea2-character-category" });
       const header = el("div", { class: "krea2-wizard-category-header" }, [
-        el("strong", { class: "krea2-wizard-category-title" }, title),
+        el("strong", { class: "krea2-wizard-category-title" }, group.label),
+        el("span", { class: "krea2-wizard-category-summary", title: rows.map(function (row) {
+          return row.label || row.preset_id;
+        }).join(", ") }, rows.map(function (row) {
+          return row.label || row.preset_id;
+        }).join(" · ")),
         el("span", { class: "krea2-wizard-category-count" },
           rows.length + (rows.length === 1 ? " concept" : " concepts")),
       ]);
@@ -991,8 +1148,8 @@
           event.stopPropagation();
           showSearchableSelector({
             presets: characterRowPresets(),
-            title: "Add " + title + " for " + (character.name || "this character"),
-            categories: categories,
+            title: "Add " + group.label + " for " + (character.name || "this character"),
+            categories: group.categories,
             multiSelect: true,
             selectedIds: rows.map(function (row) { return row.preset_id; }),
             onToggle: function (preset, shouldSelect) {
@@ -1016,10 +1173,51 @@
           });
         },
       }, "+ Add");
-      const actions = el("div", { class: "krea2-wizard-category-actions" }, [addBtn]);
+      const presetSelect = buildCharacterDirectionPresetPicker(character, groupKey);
+      const saveBtn = el("button", {
+        type: "button",
+        class: "krea2-wizard-category-save",
+        title: "Save these direction concepts as a reusable preset",
+        onClick: function (event) {
+          event.stopPropagation();
+          const label = window.prompt("Name this " + group.label + " preset", "");
+          if (!label || !label.trim()) return;
+          saveCharacterDirectionPreset(character, groupKey, label.trim());
+        },
+      }, "Save preset");
+      const randomBtn = diceButton(
+        "Replace this direction with a random combination",
+        function (event) {
+          event.stopPropagation();
+          randomizeCharacterDirection(character, group);
+        },
+        "krea2-wizard-category-random krea2-icon-btn",
+      );
+      const eachJobOn = !!(character.randomize_direction_groups || {})[groupKey];
+      const randomEachJob = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-icon-btn krea2-shuffle" + (eachJobOn ? " is-active" : ""),
+        title: eachJobOn
+          ? "Shuffle on: this direction is randomized for every queued job. Click to stop."
+          : "Shuffle off: this direction is randomized once when you press the dice. Click to randomize it every queued job.",
+        "aria-label": "Randomize this direction every queued job",
+        onClick: function (event) {
+          event.stopPropagation();
+          if (!character.randomize_direction_groups) character.randomize_direction_groups = {};
+          character.randomize_direction_groups[groupKey] = !eachJobOn;
+          markDirty();
+          render();
+        },
+      }, "🔀");
+      const actions = el("div", { class: "krea2-wizard-category-actions" }, [
+        addBtn,
+        presetSelect,
+        saveBtn,
+        el("div", { class: "krea2-wizard-random-controls" }, [randomBtn, randomEachJob]),
+      ]);
       const content = el("div", { class: "krea2-wizard-category-content" });
       if (!rows.length) {
-        content.appendChild(el("div", { class: "krea2-wizard-empty" }, emptyHint));
+        content.appendChild(el("div", { class: "krea2-wizard-empty" }, group.emptyHint));
       } else {
         for (const row of rows) {
           content.appendChild(renderRow(row, characterRowCtx(character, rows)));
@@ -1040,11 +1238,10 @@
       section.appendChild(el("div", { class: "krea2-direction-label" }, "Quick directions"));
       section.appendChild(renderQuickDirectionChips(character));
 
-      /* Concepts-style sections */
-      section.appendChild(renderCharacterDirectionBlock(character, EMOTION_CATEGORIES, "Emotion", "No emotion set."));
-      section.appendChild(renderCharacterDirectionBlock(character, FACE_CATEGORIES, "Face & gaze", "No facial action set."));
-      section.appendChild(renderCharacterDirectionBlock(character, BODY_CATEGORIES, "Body & movement", "No body language set."));
-      section.appendChild(renderCharacterDirectionBlock(character, POSITION_CATEGORIES, "Placement", "No placement set."));
+      /* Concepts-style sections with the full action set */
+      for (const group of DIRECTION_GROUPS) {
+        section.appendChild(renderCharacterDirectionBlock(character, group.id));
+      }
 
       /* Position (legacy free-form field kept in sync with placement rows) */
       const positionPresets = library.filter(function (preset) {
@@ -1209,7 +1406,8 @@
           "--krea2-avatar-iris-r": iris[1],
         },
       });
-      avatar.append(
+      const art = el("div", { class: "krea2-avatar-art" });
+      art.append(
         el("div", { class: "krea2-avatar-hair-back " + slugify(character.hair_length || "short") }),
         el("div", { class: "krea2-avatar-ear left" }),
         el("div", { class: "krea2-avatar-ear right" }),
@@ -1240,7 +1438,8 @@
         el("div", { class: "krea2-avatar-nose " + slugify(character.nose || "straight") }),
         el("div", { class: "krea2-avatar-mouth " + avatarMouthClass(character) }),
       );
-      avatar.appendChild(head);
+      art.appendChild(head);
+      avatar.appendChild(art);
       avatar.appendChild(el("div", { class: "krea2-avatar-label" }, character.name || "Character"));
       return avatar;
     }

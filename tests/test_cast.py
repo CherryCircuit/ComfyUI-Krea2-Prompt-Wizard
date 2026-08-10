@@ -234,6 +234,34 @@ class CastCompilationTests(unittest.TestCase):
         self.assertIn("clothing and armour: leather jacket", result.final_prompt)
         self.assertIn("expression: calm confidence", result.final_prompt)
 
+    def test_legacy_clothing_is_suppressed_when_new_look_is_set(self):
+        state = empty_state()
+        state["characters"] = [
+            {"id": "c1", "name": "Mara", "enabled": True,
+             "clothing": "elegant formal dress", "ensemble": "western cowboy outfit"},
+        ]
+        result = compile_state(state, _lib())
+        self.assertIn("costume: western cowboy outfit", result.final_prompt)
+        self.assertNotIn("elegant formal dress", result.final_prompt)
+        self.assertNotIn("clothing and armour", result.final_prompt)
+
+        state2 = empty_state()
+        state2["characters"] = [
+            {"id": "c1", "name": "Mara", "enabled": True,
+             "clothing": "elegant formal dress", "clothing_top": "blouse", "clothing_bottom": "skirt"},
+        ]
+        result2 = compile_state(state2, _lib())
+        self.assertIn("top: blouse; bottom: skirt", result2.final_prompt)
+        self.assertNotIn("elegant formal dress", result2.final_prompt)
+
+    def test_ethnicity_compiles_into_the_clause(self):
+        state = empty_state()
+        state["characters"] = [
+            {"id": "c1", "name": "Mara", "enabled": True, "sex": "female", "ethnicity": "Vulcan"},
+        ]
+        result = compile_state(state, _lib())
+        self.assertIn("Character Mara: sex: female; ethnicity: Vulcan", result.final_prompt)
+
     def test_trace_contains_cast_blocks(self):
         state = empty_state()
         state["characters"] = [

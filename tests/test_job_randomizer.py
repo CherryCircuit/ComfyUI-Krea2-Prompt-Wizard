@@ -230,6 +230,72 @@ class JobRandomizerTests(unittest.TestCase):
         resolved = json.loads(result["ui"]["krea2_resolved_state"][0])
         self.assertIn(resolved["characters"][0]["hair_color"], {"red", "blonde"})
 
+    def test_character_direction_group_randomization(self):
+        library = Library(
+            presets=[
+                preset(f"emotion.{index}", "emotion") for index in range(6)
+            ]
+            + [preset(f"face.{index}", "face") for index in range(6)]
+            + [preset("body.one", "body")]
+        )
+        state = {
+            "characters": [
+                {
+                    "id": "c1",
+                    "name": "Mara",
+                    "enabled": True,
+                    "rows": [
+                        {
+                            "id": "keep_body",
+                            "category": "body",
+                            "preset_id": "body.one",
+                            "phrase": "body.one",
+                            "strength": 1.0,
+                            "control_mode": "scalar",
+                            "enabled": True,
+                            "intensity": 0,
+                        },
+                        {
+                            "id": "old_emotion",
+                            "category": "emotion",
+                            "preset_id": "emotion.old",
+                            "phrase": "old",
+                            "strength": 1.0,
+                            "control_mode": "scalar",
+                            "enabled": True,
+                            "intensity": 0,
+                        },
+                    ],
+                    "randomize_direction_groups": {"emotion": True},
+                }
+            ]
+        }
+        result = randomize_enabled_groups(state, library)
+        mara = result["characters"][0]
+        categories = {row["category"] for row in mara["rows"]}
+        self.assertNotIn("emotion.old", {row["preset_id"] for row in mara["rows"]})
+        self.assertIn("body", categories)
+        self.assertGreaterEqual(
+            sum(1 for row in mara["rows"] if row["category"] == "emotion"),
+            2,
+        )
+        self.assertTrue(has_job_randomization(state))
+
+    def test_character_direction_flags_mark_the_node_as_changed(self):
+        state = json.dumps(
+            {
+                "characters": [
+                    {
+                        "id": "c1",
+                        "name": "Mara",
+                        "randomize_direction_groups": {"face": True},
+                    }
+                ]
+            }
+        )
+        self.assertTrue(math.isnan(Krea2PromptWizard.IS_CHANGED(state)))
+        self.assertTrue(has_job_randomization(json.loads(state)))
+
 
 if __name__ == "__main__":
     unittest.main()

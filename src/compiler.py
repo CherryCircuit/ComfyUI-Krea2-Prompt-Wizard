@@ -136,6 +136,7 @@ _CHARACTER_FIELDS = (
     ("identity", "identity"),
     ("sex", "sex"),
     ("age", "age"),
+    ("ethnicity", "ethnicity"),
     ("subject", "subject"),  # legacy field; kept for older workflows
     ("expression", "expression"),  # legacy field; skipped when directed
     ("clothing", "clothing and armour"),  # legacy field; kept for older workflows
@@ -449,11 +450,13 @@ def _compile_character(
         plain_emitted.append(interaction)
 
     # Ensemble and separates are mutually exclusive looks. The UI enforces
-    # this too; the compiler resolves any residue deterministically.
+    # this too; the compiler resolves any residue deterministically. The
+    # legacy clothing field only compiles when no new-style look is set.
     ensemble = str(character.get("ensemble") or "").strip()
     top = str(character.get("clothing_top") or "").strip()
     bottom = str(character.get("clothing_bottom") or "").strip()
     use_ensemble = bool(ensemble)
+    use_separates = bool(top or bottom)
 
     fields: List[str] = []
     for key, label in _CHARACTER_FIELDS:
@@ -463,6 +466,8 @@ def _compile_character(
         if key == "ensemble" and not use_ensemble:
             continue
         if key in ("clothing_top", "clothing_bottom") and use_ensemble:
+            continue
+        if key == "clothing" and (use_ensemble or use_separates):
             continue
         value = str(character.get(key) or "").strip()
         if value:

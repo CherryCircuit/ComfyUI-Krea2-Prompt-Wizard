@@ -196,6 +196,12 @@ For every cast member you can set:
   this character's block, so a LoRA loaded on the model influences this
   character alone and the rest of the cast stays distinct.
 
+Each direction section (Emotion, Face & gaze, Body & movement,
+Placement) behaves exactly like a Concepts-tab group: blue **+ Add**,
+an auto-loading **preset** picker, **Save preset**, a **dice** for a
+random combination, and the **🔀 shuffle** flag to re-randomize that
+direction on every queued job.
+
 A character's static *Expression* field is skipped in the compiled
 prompt once the character has direction of its own.
 

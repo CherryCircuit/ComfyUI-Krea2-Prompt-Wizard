@@ -260,6 +260,19 @@
       if (character.lora_triggers === undefined) character.lora_triggers = "";
       if (character.lora_name === undefined) character.lora_name = "";
       if (character.additional_info === undefined) character.additional_info = "";
+      if (character.ethnicity === undefined) character.ethnicity = "";
+      // Legacy characters (pre-1.2.0) carry their look in `clothing`, which
+      // is no longer editable in the UI. Migrate it into the ensemble field
+      // so users can see and clear it; it then compiles as "costume: …".
+      if (character.clothing && !character.ensemble && !character.clothing_top && !character.clothing_bottom) {
+        character.ensemble = character.clothing;
+      }
+      if (character.ensemble || character.clothing_top || character.clothing_bottom) {
+        delete character.clothing;
+      }
+      if (!character.randomize_direction_groups || typeof character.randomize_direction_groups !== "object") {
+        character.randomize_direction_groups = {};
+      }
       if (!Number.isFinite(Number(character.lora_strength))) character.lora_strength = 0.8;
       character.lora_strength = Math.max(0, Math.min(2, Math.round(Number(character.lora_strength) * 20) / 20));
       if (character.sex === undefined) character.sex = "";
@@ -641,6 +654,7 @@
 
   const CHARACTER_FIELDS = Object.freeze([
     ["identity", "identity"], ["sex", "sex"], ["age", "age"],
+    ["ethnicity", "ethnicity"],
     ["subject", "subject"], ["expression", "expression"],
     ["clothing", "clothing and armour"],
     ["ensemble", "costume"], ["clothing_top", "top"], ["clothing_bottom", "bottom"],
@@ -738,10 +752,15 @@
     const directed = characterHasDirection(character);
     const ensemble = String(character.ensemble || "").trim();
     const useEnsemble = Boolean(ensemble);
+    const useSeparates = Boolean(
+      String(character.clothing_top || "").trim()
+      || String(character.clothing_bottom || "").trim(),
+    );
     const fields = CHARACTER_FIELDS.map(function (entry) {
       if (directed && entry[0] === "expression") return "";
       if (entry[0] === "ensemble" && !useEnsemble) return "";
       if ((entry[0] === "clothing_top" || entry[0] === "clothing_bottom") && useEnsemble) return "";
+      if (entry[0] === "clothing" && (useEnsemble || useSeparates)) return "";
       const value = String(character[entry[0]] || "").trim();
       return value ? entry[1] + ": " + value : "";
     }).filter(Boolean);

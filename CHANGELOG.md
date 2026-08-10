@@ -1,5 +1,48 @@
 # CHANGELOG
 
+## 1.3.4 — 2026-08-10
+
+### Fixes
+
+- **"Failed to load subgraph blueprints x4" on launch** — the four
+  bundled subgraph blueprints used slot ids like `i0`/`o0`, which the
+  ComfyUI frontend rejects (its `zSubgraphIO` schema requires UUID
+  ids), and referenced node outputs that no longer exist
+  (`FINAL_PROMPT`, `TRACE_JSON`, `WARNINGS`, `base_prompt_override`).
+  Blueprints regenerated with UUID slot ids and the current node
+  contract (`Prompt Output`, `Video Motion Prompt`, `Model`); a new
+  test suite validates every blueprint against the frontend's schema
+  and the registered node definitions.
+- **Stale legacy looks** — characters from pre-1.2.0 workflows carried
+  `clothing`/`subject`/`expression` fields that compiled
+  ("clothing and armour: elegant formal dress") with no UI to clear
+  them. `clothing` now migrates into the editable **Ensemble** field on
+  load, and the compiler suppresses legacy `clothing` whenever
+  ensemble/top/bottom are set.
+- **Per-character direction randomization ran only when the global
+  randomize flag existed** — `randomize_enabled_groups` returned early
+  when `randomize_on_job` was absent, skipping per-character
+  randomization entirely. Restructured so character randomization
+  always runs.
+
+### Features
+
+- **Character direction sections now match the Concepts tab exactly:**
+  the count sits on the right, and each section (Emotion, Face & gaze,
+  Body & movement, Placement) has the full action set — blue "+ Add",
+  auto-loading presets, Save preset, randomize dice, and the each-run
+  shuffle. Per-direction randomization also works on every queued job
+  (`randomize_direction_groups`, honored by the backend).
+- **Ethnicity field** under Identity & Hair with 60+ options covering
+  Earth ethnicities and popular sci-fi species (Vulcan, Twi'lek,
+  Asari, Na'vi, …), compiled as `ethnicity: …`.
+- **Avatar fits its frame** — the art renders inside a scaled layer
+  with a larger 104×154 canvas, so hair, body, and label are no longer
+  clipped; header avatars are bigger too.
+- **Concept rows** — breathing room between the star and the title and
+  between the slider and the numeric readout; the number box hides its
+  spinners and is wide enough for values like `1.75`.
+
 ## 1.3.3 — 2026-08-10
 
 ### Features

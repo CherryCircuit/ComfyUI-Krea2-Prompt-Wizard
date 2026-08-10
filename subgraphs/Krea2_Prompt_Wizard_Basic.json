@@ -40,7 +40,7 @@
         },
         "inputs": [
           {
-            "id": "i0",
+            "id": "7f4c8e9a-1b2c-4d3e-8f0a-9b8c7d6e5f01",
             "name": "wizard_state_json",
             "type": "STRING",
             "linkIds": [
@@ -54,13 +54,13 @@
         ],
         "outputs": [
           {
-            "id": "o0",
-            "name": "FINAL_PROMPT",
+            "id": "a1b2c3d4-5e6f-4a7b-8c9d-0e1f2a3b4c01",
+            "name": "Prompt Output",
             "type": "STRING",
             "linkIds": [
               2
             ],
-            "localized_name": "FINAL_PROMPT",
+            "localized_name": "Prompt Output",
             "pos": [
               400,
               110
@@ -95,11 +95,21 @@
             ],
             "outputs": [
               {
-                "name": "FINAL_PROMPT",
+                "name": "Prompt Output",
                 "type": "STRING",
                 "links": [
                   2
                 ]
+              },
+              {
+                "name": "Video Motion Prompt",
+                "type": "STRING",
+                "links": []
+              },
+              {
+                "name": "Model",
+                "type": "MODEL",
+                "links": []
               }
             ],
             "properties": {
@@ -107,7 +117,7 @@
               "ver": "1.0.0"
             },
             "widgets_values": [
-              "{\"schema_version\": 1, \"base_prompt\": \"\", \"model_profile\": \"generic\", \"interface_mode\": \"simple\", \"show_work\": false, \"rows\": [], \"master_preset_id\": null, \"selected_category\": \"emotion\", \"randomize_on_job\": {}, \"random_strength_min\": 0.0, \"random_strength_max\": 3.0, \"embed_prompt_metadata\": true, \"creative_mode\": \"photo\", \"collapsed\": {}, \"characters\": [], \"selected_character_id\": null, \"character_presets\": [], \"setting\": {\"enabled\": false, \"name\": \"\", \"description\": \"\"}, \"setting_presets\": [], \"setting_random_pool\": [], \"motion_prompt\": \"\", \"motion_prompt_enabled\": false, \"active_tab\": \"cast\", \"footer_open\": false, \"show_face_guidance\": false, \"show_concepts_tab\": false}"
+              "{\"schema_version\": 1, \"base_prompt\": \"\", \"model_profile\": \"generic\", \"interface_mode\": \"simple\", \"show_work\": false, \"rows\": [], \"master_preset_id\": null, \"selected_category\": \"emotion\", \"randomize_on_job\": {}, \"random_strength_min\": 0.0, \"random_strength_max\": 3.0, \"embed_prompt_metadata\": true, \"creative_mode\": \"photo\", \"collapsed\": {}, \"prompt_metadata_override\": false, \"characters\": [], \"selected_character_id\": null, \"character_presets\": [], \"setting\": {\"enabled\": false, \"name\": \"\", \"description\": \"\"}, \"setting_presets\": [], \"setting_random_pool\": [], \"motion_prompt\": \"\", \"motion_prompt_enabled\": false, \"active_tab\": \"cast\", \"footer_open\": false, \"show_face_guidance\": false, \"show_concepts_tab\": false}"
             ]
           }
         ],

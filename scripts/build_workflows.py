@@ -336,7 +336,12 @@ def make_materialize_workflow() -> dict:
 
 
 def make_subgraph_basic() -> dict:
-    """A reusable subgraph: prompt -> Krea2PromptWizard -> prompt string."""
+    """A reusable subgraph: prompt -> Krea2PromptWizard -> prompt string.
+
+    Slot ids in the blueprint must be UUIDs: the ComfyUI frontend's
+    ``zSubgraphIO`` schema validates ``inputs``/``outputs`` ids with
+    ``z.string().uuid()`` and drops the whole blueprint on failure.
+    """
     return {
         "id": "b3d8a1f2-4c2e-4b5d-9c8a-1e3f7b2d4a01",
         "version": 1,
@@ -359,7 +364,7 @@ def make_subgraph_basic() -> dict:
         },
         "inputs": [
             {
-                "id": "i0",
+                "id": "7f4c8e9a-1b2c-4d3e-8f0a-9b8c7d6e5f01",
                 "name": "wizard_state_json",
                 "type": "STRING",
                 "linkIds": [1],
@@ -368,11 +373,11 @@ def make_subgraph_basic() -> dict:
         ],
         "outputs": [
             {
-                "id": "o0",
-                "name": "FINAL_PROMPT",
+                "id": "a1b2c3d4-5e6f-4a7b-8c9d-0e1f2a3b4c01",
+                "name": "Prompt Output",
                 "type": "STRING",
                 "linkIds": [2],
-                "localized_name": "FINAL_PROMPT",
+                "localized_name": "Prompt Output",
                 "pos": [400, 110],
             }
         ],
@@ -395,7 +400,9 @@ def make_subgraph_basic() -> dict:
                     }
                 ],
                 "outputs": [
-                    {"name": "FINAL_PROMPT", "type": "STRING", "links": [2]},
+                    {"name": "Prompt Output", "type": "STRING", "links": [2]},
+                    {"name": "Video Motion Prompt", "type": "STRING", "links": []},
+                    {"name": "Model", "type": "MODEL", "links": []},
                 ],
                 "properties": {
                     "cnr_id": "comfyui-krea2-prompt-wizard",
@@ -439,13 +446,43 @@ def make_subgraph_transparent() -> dict:
         "inputNode": {"id": -10, "bounding": [-80, 220, 120, 60]},
         "outputNode": {"id": -20, "bounding": [800, 220, 120, 60]},
         "inputs": [
-            {"id": "i0", "name": "wizard_state_json", "type": "STRING", "linkIds": [1], "pos": [20, 230]},
-            {"id": "i1", "name": "base_prompt", "type": "STRING", "linkIds": [2], "pos": [20, 250]},
+            {
+                "id": "6a2f3b8c-4d5e-4f6a-9b0c-1d2e3f4a5b01",
+                "name": "wizard_state_json",
+                "type": "STRING",
+                "linkIds": [1],
+                "pos": [20, 230],
+            },
+            {
+                "id": "7b3f4c9d-5e6f-4a7b-8c1d-2e3f4a5b6c01",
+                "name": "model",
+                "type": "MODEL",
+                "linkIds": [2],
+                "pos": [20, 250],
+            },
         ],
         "outputs": [
-            {"id": "o0", "name": "FINAL_PROMPT", "type": "STRING", "linkIds": [3], "pos": [820, 230]},
-            {"id": "o1", "name": "TRACE_JSON", "type": "STRING", "linkIds": [4], "pos": [820, 250]},
-            {"id": "o2", "name": "WARNINGS", "type": "STRING", "linkIds": [5], "pos": [820, 270]},
+            {
+                "id": "8c4f5da0-6f7a-4b8c-9d2e-3f4a5b6c7d01",
+                "name": "Prompt Output",
+                "type": "STRING",
+                "linkIds": [3],
+                "pos": [820, 230],
+            },
+            {
+                "id": "9d5f6ea1-7f8b-4c9d-ae3f-4a5b6c7d8e01",
+                "name": "Video Motion Prompt",
+                "type": "STRING",
+                "linkIds": [4],
+                "pos": [820, 250],
+            },
+            {
+                "id": "0e6f7fa2-8f9c-4dae-bf40-5a6b7c8d9f01",
+                "name": "Model",
+                "type": "MODEL",
+                "linkIds": [5],
+                "pos": [820, 270],
+            },
         ],
         "widgets": [],
         "nodes": [
@@ -458,26 +495,35 @@ def make_subgraph_transparent() -> dict:
                 "order": 0,
                 "mode": 0,
                 "inputs": [
-                    {"name": "wizard_state_json", "type": "STRING", "widget": {"name": "wizard_state_json"}, "link": 1},
-                    {"name": "base_prompt_override", "type": "STRING", "widget": {"name": "base_prompt_override"}, "link": 2},
+                    {
+                        "name": "wizard_state_json",
+                        "type": "STRING",
+                        "widget": {"name": "wizard_state_json"},
+                        "link": 1,
+                    },
+                    {
+                        "name": "model",
+                        "type": "MODEL",
+                        "link": 2,
+                    },
                 ],
                 "outputs": [
-                    {"name": "FINAL_PROMPT", "type": "STRING", "links": [3]},
-                    {"name": "TRACE_JSON", "type": "STRING", "links": [4]},
-                    {"name": "WARNINGS", "type": "STRING", "links": [5]},
+                    {"name": "Prompt Output", "type": "STRING", "links": [3]},
+                    {"name": "Video Motion Prompt", "type": "STRING", "links": [4]},
+                    {"name": "Model", "type": "MODEL", "links": [5]},
                 ],
                 "properties": {
                     "cnr_id": "comfyui-krea2-prompt-wizard",
                     "ver": "1.0.0",
                 },
-                "widgets_values": [json.dumps(empty_state()), ""],
+                "widgets_values": [json.dumps(empty_state()), False],
             }
         ],
         "groups": [],
         "links": [
             {"id": 3, "origin_id": 10, "origin_slot": 0, "target_id": -20, "target_slot": 0, "type": "STRING"},
-            {"id": 4, "origin_id": 10, "origin_slot": 13, "target_id": -20, "target_slot": 1, "type": "STRING"},
-            {"id": 5, "origin_id": 10, "origin_slot": 15, "target_id": -20, "target_slot": 2, "type": "STRING"},
+            {"id": 4, "origin_id": 10, "origin_slot": 1, "target_id": -20, "target_slot": 1, "type": "STRING"},
+            {"id": 5, "origin_id": 10, "origin_slot": 2, "target_id": -20, "target_slot": 2, "type": "MODEL"},
         ],
         "extra": {"frontendVersion": "1.42.8", "workflowRendererVersion": "LG"},
     }
@@ -500,10 +546,43 @@ def make_subgraph_kj_nodes() -> dict:
         "inputNode": {"id": -10, "bounding": [-80, 220, 120, 60]},
         "outputNode": {"id": -20, "bounding": [1200, 220, 120, 60]},
         "inputs": [
-            {"id": "i0", "name": "wizard_state_json", "type": "STRING", "linkIds": [1], "pos": [20, 230]},
+            {
+                "id": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c01",
+                "name": "wizard_state_json",
+                "type": "STRING",
+                "linkIds": [1],
+                "pos": [20, 230],
+            },
+            {
+                "id": "2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d01",
+                "name": "model",
+                "type": "MODEL",
+                "linkIds": [2],
+                "pos": [20, 250],
+            },
+            {
+                "id": "3c4d5e6f-7a8b-4c9d-ae0f-2a3b4c5d6e01",
+                "name": "clip",
+                "type": "CLIP",
+                "linkIds": [3],
+                "pos": [20, 270],
+            },
         ],
         "outputs": [
-            {"id": "o0", "name": "FINAL_PROMPT", "type": "STRING", "linkIds": [6], "pos": [1220, 230]},
+            {
+                "id": "4d5e6f70-8a9b-4dae-bf01-3a4b5c6d7e01",
+                "name": "Prompt Output",
+                "type": "STRING",
+                "linkIds": [6],
+                "pos": [1220, 230],
+            },
+            {
+                "id": "5e6f7081-9a0b-4ebf-c012-4a5b6c7d8e01",
+                "name": "Conditioning",
+                "type": "CONDITIONING",
+                "linkIds": [7],
+                "pos": [1220, 250],
+            },
         ],
         "widgets": [],
         "nodes": [
@@ -516,10 +595,17 @@ def make_subgraph_kj_nodes() -> dict:
                 "order": 0,
                 "mode": 0,
                 "inputs": [
-                    {"name": "wizard_state_json", "type": "STRING", "widget": {"name": "wizard_state_json"}, "link": 1},
+                    {
+                        "name": "wizard_state_json",
+                        "type": "STRING",
+                        "widget": {"name": "wizard_state_json"},
+                        "link": 1,
+                    },
                 ],
                 "outputs": [
-                    {"name": "FINAL_PROMPT", "type": "STRING", "links": [2]},
+                    {"name": "Prompt Output", "type": "STRING", "links": [4]},
+                    {"name": "Video Motion Prompt", "type": "STRING", "links": []},
+                    {"name": "Model", "type": "MODEL", "links": []},
                 ],
                 "properties": {
                     "cnr_id": "comfyui-krea2-prompt-wizard",
@@ -536,11 +622,13 @@ def make_subgraph_kj_nodes() -> dict:
                 "order": 1,
                 "mode": 0,
                 "inputs": [
-                    {"name": "text", "type": "STRING", "link": 2},
+                    {"name": "clip", "type": "CLIP", "link": 3},
+                    {"name": "model", "type": "MODEL", "link": 2},
+                    {"name": "text", "type": "STRING", "link": 4},
                 ],
                 "outputs": [
                     {"name": "model", "type": "MODEL", "links": []},
-                    {"name": "conditioning", "type": "CONDITIONING", "links": [5]},
+                    {"name": "conditioning", "type": "CONDITIONING", "links": [7]},
                 ],
                 "properties": {
                     "cnr_id": "comfyui-kj-nodes",
@@ -551,9 +639,9 @@ def make_subgraph_kj_nodes() -> dict:
         ],
         "groups": [],
         "links": [
-            {"id": 5, "origin_id": 11, "origin_slot": 1, "target_id": -20, "target_slot": 0, "type": "STRING"},
-            {"id": 2, "origin_id": 10, "origin_slot": 0, "target_id": 11, "target_slot": 0, "type": "STRING"},
-            {"id": 6, "origin_id": 11, "origin_slot": 1, "target_id": -20, "target_slot": 0, "type": "STRING"},
+            {"id": 7, "origin_id": 11, "origin_slot": 1, "target_id": -20, "target_slot": 1, "type": "CONDITIONING"},
+            {"id": 4, "origin_id": 10, "origin_slot": 0, "target_id": 11, "target_slot": 2, "type": "STRING"},
+            {"id": 6, "origin_id": 10, "origin_slot": 0, "target_id": -20, "target_slot": 0, "type": "STRING"},
         ],
         "extra": {"frontendVersion": "1.42.8", "workflowRendererVersion": "LG"},
     }
