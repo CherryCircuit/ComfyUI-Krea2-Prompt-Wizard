@@ -73,6 +73,9 @@ def empty_state() -> Dict[str, Any]:
         "motion_prompt": "",
         "motion_prompt_enabled": False,
         "active_tab": "cast",
+        "footer_open": False,
+        "show_face_guidance": False,
+        "show_concepts_tab": False,
     }
 
 
@@ -112,6 +115,9 @@ def coerce_state(raw: Any) -> Dict[str, Any]:
         "motion_prompt",
         "motion_prompt_enabled",
         "active_tab",
+        "footer_open",
+        "show_face_guidance",
+        "show_concepts_tab",
     ):
         if key in raw:
             state[key] = raw[key]
@@ -143,6 +149,13 @@ def coerce_state(raw: Any) -> Dict[str, Any]:
         character.setdefault("interaction", "")
         character.setdefault("character_ref", "")
         character.setdefault("lora_triggers", "")
+        character.setdefault("lora_name", "")
+        character.setdefault("additional_info", "")
+        try:
+            strength = float(character.get("lora_strength", 0.8))
+        except (TypeError, ValueError):
+            strength = 0.8
+        character["lora_strength"] = max(0.0, min(2.0, round(strength * 20) / 20))
         character.setdefault("sex", "")
         character.setdefault("age", "")
         character.setdefault("ensemble", "")

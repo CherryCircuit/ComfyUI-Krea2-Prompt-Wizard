@@ -103,6 +103,28 @@ def user_concept_colors_path(create: bool = True) -> str:
     return os.path.join(package_user_dir(create=create), "concept_colors.json")
 
 
+def output_history_path(create: bool = True) -> Optional[str]:
+    """Return the path to the prompt-history JSONL log.
+
+    Prefers the ComfyUI output directory when the runtime is available,
+    otherwise falls back to the package user directory so tests and
+    headless runs still have a stable location.
+    """
+    try:
+        import folder_paths  # type: ignore
+
+        output_dir = getattr(folder_paths, "get_output_directory", None)
+        if callable(output_dir):
+            target = os.path.join(str(output_dir()), "krea2_prompt_history.jsonl")
+            if create:
+                os.makedirs(os.path.dirname(target), exist_ok=True)
+            return target
+    except Exception:
+        pass
+    target = os.path.join(package_user_dir(create=create), "prompt_history.jsonl")
+    return target if create or os.path.exists(target) else None
+
+
 def atomic_write(path: str, data: bytes) -> None:
     """Replace ``path`` atomically with ``data``.
 

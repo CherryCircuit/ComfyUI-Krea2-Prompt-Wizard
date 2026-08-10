@@ -68,6 +68,17 @@ def register_routes() -> None:
                 status=400,
             )
 
+    @routes.get("/krea2_prompt_wizard/loras")
+    async def get_loras(_request: Any) -> web.Response:
+        """List the LoRA files available to the user (for the Cast tab)."""
+        try:
+            from comfy.utils import get_filename_list
+
+            names = get_filename_list("loras")
+        except Exception:
+            names = []
+        return web.json_response({"loras": sorted(names)})
+
     @routes.get("/krea2_prompt_wizard/master_presets")
     async def get_master_presets(_request: Any) -> web.Response:
         with open(MASTER_PRESETS_PATH, "r", encoding="utf-8") as handle:

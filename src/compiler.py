@@ -154,6 +154,7 @@ _CHARACTER_FIELDS = (
     ("body_type", "body type"),
     ("fitness", "fitness"),
     ("proportions", "proportions"),
+    ("additional_info", "additional characteristics"),
     ("adult_description", "adult body description"),
 )
 

@@ -141,14 +141,17 @@ function switchTab(tabId) {
   wizard.setTab(tabId);
 }
 
-if (findByClass(wizard.root, "krea2-wizard-tab").length !== 4) {
-  throw new Error("The wizard must expose four mode tabs (Cast, Scene, Concepts, Prompt).");
+if (findByClass(wizard.root, "krea2-wizard-tab").length !== 2) {
+  throw new Error("The wizard must expose Cast and Scene tabs (Concepts hidden by default).");
 }
 if (findByClass(wizard.root, "krea2-wizard-creative-option").length !== 2) {
   throw new Error("The creative mode toggle must remain visible in the header.");
 }
 if (!findByClass(wizard.root, "krea2-structured-section").length) {
   throw new Error("The Cast tab must render the character editor by default.");
+}
+if (findByClass(wizard.root, "krea2-wizard-saved").length !== 1) {
+  throw new Error("The full-prompt preset control must live in the top bar.");
 }
 
 const promptInput = findByClass(wizard.root, "krea2-wizard-base")[0];
@@ -163,6 +166,7 @@ if (JSON.parse(stateWidget.value).base_prompt !== "updated prompt") {
 wizard.setState({
   schema_version: 1,
   base_prompt: "portrait",
+  show_concepts_tab: true,
   rows: [{
     id: "row_smoke",
     category: "emotion",
@@ -177,6 +181,9 @@ wizard.setState({
     verification: "general visual vocabulary",
   }],
 });
+if (findByClass(wizard.root, "krea2-wizard-tab").length !== 3) {
+  throw new Error("Enabling the advanced Concepts tab in settings must reveal it.");
+}
 switchTab("concepts");
 const sliders = findByClass(wizard.root, "krea2-row-intensity");
 if (sliders.length !== 1 || sliders[0].min !== "-3" || sliders[0].max !== "3") {
@@ -198,18 +205,29 @@ if (findByClass(wizard.root, "krea2-wizard-category").length !== 5) {
   throw new Error("The Concepts tab must show all five concept groups.");
 }
 if (findByClass(wizard.root, "krea2-wizard-random-controls").length !== 5) {
-  throw new Error("Each concept group must keep its dice and each-job controls.");
+  throw new Error("Each concept group must keep its dice and shuffle controls.");
+}
+if (findByClass(wizard.root, "krea2-shuffle").length < 5) {
+  throw new Error("Group each-job flags must use the shuffle icon.");
+}
+if (findByClass(wizard.root, "krea2-wizard-category-load").length !== 0) {
+  throw new Error("Group presets must load automatically without a Load button.");
 }
 
-switchTab("prompt");
+/* Footer: collapsible prompt section on every tab */
+switchTab("cast");
+if (findByClass(wizard.root, "krea2-footer-toggle").length !== 1) {
+  throw new Error("A collapsible Prompt footer must exist on every tab.");
+}
+findByClass(wizard.root, "krea2-footer-toggle")[0].listeners.click({});
 if (findByClass(wizard.root, "krea2-wizard-preview-host").length !== 1
     || findByClass(wizard.root, "krea2-preview-pretty").length !== 1
     || findByClass(wizard.root, "krea2-wizard-preview").length !== 1) {
-  throw new Error("The Prompt tab must render both readable and prompt-code preview views.");
+  throw new Error("The Prompt footer must render both readable and prompt-code preview views.");
 }
 if (findByClass(wizard.root, "krea2-motion-section").length !== 1
     || findByClass(wizard.root, "krea2-motion-prompt").length !== 1) {
-  throw new Error("The Prompt tab must expose the video motion prompt editor.");
+  throw new Error("The Prompt footer must expose the video motion prompt editor.");
 }
 
 const structuredState = {
@@ -234,9 +252,11 @@ if (findByClass(wizard.root, "krea2-avatar").length !== 2
     || findByClass(wizard.root, "krea2-save-character").length !== 2
     || findByClass(wizard.root, "krea2-character-columns").length !== 2
     || findByClass(wizard.root, "krea2-combobox").length < 20
-    || findByClass(wizard.root, "krea2-each-run").length < 20
-    || findByClass(wizard.root, "krea2-lora-section").length !== 2) {
-  throw new Error("Each cast member must render as an expandable card with appearance comboboxes, each-run flags, and a LoRA section.");
+    || findByClass(wizard.root, "krea2-shuffle").length < 20
+    || findByClass(wizard.root, "krea2-lora-section").length !== 2
+    || findByClass(wizard.root, "krea2-quick-directions").length !== 2
+    || findByClass(wizard.root, "krea2-character-category").length < 6) {
+  throw new Error("Each cast member must render as an expandable card with appearance comboboxes, shuffle flags, quick directions, direction sections, and a LoRA section.");
 }
 if (findByClass(wizard.root, "krea2-character-tab").length !== 0) {
   throw new Error("Cast members must be stacked sections, not click-to-switch tabs.");
@@ -342,11 +362,50 @@ if (!directedPreview.motion_prompt_draft.includes("beams with joy")
 }
 switchTab("cast");
 await new Promise((resolve) => setTimeout(resolve, 25));
-const emotionChips = findByClass(wizard.root, "krea2-emotion-chip");
-if (emotionChips.length < 8
-    || findByClass(wizard.root, "krea2-direction-rows").length < 2
-    || emotionChips.filter((chip) => (chip.className || "").split(/\s+/).includes("is-active")).length !== 2) {
-  throw new Error("Cast direction must render emotion chips and scoped direction rows for every member.");
+const quickChips = findByClass(wizard.root, "krea2-emotion-chip");
+if (quickChips.length < 30
+    || findByClass(wizard.root, "krea2-character-category").length < 6
+    || quickChips.filter((chip) => (chip.className || "").split(/\s+/).includes("is-active")).length < 1) {
+  throw new Error("Cast direction must render quick-direction chips and scoped direction sections for every member.");
+}
+
+/* --- Quick direction applies multiple concepts at once -------------- */
+function textOf(element) {
+  return (element.children || []).map((child) => child.textContent || "").join("");
+}
+const quickMara = quickChips.find((chip) => textOf(chip) === "Triumphant");
+quickMara.listeners.click({});
+const quickState = JSON.parse(stateWidget.value);
+const quickMaraCharacter = quickState.characters.find((item) => item.id === "d1");
+const quickIds = new Set((quickMaraCharacter.rows || []).map((row) => row.preset_id));
+if (!quickIds.has("emotion.elation") || !quickIds.has("mouth.broad_smile") || !quickIds.has("body.shoulders_pulled_back")) {
+  throw new Error("A quick direction must add several related concepts at once.");
+}
+quickMara.listeners.click({});
+const removedState = JSON.parse(stateWidget.value);
+const removedIds = new Set((removedState.characters.find((item) => item.id === "d1").rows || []).map((row) => row.preset_id));
+if (removedIds.has("mouth.broad_smile") || removedIds.has("body.shoulders_pulled_back")) {
+  throw new Error("Clicking an active quick direction must remove its whole set.");
+}
+
+/* --- Resolved-state merge must preserve the active tab -------------- */
+wizard.setTab("cast");
+const resolvedProbe = JSON.parse(JSON.stringify(directedState));
+resolvedProbe.active_tab = "scene";
+resolvedProbe.characters[0].hair_color = "blonde";
+wizard.applyResolvedState(resolvedProbe);
+const activeTabs = findByClass(wizard.root, "krea2-wizard-tab")
+  .filter((tab) => (tab.className || "").split(/\s+/).includes("is-active"));
+if (activeTabs.length !== 1) {
+  throw new Error("Exactly one tab must be active after applying a resolved state.");
+}
+const activeTabText = textOf(activeTabs[0]);
+if (!activeTabText.includes("Cast")) {
+  throw new Error("Applying a resolved state must not yank the user off the Cast tab.");
+}
+const resolvedPersisted = JSON.parse(stateWidget.value);
+if (resolvedPersisted.characters[0].hair_color !== "blonde") {
+  throw new Error("Resolved content (e.g. randomized values) must still be applied.");
 }
 
 /* --- Each-run field randomization contract ------------------------ */
@@ -359,9 +418,9 @@ if (!window.KREA2.helpers.compilePreview) throw new Error("compilePreview must e
 wizard.setState(eachRunState);
 switchTab("cast");
 await new Promise((resolve) => setTimeout(resolve, 25));
-const runFlags = findByClass(wizard.root, "krea2-each-run");
-if (runFlags.length < 20) {
-  throw new Error("Each appearance field must expose an each-run checkbox.");
+const runFlags = findByClass(wizard.root, "krea2-shuffle");
+if (runFlags.length < 25) {
+  throw new Error("Each appearance field must expose a shuffle (each-run) control.");
 }
 
 /* --- Character preset overwrite confirmation ---------------------- */

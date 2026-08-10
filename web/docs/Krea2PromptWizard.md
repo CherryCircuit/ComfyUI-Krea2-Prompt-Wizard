@@ -20,6 +20,28 @@ The editor is organised into four tabs so the node stays calm:
 | ✨ **Concepts** | The full concept grid (all groups), the add-concept picker, and per-group presets / randomize / Each job. |
 | 📜 **Prompt** | Live preview (Pretty / Code), video motion prompt, history, copy buttons, and Show Work. |
 
+## Built-in LoRA support
+
+The node has an optional **Model** input and **Model** output. Each
+cast member's LoRA section lists every LoRA in your `loras` folder;
+pick one and set its strength. The node applies all assigned LoRAs to
+the connected model in cast order.
+
+ComfyUI applies LoRAs to the whole model, so the wizard also keeps each
+LoRA's trigger words inside that character's prompt block only, which
+steers the LoRA's influence toward that character. LoRAs without
+trigger words usually respond to their file name — picking one
+auto-fills the file-name stem as a trigger when the box is empty.
+Without a connected model, characters with LoRAs still produce prompts
+but a warning explains that the LoRAs were not applied.
+
+## Krea2 Prompt Saver
+
+A companion node that records every execution's exact prompt (and the
+motion prompt) to `ComfyUI/output/krea2_prompt_history.jsonl` with a
+timestamp and re-asserts the image metadata. Use it when your Save
+Image node does not write `extra_pnginfo` keys.
+
 ## Directing cast members
 
 The Cast tab lists every character as its own **expandable card** with
@@ -95,6 +117,7 @@ model such as LTX-2.3.
 |---|---|
 | `Prompt Output` | The final weighted prompt, ready to connect to a text encoder. |
 | `Video Motion Prompt` | Optional per-character motion lines for image-to-video models. Empty until enabled. |
+| `Model` | The connected model with per-character LoRAs applied, or nothing when unconnected. |
 
 ## Notes
 

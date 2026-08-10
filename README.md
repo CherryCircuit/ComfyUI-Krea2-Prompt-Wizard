@@ -66,14 +66,56 @@ The wizard writes to no other locations on disk.
 ## Basic usage
 
 1. Add a `Krea2 Prompt Wizard` node.
-2. The wizard now uses four **mode tabs**: 🎬 **Cast**, 🎥 **Scene**,
-   ✨ **Concepts**, and 📜 **Prompt**. Only one section is visible at a
-   time, so the node stays calm even for complex scenes.
+2. The wizard uses mode **tabs**: 🎬 **Cast** and 🎥 **Scene**, with the
+   advanced ✨ **Concepts** tab available from Node settings. A
+   collapsible **Prompt** footer (preview, motion prompt, history,
+   copy) sits at the bottom of every tab.
 3. Start in **Cast**: add characters, then direct each one individually.
-4. Use **Scene** for the main prompt, setting, shot presets, and
-   camera/lighting choices.
-5. Check **Prompt** for the live preview, the video motion prompt, and
-   the copy buttons.
+4. Use **Scene** for the main prompt, the selected scene, shot presets,
+   and camera/lighting choices.
+5. Open the **Prompt** footer for the live preview, the video motion
+   prompt, and the copy buttons.
+
+### Built-in LoRA support
+
+Yes — the wizard can apply LoRAs for you. The node now has an optional
+**Model** input and a **Model** output:
+
+1. Connect a model to the `Model` input (skip it if you only want the
+   prompt text).
+2. In the Cast tab, open a character's **LoRA** section and pick a LoRA
+   from your `loras` folder (the wizard lists them automatically), then
+   set its strength.
+3. The node applies every assigned LoRA to the model in cast order and
+   passes it out of the `Model` output to your sampler.
+
+A few honest notes on how this works under the hood:
+
+- ComfyUI applies LoRAs to the **whole diffusion model**. There is no
+  per-character model switch — so the wizard also keeps the LoRA's
+  **trigger words inside that character's prompt block only**, which is
+  what steers the LoRA's influence toward that character.
+- LoRAs without trigger words usually respond to their **file name**
+  (most are trained with it). Picking a LoRA auto-fills its file-name
+  stem into the trigger-word box when it's empty.
+- If the `Model` input is not connected but characters have LoRAs
+  assigned, the node still works — it warns you and the LoRAs are not
+  applied.
+
+### Krea2 Prompt Saver (metadata workaround)
+
+Your prompt *is* written into `extra_pnginfo` as `krea2_prompt`, but
+whether it ends up inside the PNG depends on your Save Image node:
+only Save Image variants that write `extra_pnginfo` keys will embed it
+(modern built-in Save Image does; older ones and some forks only write
+the standard `prompt`/`workflow` chunks). Routing the prompt through
+KJNodes `Krea2PromptWeight` does not affect this either way.
+
+For a workflow-independent record, add the **Krea2 Prompt Saver** node
+and connect the wizard's `Prompt Output` (and optionally `Video Motion
+Prompt`). Every execution is appended to
+`ComfyUI/output/krea2_prompt_history.jsonl` with a timestamp, and the
+metadata key is re-asserted at its own execution.
 
 ### Directing a scene (cast members)
 
@@ -147,13 +189,14 @@ member's emotion, face guidance, LoRA triggers, and position are kept.
 
 ### Shot presets and scenes
 
-The **Scene** tab includes a **Shot preset** picker with cinematic
-starting points such as *Over-the-Shoulder Dialogue*,
-*Two-Character Conversation*, *Reaction Close-Up*, *Reverse Shot*,
-*Establishing Duo*, and *Intimate Two-Shot*. Shot presets add the
-matching framing, angle, lens, and lighting rows in one click. The
-Scene tab also hosts the main prompt, the setting editor, and the
-camera / lighting / environment / style concept groups.
+The **Scene** tab includes a **Shot preset** picker. Each shot is now a
+**full preset**: it sets the scene (background name and description),
+the camera/framing, the lighting, and the atmosphere together — pick
+*Over-the-Shoulder Dialogue* and the whole scene is ready. The Scene
+tab also hosts the main prompt, the **Selected scene** dropdown (picks
+apply immediately; the name field is gone), and the camera / lighting /
+environment / style concept groups, each with dozens of bundled presets
+that load the moment you choose them.
 
 ### Video Motion Prompt (LTX-2.3)
 
@@ -267,12 +310,13 @@ Every materialized node is a real ComfyUI node. You can:
 
 ## Outputs
 
-The `Krea2 Prompt Wizard` exposes two STRING outputs:
+The `Krea2 Prompt Wizard` exposes three outputs:
 
 | Output | Description |
 |---|---|
 | `Prompt Output` | The compiled final prompt. |
-| `Video Motion Prompt` | Optional per-character motion lines for image-to-video models such as LTX-2.3. Empty until enabled in the Prompt tab. |
+| `Video Motion Prompt` | Optional per-character motion lines for image-to-video models such as LTX-2.3. Empty until enabled in the Prompt footer. |
+| `Model` | The connected model with per-character LoRAs applied (if a model is connected and LoRAs are assigned). |
 
 ## KJNodes integration (optional)
 

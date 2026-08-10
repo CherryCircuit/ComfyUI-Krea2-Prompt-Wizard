@@ -1,5 +1,59 @@
 # CHANGELOG
 
+## 1.3.0 — 2026-08-09
+
+Built-in LoRA support, Mii-style character previews, and a decluttered
+Scene tab.
+
+### Features
+
+- **Built-in LoRA support** — the wizard now has an optional `Model`
+  input and `Model` output. The Cast tab lists every LoRA in your loras
+  folder per character, with a strength slider; the node applies them
+  to the connected model. Trigger words (auto-filled from the file name
+  when a LoRA has none) compile only inside that character's block.
+- **Krea2 Prompt Saver** — new companion node that records every
+  execution's exact prompt (and motion prompt) to
+  `ComfyUI/output/krea2_prompt_history.jsonl` and re-asserts the image
+  metadata, working around Save Image variants that ignore
+  `extra_pnginfo` keys.
+- **Mii-style avatar previews** — sex border (blue / pink / neutral),
+  iris colours (including heterochromia), eye shapes, nose shapes,
+  mouth shapes, chin shapes, face shapes, 40+ hair styles, 10 hair
+  lengths, age tells (bigger eyes and a shorter frame for children, one
+  eye-bag line for middle aged, two for elderly). No more squashing.
+- **Prompt footer** — the Prompt tab is gone; a collapsible prompt
+  footer (preview, motion prompt, history, copy, Show Work) now lives
+  on every tab.
+- **Concepts tab hidden by default** — re-enabled from Node settings
+  ("Show the advanced Concepts tab").
+- **Quick directions** — emotion chips replaced by 20 multi-concept
+  TV/movie direction presets (Acting Shady, Heartbroken, Furious
+  Outburst, …) that set emotion + face + body together.
+- **Character direction sections** now use the exact Concepts-tab style
+  (blue + Add, standard row cards) per category: Emotion, Face & gaze,
+  Body & movement, Placement.
+- **Scene tab decluttered** — full-prompt presets moved to the top bar
+  beside the Photography/Artwork switch; shot presets are now complete
+  presets that set the scene, camera, lighting, and atmosphere together;
+  "Selected scene" dropdown (name field removed); fewer, wider columns.
+- **Shuffle icons** — every "each run" checkbox became a 🔀 shuffle
+  button (groups, the scene, and every appearance field).
+- **Group presets** — 63 new bundled presets (92 total) across Subject
+  & Expression, Camera & Film, Lighting, Environment, and Style &
+  Finish; presets load automatically when chosen (Load button removed).
+- **Comboboxes** — picking a preset no longer filters the dropdown;
+  typing still does. "Adult body description" became **Additional
+  info**, hidden behind a checkbox, with an auto-expanding text box.
+- **Tab safety** — applying backend-resolved state (per-job
+  randomization) no longer yanks you off the tab you're working on;
+  UI state (tabs, footer, expanded characters, collapse flags) is
+  preserved.
+
+### Backward compatibility
+
+- Old workflows compile unchanged. The Model output is additive.
+
 ## 1.2.0 — 2026-08-09
 
 Cast editor overhaul: stacked character sections, per-character LoRA

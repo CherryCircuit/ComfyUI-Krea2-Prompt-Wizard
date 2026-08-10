@@ -213,102 +213,424 @@ body.dark {
 .krea2-avatar {
   --krea2-avatar-hair: #4b2e24;
   --krea2-avatar-outfit: #477f72;
+  --krea2-avatar-iris: #5b3a24;
+  --krea2-avatar-iris-r: #5b3a24;
   position: relative;
-  min-height: 112px;
+  width: 92px;
+  height: 126px;
   overflow: hidden;
-  border: 1px solid var(--krea2-border);
-  border-radius: 10px;
-  background: linear-gradient(160deg, color-mix(in srgb, var(--krea2-accent) 18%, var(--krea2-bg)), var(--krea2-bg-strong));
+  border: 3px solid var(--krea2-border);
+  border-radius: 12px;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--krea2-accent) 14%, var(--krea2-bg)), var(--krea2-bg-strong));
+  flex: 0 0 92px;
 }
+.krea2-avatar.is-male { border-color: #4f8dff; }
+.krea2-avatar.is-female { border-color: #f06595; }
+.krea2-avatar.is-unspecified { border-color: var(--krea2-border); }
 
+/* Compact header variant: uniform scale, no squishing. */
+.krea2-character-card-header .krea2-avatar {
+  width: 74px;
+  height: 101px;
+  flex: 0 0 74px;
+  transform: scale(0.8);
+  transform-origin: top left;
+  margin-right: -16px;
+}
+.krea2-character-card-header .krea2-avatar-label { display: none; }
+
+/* Head */
 .krea2-avatar-head {
   position: absolute;
   z-index: 4;
-  left: 27px;
+  left: 26px;
   top: 18px;
-  width: 38px;
-  height: 47px;
+  width: 40px;
+  height: 46px;
   border-radius: 47% 47% 43% 43%;
   background: #d9ad8b;
   border: 1px solid color-mix(in srgb, #d9ad8b 70%, #4a2b22);
 }
-
-.krea2-avatar-head.round-face { border-radius: 50%; height: 42px; }
-.krea2-avatar-head.square-face { border-radius: 38% 38% 28% 28%; }
+.krea2-avatar-head.round-face { border-radius: 50%; width: 44px; height: 42px; left: 24px; top: 20px; }
+.krea2-avatar-head.square-face { border-radius: 40% 40% 32% 32%; }
 .krea2-avatar-head.heart-shaped-face { border-radius: 50% 50% 58% 58%; }
-.krea2-avatar-head.long-face { height: 51px; }
+.krea2-avatar-head.diamond-shaped-face { border-radius: 55% 55% 55% 55%; }
+.krea2-avatar-head.long-face,
+.krea2-avatar-head.rectangular-face { height: 52px; }
+.krea2-avatar-head.triangular-face,
+.krea2-avatar-head.pear-shaped-face { border-radius: 42% 42% 50% 50%; }
+.krea2-avatar-head.angular-face { border-radius: 38% 38% 30% 30%; }
+.krea2-avatar-head.soft-face { border-radius: 52% 52% 46% 46%; }
+/* Chin pieces */
+.krea2-avatar-head.chin-pointed { clip-path: polygon(0 0, 100% 0, 100% 78%, 50% 100%, 0 78%); }
+.krea2-avatar-head.chin-strong,
+.krea2-avatar-head.chin-square { clip-path: polygon(0 0, 100% 0, 100% 92%, 0 92%); }
+.krea2-avatar-head.chin-cleft::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 1px;
+  width: 2px;
+  height: 8px;
+  background: color-mix(in srgb, #d9ad8b 55%, #4a2b22);
+  border-radius: 2px;
+}
 
+/* Ears */
+.krea2-avatar-ear {
+  position: absolute;
+  z-index: 3;
+  top: 38px;
+  width: 7px;
+  height: 11px;
+  border-radius: 40%;
+  background: #c99474;
+  border: 1px solid color-mix(in srgb, #c99474 70%, #4a2b22);
+}
+.krea2-avatar-ear.left { left: 22px; }
+.krea2-avatar-ear.right { right: 22px; }
+
+/* Hair back (length) */
 .krea2-avatar-hair-back {
   position: absolute;
   z-index: 2;
-  left: 21px;
-  top: 13px;
-  width: 50px;
-  height: 58px;
-  border-radius: 45% 45% 28% 28%;
+  left: 18px;
+  top: 11px;
+  width: 56px;
+  height: 56px;
+  border-radius: 46% 46% 30% 30%;
   background: var(--krea2-avatar-hair);
 }
+.krea2-avatar-hair-back.shaved,
+.krea2-avatar-hair-back.buzz-cut { height: 20px; border-radius: 46% 46% 20% 20%; }
+.krea2-avatar-hair-back.short { height: 36px; }
+.krea2-avatar-hair-back.ear-length { height: 44px; }
+.krea2-avatar-hair-back.chin-length { height: 54px; }
+.krea2-avatar-hair-back.neck-length { height: 64px; }
+.krea2-avatar-hair-back.shoulder-length { height: 74px; }
+.krea2-avatar-hair-back.mid-back-length { height: 88px; }
+.krea2-avatar-hair-back.waist-length { height: 102px; }
+.krea2-avatar-hair-back.hip-length { height: 114px; }
+.krea2-avatar-hair-back.floor-length { height: 126px; }
 
-.krea2-avatar-hair-back.shaved { height: 25px; }
-.krea2-avatar-hair-back.short { height: 38px; }
-.krea2-avatar-hair-back.chin-length { height: 52px; }
-.krea2-avatar-hair-back.shoulder-length { height: 65px; }
-.krea2-avatar-hair-back.long { height: 77px; }
-.krea2-avatar-hair-back.waist-length { height: 90px; }
-
+/* Hair front (style) */
 .krea2-avatar-hair-front {
   position: absolute;
-  z-index: 3;
+  z-index: 5;
   left: -1px;
-  top: -2px;
-  width: 40px;
-  height: 16px;
-  border-radius: 60% 50% 35% 35%;
+  top: -3px;
+  width: 42px;
+  height: 17px;
+  border-radius: 65% 50% 35% 35%;
   background: var(--krea2-avatar-hair);
-  transform: rotate(-3deg);
+  transform: rotate(-2deg);
 }
-
-.krea2-avatar-hair-front.undercut { width: 31px; height: 9px; left: 7px; }
-.krea2-avatar-hair-front.buzz-cut { height: 7px; }
+.krea2-avatar-hair-front.straight { border-radius: 62% 50% 38% 38%; }
+.krea2-avatar-hair-front.wavy,
+.krea2-avatar-hair-front.loose-waves { border-radius: 70% 35% 70% 30%; height: 20px; }
 .krea2-avatar-hair-front.curly,
-.krea2-avatar-hair-front.wavy { border-radius: 70% 35% 70% 30%; height: 19px; }
-.krea2-avatar-hair-front.loose-pigtails::before,
-.krea2-avatar-hair-front.loose-pigtails::after {
+.krea2-avatar-hair-front.perm { border-radius: 55% 55% 50% 50%; height: 24px; width: 46px; left: -3px; }
+.krea2-avatar-hair-front.coily,
+.krea2-avatar-hair-front.kinky { border-radius: 55% 55% 50% 50%; height: 22px; width: 46px; left: -3px; }
+.krea2-avatar-hair-front.afro {
+  left: -9px;
+  top: -10px;
+  width: 60px;
+  height: 32px;
+  border-radius: 50% 50% 42% 42%;
+}
+.krea2-avatar-hair-front.buzz-cut { height: 6px; top: -1px; border-radius: 60% 60% 30% 30%; }
+.krea2-avatar-hair-front.shaved { height: 4px; top: -1px; }
+.krea2-avatar-hair-front.undercut { width: 30px; height: 10px; left: 6px; }
+.krea2-avatar-hair-front.mohawk,
+.krea2-avatar-hair-front.faux-hawk { left: 14px; width: 14px; height: 22px; border-radius: 40% 40% 30% 30%; }
+.krea2-avatar-hair-front.mullet { height: 12px; }
+.krea2-avatar-hair-front.slicked-back { height: 20px; border-radius: 50% 50% 20% 20%; }
+.krea2-avatar-hair-front.pompadour,
+.krea2-avatar-hair-front.quiff { height: 26px; border-radius: 60% 60% 20% 20%; }
+.krea2-avatar-hair-front.bangs,
+.krea2-avatar-hair-front.curtain-bangs { height: 12px; }
+.krea2-avatar-hair-front.messy-layered { height: 20px; border-radius: 45% 55% 40% 30%; }
+.krea2-avatar-hair-front.side-part,
+.krea2-avatar-hair-front.middle-part { background: linear-gradient(180deg, var(--krea2-avatar-hair) 0 60%, transparent 60%); }
+.krea2-avatar-hair-front.ponytail::after,
+.krea2-avatar-hair-front.high-ponytail::after,
+.krea2-avatar-hair-front.top-knot::after,
+.krea2-avatar-hair-front.man-bun::after,
+.krea2-avatar-hair-front.bun::after,
+.krea2-avatar-hair-front.half-up::after {
   content: "";
   position: absolute;
-  top: 10px;
-  width: 12px;
-  height: 28px;
+  top: -12px;
+  right: -8px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: var(--krea2-avatar-hair);
 }
-.krea2-avatar-hair-front.loose-pigtails::before { left: -9px; }
-.krea2-avatar-hair-front.loose-pigtails::after { right: -9px; }
+.krea2-avatar-hair-front.low-ponytail::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  right: -10px;
+  width: 10px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--krea2-avatar-hair);
+}
+.krea2-avatar-hair-front.pigtails::before,
+.krea2-avatar-hair-front.twin-tails::before,
+.krea2-avatar-hair-front.space-buns::before,
+.krea2-avatar-hair-front.pigtails::after,
+.krea2-avatar-hair-front.twin-tails::after,
+.krea2-avatar-hair-front.space-buns::after {
+  content: "";
+  position: absolute;
+  top: -8px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--krea2-avatar-hair);
+}
+.krea2-avatar-hair-front.pigtails::before,
+.krea2-avatar-hair-front.twin-tails::before,
+.krea2-avatar-hair-front.space-buns::before { left: -9px; }
+.krea2-avatar-hair-front.pigtails::after,
+.krea2-avatar-hair-front.twin-tails::after,
+.krea2-avatar-hair-front.space-buns::after { right: -9px; }
+.krea2-avatar-hair-front.twin-tails::before,
+.krea2-avatar-hair-front.twin-tails::after { top: 4px; width: 11px; height: 20px; }
+.krea2-avatar-hair-front.braided,
+.krea2-avatar-hair-front.french-braid,
+.krea2-avatar-hair-front.dutch-braid,
+.krea2-avatar-hair-front.fishtail-braid,
+.krea2-avatar-hair-front.braided-crown {
+  background: repeating-linear-gradient(90deg,
+    var(--krea2-avatar-hair) 0 6px,
+    color-mix(in srgb, var(--krea2-avatar-hair) 65%, #fff) 6px 8px);
+  height: 16px;
+}
+.krea2-avatar-hair-front.cornrows {
+  background: repeating-linear-gradient(0deg,
+    color-mix(in srgb, var(--krea2-avatar-hair) 80%, #000) 0 3px,
+    var(--krea2-avatar-hair) 3px 6px);
+  height: 18px;
+}
+.krea2-avatar-hair-front.dreadlocks::before,
+.krea2-avatar-hair-front.dreadlocks::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  width: 5px;
+  height: 30px;
+  border-radius: 40%;
+  background: var(--krea2-avatar-hair);
+}
+.krea2-avatar-hair-front.dreadlocks::before { left: 3px; }
+.krea2-avatar-hair-front.dreadlocks::after { right: 3px; }
+.krea2-avatar-hair-front.bob { height: 22px; width: 46px; left: -3px; border-radius: 60% 60% 40% 40%; }
+.krea2-avatar-hair-front.pixie { height: 12px; width: 36px; left: 3px; border-radius: 60% 60% 30% 30%; }
 
-.krea2-avatar-eye,
+/* Eyes: white, iris, pupil, lid */
+.krea2-avatar-eye-wrap {
+  position: absolute;
+  z-index: 6;
+  top: 22px;
+  width: 9px;
+  height: 8px;
+}
+.krea2-avatar-eye-wrap.left { left: 9px; }
+.krea2-avatar-eye-wrap.right { left: 25px; }
+.krea2-avatar-eye-white {
+  position: absolute;
+  inset: 0;
+  border-radius: 55% 55% 60% 60%;
+  background: #fdfbf7;
+  border: 1px solid color-mix(in srgb, #d9ad8b 55%, #4a2b22);
+}
+.krea2-avatar-iris {
+  position: absolute;
+  left: 2px;
+  top: 1px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--krea2-avatar-iris);
+}
+.krea2-avatar-eye-wrap.right .krea2-avatar-iris { background: var(--krea2-avatar-iris-r); }
+.krea2-avatar-pupil {
+  position: absolute;
+  left: 4px;
+  top: 2px;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #17181c;
+}
+.krea2-avatar-lid {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 2px;
+  border-radius: 2px;
+  background: color-mix(in srgb, #d9ad8b 70%, #4a2b22);
+}
+/* Eye shapes */
+.krea2-avatar-eye-wrap.large-round-eyes { width: 11px; height: 10px; top: 21px; }
+.krea2-avatar-eye-wrap.large-round-eyes .krea2-avatar-iris { width: 6px; height: 6px; }
+.krea2-avatar-eye-wrap.large-round-eyes.left { left: 8px; }
+.krea2-avatar-eye-wrap.large-round-eyes.right { left: 24px; }
+.krea2-avatar-eye-wrap.hooded-eyes .krea2-avatar-lid { height: 3px; }
+.krea2-avatar-eye-wrap.deep-set-eyes { top: 25px; }
+.krea2-avatar-eye-wrap.deep-set-eyes .krea2-avatar-lid { background: color-mix(in srgb, #4a2b22 40%, #d9ad8b); }
+.krea2-avatar-eye-wrap.monolid-eyes .krea2-avatar-lid { height: 1px; }
+.krea2-avatar-eye-wrap.upturned-eyes { transform: rotate(-8deg); }
+.krea2-avatar-eye-wrap.downturned-eyes { transform: rotate(8deg); }
+.krea2-avatar-eye-wrap.close-set-eyes.left { left: 11px; }
+.krea2-avatar-eye-wrap.close-set-eyes.right { left: 23px; }
+.krea2-avatar-eye-wrap.wide-set-eyes.left { left: 7px; }
+.krea2-avatar-eye-wrap.wide-set-eyes.right { left: 27px; }
+.krea2-avatar-eye-wrap.squinting-eyes { height: 5px; top: 24px; }
+.krea2-avatar-eye-wrap.squinting-eyes .krea2-avatar-eye-white { border-radius: 60% 60% 50% 50%; }
+.krea2-avatar-eye-wrap.eyes-closed .krea2-avatar-eye-white,
+.krea2-avatar-eye-wrap.eyes-half-closed .krea2-avatar-eye-white { border-radius: 50%; height: 3px; margin-top: 3px; }
+.krea2-avatar-eye-wrap.eyes-closed .krea2-avatar-iris,
+.krea2-avatar-eye-wrap.eyes-half-closed .krea2-avatar-iris { display: none; }
+
+/* Child: bigger eyes, shorter frame */
+.krea2-avatar.is-child .krea2-avatar-eye-wrap { transform: scale(1.25); }
+.krea2-avatar.is-child .krea2-avatar-head { top: 22px; }
+.krea2-avatar.is-child .krea2-avatar-body { height: 46px; }
+
+/* Age eye bags: 1 line for middle aged, 2 for elderly */
+.krea2-avatar-bag {
+  position: absolute;
+  z-index: 6;
+  top: 30px;
+  width: 10px;
+  height: 2px;
+  border-radius: 50%;
+  background: color-mix(in srgb, #a97861 60%, transparent);
+  opacity: 0;
+}
+.krea2-avatar-bag.left { left: 8px; }
+.krea2-avatar-bag.right { left: 24px; }
+.krea2-avatar.is-middle-aged .krea2-avatar-bag { opacity: 1; }
+.krea2-avatar.is-elderly .krea2-avatar-bag { opacity: 1; }
+.krea2-avatar.is-elderly .krea2-avatar-bag::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 0;
+  width: 10px;
+  height: 2px;
+  border-radius: 50%;
+  background: color-mix(in srgb, #a97861 60%, transparent);
+}
+
+/* Brows */
 .krea2-avatar-brow {
   position: absolute;
-  z-index: 5;
+  z-index: 6;
   width: 7px;
-  left: 8px;
+  height: 1.5px;
+  left: 9px;
+  top: 17px;
+  background: color-mix(in srgb, var(--krea2-avatar-hair) 75%, #111);
+  border-radius: 2px;
 }
-.krea2-avatar-eye { top: 22px; height: 5px; border-radius: 50%; background: #24364c; }
-.krea2-avatar-eye.right,
 .krea2-avatar-brow.right { left: 25px; }
-.krea2-avatar-brow { top: 17px; height: 1px; background: color-mix(in srgb, var(--krea2-avatar-hair) 75%, #111); }
-.krea2-avatar-nose { position: absolute; left: 18px; top: 25px; width: 4px; height: 8px; border-left: 1px solid #a97861; border-bottom: 1px solid #a97861; transform: skew(-15deg); }
-.krea2-avatar-mouth { position: absolute; left: 14px; top: 37px; width: 11px; height: 3px; border-bottom: 2px solid #8e4550; border-radius: 50%; }
-.krea2-avatar-mouth.happy { height: 6px; border-radius: 0 0 50% 50%; }
-.krea2-avatar-mouth.sad { transform: rotate(180deg); top: 40px; }
-.krea2-avatar-mouth.flat { height: 1px; border-radius: 0; }
 
-.krea2-avatar-neck { position: absolute; z-index: 3; left: 38px; top: 60px; width: 16px; height: 17px; background: #c99474; }
-.krea2-avatar-body { position: absolute; z-index: 2; left: 14px; right: 14px; bottom: -14px; height: 56px; border-radius: 42% 42% 8px 8px; background: var(--krea2-avatar-outfit); }
+/* Nose shapes */
+.krea2-avatar-nose {
+  position: absolute;
+  z-index: 7;
+  left: 18px;
+  top: 25px;
+  width: 4px;
+  height: 8px;
+  border-left: 1px solid #a97861;
+  border-bottom: 1px solid #a97861;
+  transform: skew(-15deg);
+}
+.krea2-avatar-nose.button-nose { width: 5px; height: 5px; border: 1px solid #a97861; border-radius: 50%; transform: none; }
+.krea2-avatar-nose.aquiline-nose,
+.krea2-avatar-nose.roman-nose { border-radius: 40% 40% 0 0; height: 10px; }
+.krea2-avatar-nose.straight-nose { border-left-width: 1.5px; height: 9px; transform: none; }
+.krea2-avatar-nose.broad-nose,
+.krea2-avatar-nose.flat-nose { width: 6px; height: 4px; border: 1px solid #a97861; border-radius: 40%; transform: none; }
+.krea2-avatar-nose.snub-nose { width: 4px; height: 4px; border: 1px solid #a97861; border-radius: 50% 50% 30% 30%; transform: none; }
+.krea2-avatar-nose.pointed-nose { width: 3px; height: 10px; border-left: 1px solid #a97861; border-bottom: 1px solid #a97861; transform: skew(-8deg); }
+.krea2-avatar-nose.thin-nose { width: 2px; border-left-width: 1px; }
+.krea2-avatar-nose.hawk-like-nose { border-radius: 40% 20% 0 40%; }
+
+/* Mouth shapes */
+.krea2-avatar-mouth {
+  position: absolute;
+  z-index: 8;
+  left: 14px;
+  top: 37px;
+  width: 12px;
+  height: 4px;
+  border-bottom: 2px solid #8e4550;
+  border-radius: 50%;
+}
+.krea2-avatar-mouth.happy { height: 7px; border-radius: 0 0 50% 50%; border: 2px solid #8e4550; border-top: 0; background: #b05a5a; }
+.krea2-avatar-mouth.sad { transform: rotate(180deg); top: 40px; }
+.krea2-avatar-mouth.smirk { width: 8px; border-bottom-right-radius: 60%; transform: rotate(-6deg); }
+.krea2-avatar-mouth.frown { transform: rotate(180deg); border-radius: 0 0 50% 50%; height: 5px; top: 40px; }
+.krea2-avatar-mouth.neutral { height: 1px; border-radius: 0; border-bottom-width: 1.5px; top: 39px; }
+.krea2-avatar-mouth.open { height: 8px; width: 10px; left: 15px; border: 1.5px solid #7a3a44; border-radius: 45% 45% 50% 50%; background: #7a3a44; }
+.krea2-avatar-mouth.open::after { content: ""; position: absolute; top: 1px; left: 1px; right: 1px; height: 2.5px; background: #f6f2ea; border-radius: 3px; }
+.krea2-avatar-mouth.pouty { width: 5px; height: 5px; left: 17px; top: 38px; border: 1.5px solid #8e4550; border-radius: 50%; background: #b05a5a; }
+.krea2-avatar-mouth.parted { height: 4px; width: 6px; left: 16px; top: 38px; border-radius: 50%; background: #7a3a44; }
+
+/* Neck + body */
+.krea2-avatar-neck {
+  position: absolute;
+  z-index: 3;
+  left: 38px;
+  top: 58px;
+  width: 16px;
+  height: 17px;
+  background: #c99474;
+}
+.krea2-avatar-body {
+  position: absolute;
+  z-index: 2;
+  left: 14px;
+  right: 14px;
+  bottom: -14px;
+  height: 58px;
+  border-radius: 42% 42% 8px 8px;
+  background: var(--krea2-avatar-outfit);
+}
 .krea2-avatar-body.muscular-build,
 .krea2-avatar-body.stocky-build,
-.krea2-avatar-body.plus-size-build { left: 7px; right: 7px; }
-.krea2-avatar-body.slim-build { left: 20px; right: 20px; }
-.krea2-avatar-label { position: absolute; z-index: 8; left: 3px; right: 3px; bottom: 2px; padding: 2px 3px; border-radius: 5px; color: white; background: rgba(15, 18, 24, 0.76); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; }
+.krea2-avatar-body.plus-size-build,
+.krea2-avatar-body.broad-build { left: 7px; right: 7px; }
+.krea2-avatar-body.slim-build,
+.krea2-avatar-body.petite-build,
+.krea2-avatar-body.lithe-build,
+.krea2-avatar-body.willowy-build { left: 21px; right: 21px; }
+.krea2-avatar-body.athletic-build { left: 11px; right: 11px; }
+.krea2-avatar-label {
+  position: absolute;
+  z-index: 9;
+  left: 3px;
+  right: 3px;
+  bottom: 2px;
+  padding: 2px 3px;
+  border-radius: 5px;
+  color: white;
+  background: rgba(15, 18, 24, 0.76);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9px;
+}
 
 .krea2-node-settings {
   display: grid;
@@ -1702,3 +2024,143 @@ body.dark {
   .krea2-character-columns { grid-template-columns: repeat(2, 1fr); }
   .krea2-character-summary { display: none; }
 }
+
+/* ---------------------------------------------------------------------------
+ * Top bar: full-prompt preset control rides beside the creative mode switch
+ * --------------------------------------------------------------------------- */
+.krea2-wizard-top .krea2-wizard-saved {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1 1 auto;
+  min-width: 220px;
+  max-width: 520px;
+}
+.krea2-wizard-top .krea2-wizard-saved .krea2-wizard-saved-select { flex: 1 1 auto; min-width: 120px; }
+
+/* ---------------------------------------------------------------------------
+ * Footer: collapsible prompt section on every tab
+ * --------------------------------------------------------------------------- */
+.krea2-wizard-footer {
+  border-top: 1px solid var(--krea2-border);
+  margin-top: 8px;
+  padding-top: 4px;
+}
+.krea2-footer-toggle { font-weight: 700; }
+.krea2-footer-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 6px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Shuffle (each-run) buttons
+ * --------------------------------------------------------------------------- */
+.krea2-shuffle { font-size: 11px; padding: 0 4px; opacity: 0.55; }
+.krea2-shuffle.is-active {
+  opacity: 1;
+  color: var(--krea2-accent-strong);
+  background: color-mix(in srgb, var(--krea2-accent) 18%, var(--krea2-bg));
+  border-color: var(--krea2-accent);
+}
+
+/* ---------------------------------------------------------------------------
+ * Scene tab
+ * --------------------------------------------------------------------------- */
+.krea2-scene-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) auto minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+}
+.krea2-scene-select { width: 100%; }
+.krea2-scene-description {
+  min-height: 34px;
+  resize: none;
+  overflow: hidden;
+}
+.krea2-setting-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 6px;
+}
+.krea2-setting-grid .krea2-field-wide { grid-column: 1 / -1; }
+
+/* ---------------------------------------------------------------------------
+ * Cast: direction sections in Concepts style
+ * --------------------------------------------------------------------------- */
+.krea2-character-category {
+  border-style: solid;
+  border-width: 1px;
+}
+.krea2-character-category .krea2-wizard-category-content {
+  grid-template-columns: 1fr 1fr;
+}
+.krea2-character-direction {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.krea2-quick-directions { padding: 2px 0 4px; }
+
+/* ---------------------------------------------------------------------------
+ * Appearance: three columns + compact rows
+ * --------------------------------------------------------------------------- */
+.krea2-character-columns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+.krea2-character-grid-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.krea2-additional-toggle { align-self: flex-start; }
+.krea2-additional-info {
+  resize: none;
+  overflow: hidden;
+  min-height: 34px;
+}
+
+/* ---------------------------------------------------------------------------
+ * LoRA controls
+ * --------------------------------------------------------------------------- */
+.krea2-lora-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.krea2-lora-controls .krea2-compact-select { flex: 1 1 auto; min-width: 0; }
+.krea2-lora-strength { flex: 1 1 auto; max-width: 220px; }
+.krea2-lora-strength-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  color: var(--krea2-accent-strong);
+  min-width: 30px;
+  text-align: right;
+}
+
+/* ---------------------------------------------------------------------------
+ * Concept cards: tighter layout, three columns on wide nodes
+ * --------------------------------------------------------------------------- */
+.krea2-wizard-category-content {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (min-width: 1100px) {
+  .krea2-wizard-category-content {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.krea2-row-head { grid-template-columns: 14px 14px minmax(0, 1fr) auto 18px; }
+.krea2-row-label {
+  white-space: normal;
+  line-height: 1.25;
+  max-height: 2.6em;
+  overflow: hidden;
+  word-break: break-word;
+}
+.krea2-row-controls { grid-template-columns: minmax(0, 1fr) 40px; }

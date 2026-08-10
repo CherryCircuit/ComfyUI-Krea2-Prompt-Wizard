@@ -187,6 +187,9 @@
       motion_prompt: "",
       motion_prompt_enabled: false,
       active_tab: "cast",
+      footer_open: false,
+      show_face_guidance: false,
+      show_concepts_tab: false,
     };
   }
 
@@ -221,6 +224,9 @@
       "motion_prompt",
       "motion_prompt_enabled",
       "active_tab",
+      "footer_open",
+      "show_face_guidance",
+      "show_concepts_tab",
     ]) {
       if (key in raw) base[key] = raw[key];
     }
@@ -248,6 +254,10 @@
       if (character.interaction === undefined) character.interaction = "";
       if (character.character_ref === undefined) character.character_ref = "";
       if (character.lora_triggers === undefined) character.lora_triggers = "";
+      if (character.lora_name === undefined) character.lora_name = "";
+      if (character.additional_info === undefined) character.additional_info = "";
+      if (!Number.isFinite(Number(character.lora_strength))) character.lora_strength = 0.8;
+      character.lora_strength = Math.max(0, Math.min(2, Math.round(Number(character.lora_strength) * 20) / 20));
       if (character.sex === undefined) character.sex = "";
       if (character.age === undefined) character.age = "";
       if (character.ensemble === undefined) character.ensemble = "";
@@ -562,6 +572,20 @@
     });
   }
 
+  async function fetchLoras() {
+    try {
+      const api = (window.app && window.app.api) || null;
+      const url = (api && api.apiURL && api.apiURL("/krea2_prompt_wizard/loras"))
+        || "/krea2_prompt_wizard/loras";
+      const resp = await fetch(url, { cache: "no-store" });
+      if (!resp.ok) throw new Error("loras HTTP " + resp.status);
+      const data = await resp.json();
+      return Array.isArray(data.loras) ? data.loras : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
   async function fetchCompiledPreview(state) {
     const api = (window.app && window.app.api) || null;
     const url = (api && api.apiURL && api.apiURL("/krea2_prompt_wizard/preview"))
@@ -619,8 +643,9 @@
     ["hair_style", "hair style"],
     ["hair_length", "hair length"], ["hair_color", "hair colour"], ["makeup", "makeup"],
     ["eyes", "eyes"], ["nose", "nose"], ["mouth", "mouth"], ["chin", "chin"],
-    ["face_shape", "face shape"], ["body_type", "body type"], ["fitness", "fitness"],
-    ["proportions", "proportions"], ["adult_description", "adult body description"],
+    ["face_shape", "face shape"],     ["body_type", "body type"], ["fitness", "fitness"],
+    ["proportions", "proportions"], ["additional_info", "additional characteristics"],
+    ["adult_description", "adult body description"],
   ]);
 
   const MOTION_VERBS = Object.freeze([
@@ -896,6 +921,7 @@
     fetchLibrary,
     fetchMasterPresets,
     fetchSavedPresets,
+    fetchLoras,
     saveSavedPresets,
     fetchConceptColors,
     saveConceptColors,

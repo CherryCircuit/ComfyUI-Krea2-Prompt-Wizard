@@ -143,7 +143,9 @@ app.registerExtension({
         }
         if (this.wizardWidget && typeof raw === "string") {
           const resolved = JSON.parse(raw);
-          this.wizardWidget.setState(resolved);
+          // Preserve the tab and UI state the user is currently working on;
+          // only the resolved prompt content is applied.
+          this.wizardWidget.applyResolvedState(resolved);
           this.setDirtyCanvas?.(true, true);
         }
       } catch (error) {

@@ -107,7 +107,7 @@
               "ver": "1.0.0"
             },
             "widgets_values": [
-              "{\"schema_version\": 1, \"base_prompt\": \"\", \"model_profile\": \"generic\", \"interface_mode\": \"simple\", \"show_work\": false, \"rows\": [], \"master_preset_id\": null, \"selected_category\": \"emotion\", \"randomize_on_job\": {}, \"random_strength_min\": 0.0, \"random_strength_max\": 3.0, \"embed_prompt_metadata\": true, \"creative_mode\": \"photo\", \"collapsed\": {}, \"characters\": [], \"selected_character_id\": null, \"character_presets\": [], \"setting\": {\"enabled\": false, \"name\": \"\", \"description\": \"\"}, \"setting_presets\": [], \"setting_random_pool\": [], \"motion_prompt\": \"\", \"motion_prompt_enabled\": false, \"active_tab\": \"cast\"}"
+              "{\"schema_version\": 1, \"base_prompt\": \"\", \"model_profile\": \"generic\", \"interface_mode\": \"simple\", \"show_work\": false, \"rows\": [], \"master_preset_id\": null, \"selected_category\": \"emotion\", \"randomize_on_job\": {}, \"random_strength_min\": 0.0, \"random_strength_max\": 3.0, \"embed_prompt_metadata\": true, \"creative_mode\": \"photo\", \"collapsed\": {}, \"characters\": [], \"selected_character_id\": null, \"character_presets\": [], \"setting\": {\"enabled\": false, \"name\": \"\", \"description\": \"\"}, \"setting_presets\": [], \"setting_random_pool\": [], \"motion_prompt\": \"\", \"motion_prompt_enabled\": false, \"active_tab\": \"cast\", \"footer_open\": false, \"show_face_guidance\": false, \"show_concepts_tab\": false}"
             ]
           }
         ],

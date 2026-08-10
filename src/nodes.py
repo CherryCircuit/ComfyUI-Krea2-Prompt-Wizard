@@ -459,24 +459,30 @@ class Krea2PromptWizard:
             },
             "optional": {
                 "expert_mode": ("BOOLEAN", {"default": False, "tooltip": "Permit raw negative numerical weights."}),
+                "model": (
+                    "MODEL",
+                    {
+                        "tooltip": "Optional. Connect the model here to apply per-character LoRAs configured in the Cast tab. Without this, the Model output stays unconnected and LoRA settings only affect the prompt text.",
+                    },
+                ),
             },
             "hidden": {
                 "extra_pnginfo": "EXTRA_PNGINFO",
             },
         }
 
-    RETURN_TYPES = ("STRING", "STRING")
+    RETURN_TYPES = ("STRING", "STRING", "MODEL")
     # A wizard with Each job enabled must run for every queue item.  Marking it
     # as an output node prevents ComfyUI from reusing a previous prompt.
     OUTPUT_NODE = True
-    RETURN_NAMES = ("Prompt Output", "Video Motion Prompt")
+    RETURN_NAMES = ("Prompt Output", "Video Motion Prompt", "Model")
     FUNCTION = "build"
     CATEGORY = "_Krea2 Prompt Wizard"
-    DESCRIPTION = "Visual prompt builder for Krea 2. The frontend owns the editor; the backend compiles the state to one prompt, plus an optional video motion prompt for image-to-video models like LTX-2.3."
+    DESCRIPTION = "Visual prompt builder for Krea 2. The frontend owns the editor; the backend compiles the state to one prompt, optionally applies per-character LoRAs to a connected model, and emits a video motion prompt for image-to-video models like LTX-2.3."
     SEARCH_ALIASES = ["krea2 wizard", "prompt wizard", "visual prompt builder", "krea2 prompt builder"]
 
     @classmethod
-    def IS_CHANGED(cls, wizard_state_json: str = "", expert_mode: bool = False):
+    def IS_CHANGED(cls, wizard_state_json: str = "", expert_mode: bool = False, model=None):
         try:
             parsed = json.loads(wizard_state_json) if wizard_state_json else {}
         except json.JSONDecodeError:
@@ -491,6 +497,7 @@ class Krea2PromptWizard:
         self,
         wizard_state_json: str = "",
         expert_mode: bool = False,
+        model=None,
         extra_pnginfo: dict | None = None,
     ):
         parsed = json.loads(wizard_state_json) if wizard_state_json else {}
@@ -512,6 +519,18 @@ class Krea2PromptWizard:
             extra_pnginfo["krea2_prompt"] = result.final_prompt
             if result.motion_prompt:
                 extra_pnginfo["krea2_motion_prompt"] = result.motion_prompt
+
+        model_out, lora_warnings = self._apply_character_loras(model, state)
+        warnings = list(result.warnings)
+        for warning in lora_warnings:
+            warnings.append(
+                {
+                    "code": "lora.apply_warning",
+                    "severity": "warning",
+                    "message": warning,
+                }
+            )
+
         # Return the resolved random choices to the frontend as well as the
         # prompt.  This keeps the visible cards honest after Each job runs.
         return {
@@ -520,8 +539,164 @@ class Krea2PromptWizard:
                 "krea2_prompt_output": [result.final_prompt],
                 "krea2_motion_prompt": [result.motion_prompt],
             },
-            "result": (result.final_prompt, result.motion_prompt),
+            "result": (result.final_prompt, result.motion_prompt, model_out),
         }
+
+    @staticmethod
+    def _apply_character_loras(model, state):
+        """Apply per-character LoRAs to the connected model.
+
+        LoRAs are applied in cast order with the strength chosen in the
+        Cast tab. A LoRA always affects the whole diffusion model — that is
+        how ComfyUI works — so the wizard also keeps the LoRA's trigger
+        words inside the owning character's prompt block to steer its
+        influence toward that character.
+
+        Returns ``(model_out, warnings)``.
+        """
+        characters = state.get("characters")
+        if not isinstance(characters, list):
+            return model, []
+        assignments = [
+            character
+            for character in characters
+            if isinstance(character, dict)
+            and character.get("enabled", True) is not False
+            and str(character.get("lora_name") or "").strip()
+        ]
+        if not assignments:
+            return model, []
+        if model is None:
+            return None, [
+                "Characters have LoRAs assigned, but the Model input is not "
+                "connected. Connect a model to apply them."
+            ]
+        try:
+            from comfy.sd import load_lora_for_models
+            from comfy.utils import get_filename_list, get_full_path
+        except Exception as exc:  # pragma: no cover - comfy runtime only
+            return model, [f"LoRA support requires ComfyUI runtime: {exc}"]
+        available = set(get_filename_list("loras"))
+        warnings = []
+        current = model
+        for character in assignments:
+            lora_name = str(character["lora_name"]).strip()
+            if lora_name not in available:
+                warnings.append(
+                    f"LoRA '{lora_name}' was not found in the loras folder."
+                )
+                continue
+            try:
+                strength = float(character.get("lora_strength", 0.8))
+            except (TypeError, ValueError):
+                strength = 0.8
+            if strength == 0:
+                continue
+            path = get_full_path("loras", lora_name)
+            try:
+                current, _clip = load_lora_for_models(
+                    current,
+                    None,
+                    path,
+                    strength,
+                    0,
+                )
+            except Exception as exc:  # pragma: no cover - comfy runtime only
+                warnings.append(f"Could not apply LoRA '{lora_name}': {exc}")
+        return current, warnings
+
+
+# ---------------------------------------------------------------------------
+# Krea2 Prompt Saver
+# ---------------------------------------------------------------------------
+
+
+class Krea2PromptSaver:
+    """Records the exact generated prompt for every execution.
+
+    The built-in Save Image node only writes the standard ``prompt`` and
+    ``workflow`` PNG chunks; custom keys such as ``krea2_prompt`` are only
+    embedded when the metadata feature of your Save Image node writes
+    ``extra_pnginfo``. This node is the workflow-independent fallback: it
+    appends every execution's prompt to a session log under
+    ``ComfyUI/output/krea2_prompt_history.jsonl`` and re-asserts the
+    metadata key at its own execution time.
+
+    Connect the wizard's Prompt Output here (and optionally Video Motion
+    Prompt). The prompt string is passed through unchanged.
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "prompt": (
+                    "STRING",
+                    {
+                        "default": "",
+                        "multiline": True,
+                        "forceInput": True,
+                        "tooltip": "The exact generated prompt to record.",
+                    },
+                ),
+            },
+            "optional": {
+                "motion_prompt": (
+                    "STRING",
+                    {
+                        "default": "",
+                        "multiline": True,
+                        "forceInput": True,
+                        "tooltip": "Optional video motion prompt recorded alongside the still prompt.",
+                    },
+                ),
+            },
+            "hidden": {
+                "extra_pnginfo": "EXTRA_PNGINFO",
+            },
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("prompt",)
+    OUTPUT_NODE = True
+    FUNCTION = "record"
+    CATEGORY = "_Krea2 Prompt Wizard"
+    DESCRIPTION = "Records the exact generated prompt to a JSONL history file and re-asserts image metadata."
+    SEARCH_ALIASES = ["prompt saver", "prompt history", "prompt log", "metadata"]
+
+    def record(
+        self,
+        prompt: str,
+        motion_prompt: str = "",
+        extra_pnginfo: dict | None = None,
+    ):
+        import datetime as _dt
+
+        from .user_paths import output_history_path
+
+        payload = {
+            "timestamp": _dt.datetime.now().isoformat(timespec="seconds"),
+            "prompt": str(prompt or ""),
+            "motion_prompt": str(motion_prompt or ""),
+        }
+        # Re-assert the metadata key at this node's own execution, which is
+        # useful when the wizard was cached but this node still ran.
+        if isinstance(extra_pnginfo, dict):
+            if payload["prompt"]:
+                extra_pnginfo["krea2_prompt"] = payload["prompt"]
+            if payload["motion_prompt"]:
+                extra_pnginfo["krea2_motion_prompt"] = payload["motion_prompt"]
+        try:
+            path = output_history_path(create=True)
+            if not path:
+                return (payload["prompt"],)
+            line = json.dumps(payload, ensure_ascii=False) + "\n"
+            with open(path, "a", encoding="utf-8") as handle:
+                handle.write(line)
+        except Exception:
+            # Recording must never fail the workflow.
+            pass
+        return (payload["prompt"],)
 
 
 # ---------------------------------------------------------------------------
@@ -577,6 +752,7 @@ NODE_CLASS_MAPPINGS = {
     "Krea2WeightedPhrase": Krea2WeightedPhrase,
     "Krea2PromptAssembler": Krea2PromptAssembler,
     "Krea2PromptWizard": Krea2PromptWizard,
+    "Krea2PromptSaver": Krea2PromptSaver,
     "Krea2PromptInspector": Krea2PromptInspector,
 }
 
@@ -584,6 +760,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "Krea2WeightedPhrase": "Krea2 Weighted Phrase",
     "Krea2PromptAssembler": "Krea2 Prompt Assembler",
     "Krea2PromptWizard": "Krea2 Prompt Wizard",
+    "Krea2PromptSaver": "Krea2 Prompt Saver",
     "Krea2PromptInspector": "Krea2 Prompt Inspector",
 }
 

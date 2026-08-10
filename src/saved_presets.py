@@ -359,64 +359,856 @@ DEFAULT_GROUP_PRESETS = [
 ]
 
 DEFAULT_GROUP_PRESETS += [
+    # ── Subject & Expression: character-direction looks ──────────────
     {
-        "id": "group.heroic_resolve",
-        "label": "Heroic Resolve",
+        "id": "group.heartbroken",
+        "label": "Heartbroken",
         "scope": "group",
         "group": "subject_expression",
         "base_prompt": "",
         "rows": [
-            {"id": "p_hr_1", "category": "body", "preset_id": "body.shoulders_pulled_back", "phrase": "shoulders pulled back", "intensity": 60, "control_mode": "scalar", "enabled": True},
-            {"id": "p_hr_2", "category": "emotion", "preset_id": "emotion.pride", "phrase": "pride", "intensity": 65, "control_mode": "scalar", "enabled": True},
-            {"id": "p_hr_3", "category": "gaze", "preset_id": "gaze.looking_slightly_off_camera", "phrase": "looking slightly off camera", "intensity": 55, "control_mode": "scalar", "enabled": True},
-        ],
+            {"id": "p_hb_1", "category": "emotion", "preset_id": "emotion.grief", "phrase": "grief", "intensity": 75, "control_mode": "scalar", "enabled": True},
+            {"id": "p_hb_2", "category": "face", "preset_id": "face.tear_filled_eyes", "phrase": "tear-filled eyes", "intensity": 70, "control_mode": "scalar", "enabled": True},
+            {"id": "p_hb_3", "category": "mouth", "preset_id": "mouth.sobbing", "phrase": "sobbing", "intensity": 70, "control_mode": "scalar", "enabled": True},
+            {"id": "p_hb_4", "category": "body", "preset_id": "body.hunched_shoulders", "phrase": "hunched shoulders", "intensity": 60, "control_mode": "scalar", "enabled": True}
+        ]
     },
     {
-        "id": "group.natural_dialogue_camera",
-        "label": "Natural Dialogue Camera",
+        "id": "group.furious_rage",
+        "label": "Furious Rage",
+        "scope": "group",
+        "group": "subject_expression",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_fr_1", "category": "emotion", "preset_id": "emotion.rage", "phrase": "rage", "intensity": 80, "control_mode": "scalar", "enabled": True},
+            {"id": "p_fr_2", "category": "face", "preset_id": "face.upper_lip_raiser", "phrase": "raised upper lip in a snarl", "intensity": 70, "control_mode": "scalar", "enabled": True},
+            {"id": "p_fr_3", "category": "mouth", "preset_id": "mouth.shouting", "phrase": "shouting", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_fr_4", "category": "body", "preset_id": "body.clenched_fists", "phrase": "clenched fists", "intensity": 70, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.playful_flirt",
+        "label": "Playful Flirt",
+        "scope": "group",
+        "group": "subject_expression",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_pf_1", "category": "emotion", "preset_id": "emotion.amusement", "phrase": "amusement", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_pf_2", "category": "mouth", "preset_id": "mouth.smirk", "phrase": "smirk", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_pf_3", "category": "gaze", "preset_id": "gaze.looking_toward_another_subject", "phrase": "looking toward another subject", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_pf_4", "category": "body", "preset_id": "body.leaning_forward", "phrase": "leaning forward", "intensity": 60, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.nervous_first_date",
+        "label": "Nervous First Date",
+        "scope": "group",
+        "group": "subject_expression",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_nf_1", "category": "emotion", "preset_id": "emotion.nervousness", "phrase": "nervousness", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_nf_2", "category": "mouth", "preset_id": "mouth.biting_lower_lip", "phrase": "biting lower lip", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_nf_3", "category": "gaze", "preset_id": "gaze.avoiding_eye_contact", "phrase": "avoiding eye contact", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_nf_4", "category": "body", "preset_id": "body.tense_posture", "phrase": "tense posture", "intensity": 55, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.triumphant_victory",
+        "label": "Triumphant Victory",
+        "scope": "group",
+        "group": "subject_expression",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_tv_1", "category": "emotion", "preset_id": "emotion.elation", "phrase": "elation", "intensity": 75, "control_mode": "scalar", "enabled": True},
+            {"id": "p_tv_2", "category": "mouth", "preset_id": "mouth.broad_smile", "phrase": "broad smile", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_tv_3", "category": "body", "preset_id": "body.shoulders_pulled_back", "phrase": "shoulders pulled back", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_tv_4", "category": "gaze", "preset_id": "gaze.looking_upward", "phrase": "looking upward", "intensity": 55, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.terrified_frozen",
+        "label": "Terrified & Frozen",
+        "scope": "group",
+        "group": "subject_expression",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_tf_1", "category": "emotion", "preset_id": "emotion.terror", "phrase": "terror", "intensity": 80, "control_mode": "scalar", "enabled": True},
+            {"id": "p_tf_2", "category": "face", "preset_id": "face.upper_eyelid_raiser", "phrase": "raised upper eyelids", "intensity": 70, "control_mode": "scalar", "enabled": True},
+            {"id": "p_tf_3", "category": "mouth", "preset_id": "mouth.gasping", "phrase": "gasping", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_tf_4", "category": "body", "preset_id": "body.standing_rigidly", "phrase": "standing rigidly", "intensity": 60, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.exhausted_soldier",
+        "label": "Exhausted Soldier",
+        "scope": "group",
+        "group": "subject_expression",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_es_1", "category": "emotion", "preset_id": "emotion.fatigue", "phrase": "fatigue", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_es_2", "category": "body", "preset_id": "body.exhausted_posture", "phrase": "exhausted posture", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_es_3", "category": "gaze", "preset_id": "gaze.eyes_half_closed", "phrase": "eyes half closed", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_es_4", "category": "mouth", "preset_id": "mouth.parted_lips", "phrase": "parted lips", "intensity": 50, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.commanding_presence",
+        "label": "Commanding Presence",
+        "scope": "group",
+        "group": "subject_expression",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_cp_1", "category": "emotion", "preset_id": "emotion.determination", "phrase": "determination", "intensity": 70, "control_mode": "scalar", "enabled": True},
+            {"id": "p_cp_2", "category": "body", "preset_id": "body.confident_stance", "phrase": "confident stance", "intensity": 70, "control_mode": "scalar", "enabled": True},
+            {"id": "p_cp_3", "category": "gaze", "preset_id": "gaze.fixed_intense_stare", "phrase": "fixed intense stare", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_cp_4", "category": "body", "preset_id": "body.shoulders_pulled_back", "phrase": "shoulders pulled back", "intensity": 60, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.shy_admission",
+        "label": "Shy Admission",
+        "scope": "group",
+        "group": "subject_expression",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_sa_1", "category": "emotion", "preset_id": "emotion.embarrassment", "phrase": "embarrassment", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_sa_2", "category": "gaze", "preset_id": "gaze.avoiding_eye_contact", "phrase": "avoiding eye contact", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_sa_3", "category": "mouth", "preset_id": "mouth.biting_lower_lip", "phrase": "biting lower lip", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_sa_4", "category": "body", "preset_id": "body.tense_posture", "phrase": "tense posture", "intensity": 50, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.radiant_joy",
+        "label": "Radiant Joy",
+        "scope": "group",
+        "group": "subject_expression",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_rj_1", "category": "emotion", "preset_id": "emotion.joy", "phrase": "joy", "intensity": 70, "control_mode": "scalar", "enabled": True},
+            {"id": "p_rj_2", "category": "mouth", "preset_id": "mouth.gentle_smile", "phrase": "gentle smile", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_rj_3", "category": "face", "preset_id": "face.cheek_raiser", "phrase": "cheek raiser", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_rj_4", "category": "body", "preset_id": "body.open_posture", "phrase": "open posture", "intensity": 55, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.sneaky_plotting",
+        "label": "Sneaky Plotting",
+        "scope": "group",
+        "group": "subject_expression",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_sp_1", "category": "emotion", "preset_id": "emotion.suspicion", "phrase": "suspicion", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_sp_2", "category": "gaze", "preset_id": "gaze.side_glance", "phrase": "side glance", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_sp_3", "category": "mouth", "preset_id": "mouth.smirk", "phrase": "smirk", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_sp_4", "category": "body", "preset_id": "body.hunched_shoulders", "phrase": "hunched shoulders", "intensity": 55, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.guilty_secret",
+        "label": "Guilty Secret",
+        "scope": "group",
+        "group": "subject_expression",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_gs_1", "category": "emotion", "preset_id": "emotion.guilt", "phrase": "guilt", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_gs_2", "category": "gaze", "preset_id": "gaze.avoiding_eye_contact", "phrase": "avoiding eye contact", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_gs_3", "category": "mouth", "preset_id": "mouth.pursed_lips", "phrase": "pursed lips", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_gs_4", "category": "body", "preset_id": "body.tense_posture", "phrase": "tense posture", "intensity": 55, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.heart_pounding_fear",
+        "label": "Heart-Pounding Fear",
+        "scope": "group",
+        "group": "subject_expression",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_hf_1", "category": "emotion", "preset_id": "emotion.panic", "phrase": "panic", "intensity": 75, "control_mode": "scalar", "enabled": True},
+            {"id": "p_hf_2", "category": "face", "preset_id": "face.upper_eyelid_raiser", "phrase": "raised upper eyelids", "intensity": 70, "control_mode": "scalar", "enabled": True},
+            {"id": "p_hf_3", "category": "mouth", "preset_id": "mouth.gasping", "phrase": "gasping", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_hf_4", "category": "body", "preset_id": "body.recoiling", "phrase": "recoiling", "intensity": 65, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.wistful_memory",
+        "label": "Wistful Memory",
+        "scope": "group",
+        "group": "subject_expression",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_wm_1", "category": "emotion", "preset_id": "emotion.melancholy", "phrase": "melancholy", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_wm_2", "category": "gaze", "preset_id": "gaze.looking_into_the_distance", "phrase": "looking into the distance", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_wm_3", "category": "face", "preset_id": "face.inner_brow_raiser", "phrase": "inner brow raiser", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_wm_4", "category": "body", "preset_id": "body.relaxed_posture", "phrase": "relaxed posture", "intensity": 50, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    # ── Camera & Film: more shots ────────────────────────────────────
+    {
+        "id": "group.duo_close_ups",
+        "label": "Duo Close-Ups",
         "scope": "group",
         "group": "camera_film",
         "base_prompt": "",
         "rows": [
-            {"id": "p_ndc_1", "category": "framing", "preset_id": "framing.medium_close_up", "phrase": "medium close-up", "intensity": 55, "control_mode": "scalar", "enabled": True},
-            {"id": "p_ndc_2", "category": "lens", "preset_id": "lens.50mm_normal", "phrase": "50mm normal lens", "intensity": 55, "control_mode": "scalar", "enabled": True},
-            {"id": "p_ndc_3", "category": "composition", "preset_id": "composition.rule_of_thirds", "phrase": "rule of thirds", "intensity": 55, "control_mode": "scalar", "enabled": True},
-        ],
+            {"id": "p_dcu_1", "category": "framing", "preset_id": "framing.two_shot", "phrase": "two-shot", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_dcu_2", "category": "framing", "preset_id": "framing.close_up", "phrase": "close-up", "intensity": 50, "control_mode": "scalar", "enabled": True},
+            {"id": "p_dcu_3", "category": "lens", "preset_id": "lens.85mm_portrait", "phrase": "85mm portrait", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_dcu_4", "category": "aperture", "preset_id": "aperture.shallow_depth_of_field", "phrase": "shallow depth of field", "intensity": 60, "control_mode": "scalar", "enabled": True}
+        ]
     },
     {
-        "id": "group.practical_night_interior",
-        "label": "Practical Night Interior",
+        "id": "group.one_point_wide",
+        "label": "One-Point Wide",
+        "scope": "group",
+        "group": "camera_film",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_opw_1", "category": "framing", "preset_id": "framing.wide_shot", "phrase": "wide shot", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_opw_2", "category": "perspective", "preset_id": "perspective.forced_perspective", "phrase": "forced perspective", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_opw_3", "category": "lens", "preset_id": "lens.28mm_wide", "phrase": "28mm wide", "intensity": 50, "control_mode": "scalar", "enabled": True},
+            {"id": "p_opw_4", "category": "composition", "preset_id": "composition.leading_lines", "phrase": "leading lines", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_opw_5", "category": "aperture", "preset_id": "aperture.deep_focus", "phrase": "deep focus", "intensity": 55, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.whip_pan_action",
+        "label": "Whip-Pan Action",
+        "scope": "group",
+        "group": "camera_film",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_wpa_1", "category": "camera_movement", "preset_id": "camera_movement.whip_pan", "phrase": "whip pan", "intensity": 70, "control_mode": "scalar", "enabled": True},
+            {"id": "p_wpa_2", "category": "camera_movement", "preset_id": "camera_movement.handheld_camera", "phrase": "handheld camera", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_wpa_3", "category": "framing", "preset_id": "framing.close_up", "phrase": "close-up", "intensity": 50, "control_mode": "scalar", "enabled": True},
+            {"id": "p_wpa_4", "category": "lens", "preset_id": "lens.24mm_wide", "phrase": "24mm wide", "intensity": 55, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.static_observational",
+        "label": "Static Observational",
+        "scope": "group",
+        "group": "camera_film",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_so_1", "category": "camera_movement", "preset_id": "camera_movement.locked_off_camera", "phrase": "locked-off camera", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_so_2", "category": "framing", "preset_id": "framing.medium_shot", "phrase": "medium shot", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_so_3", "category": "lens", "preset_id": "lens.35mm_documentary", "phrase": "35mm documentary", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_so_4", "category": "perspective", "preset_id": "perspective.observational_camera_distance", "phrase": "observational camera distance", "intensity": 55, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.shallow_telephoto_bokeh",
+        "label": "Shallow Telephoto Bokeh",
+        "scope": "group",
+        "group": "camera_film",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_stb_1", "category": "framing", "preset_id": "framing.close_up", "phrase": "close-up", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_stb_2", "category": "lens", "preset_id": "lens.135mm_telephoto_portrait", "phrase": "135mm telephoto portrait", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_stb_3", "category": "aperture", "preset_id": "aperture.creamy_bokeh", "phrase": "creamy bokeh", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_stb_4", "category": "aperture", "preset_id": "aperture.background_bokeh", "phrase": "background bokeh", "intensity": 55, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.anamorphic_cinema",
+        "label": "Anamorphic Cinema",
+        "scope": "group",
+        "group": "camera_film",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_ac_1", "category": "framing", "preset_id": "framing.wide_shot", "phrase": "wide shot", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_ac_2", "category": "lens_family", "preset_id": "lens_family.atlas_orion_anamorphic", "phrase": "Atlas Orion anamorphic", "intensity": 50, "control_mode": "scalar", "enabled": True},
+            {"id": "p_ac_3", "category": "lens_family", "preset_id": "lens_family.panavision_c_series_anamorphic", "phrase": "Panavision C Series anamorphic", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_ac_4", "category": "film_color", "preset_id": "film_color.muted_cinematic_palette", "phrase": "muted cinematic palette", "intensity": 50, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.fisheye_energy",
+        "label": "Fisheye Energy",
+        "scope": "group",
+        "group": "camera_film",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_fe_1", "category": "framing", "preset_id": "framing.extreme_wide_shot", "phrase": "extreme wide shot", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_fe_2", "category": "lens", "preset_id": "lens.8mm_fisheye", "phrase": "8mm fisheye", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_fe_3", "category": "angle", "preset_id": "angle.low_angle", "phrase": "low angle", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_fe_4", "category": "composition", "preset_id": "composition.diagonal_composition", "phrase": "diagonal composition", "intensity": 55, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.top_down_surveillance",
+        "label": "Top-Down Surveillance",
+        "scope": "group",
+        "group": "camera_film",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_tds_1", "category": "angle", "preset_id": "angle.top_down", "phrase": "top-down", "intensity": 70, "control_mode": "scalar", "enabled": True},
+            {"id": "p_tds_2", "category": "framing", "preset_id": "framing.medium_shot", "phrase": "medium shot", "intensity": 50, "control_mode": "scalar", "enabled": True},
+            {"id": "p_tds_3", "category": "camera_movement", "preset_id": "camera_movement.pedestal_up", "phrase": "pedestal up", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_tds_4", "category": "composition", "preset_id": "composition.symmetrical_composition", "phrase": "symmetrical composition", "intensity": 55, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.crane_sweep",
+        "label": "Crane Sweep",
+        "scope": "group",
+        "group": "camera_film",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_cs_1", "category": "camera_movement", "preset_id": "camera_movement.crane_movement", "phrase": "crane movement", "intensity": 70, "control_mode": "scalar", "enabled": True},
+            {"id": "p_cs_2", "category": "framing", "preset_id": "framing.wide_shot", "phrase": "wide shot", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_cs_3", "category": "angle", "preset_id": "angle.high_angle", "phrase": "high angle", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_cs_4", "category": "lens", "preset_id": "lens.21mm_wide", "phrase": "21mm wide", "intensity": 50, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.pov_immersion",
+        "label": "POV Immersion",
+        "scope": "group",
+        "group": "camera_film",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_pov_1", "category": "framing", "preset_id": "framing.point_of_view_shot", "phrase": "point-of-view shot", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_pov_2", "category": "perspective", "preset_id": "perspective.camera_inside_the_action", "phrase": "camera inside the action", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_pov_3", "category": "camera_movement", "preset_id": "camera_movement.pov_movement", "phrase": "POV movement", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_pov_4", "category": "lens", "preset_id": "lens.24mm_wide", "phrase": "24mm wide", "intensity": 55, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.macro_intimacy",
+        "label": "Macro Intimacy",
+        "scope": "group",
+        "group": "camera_film",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_mi_1", "category": "framing", "preset_id": "framing.macro_close_up", "phrase": "macro close-up", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_mi_2", "category": "lens", "preset_id": "lens.105mm_macro", "phrase": "105mm macro", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_mi_3", "category": "aperture", "preset_id": "aperture.foreground_bokeh", "phrase": "foreground bokeh", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_mi_4", "category": "aperture", "preset_id": "aperture.creamy_bokeh", "phrase": "creamy bokeh", "intensity": 55, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.clean_product_hero",
+        "label": "Clean Product Hero",
+        "scope": "group",
+        "group": "camera_film",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_cph_1", "category": "framing", "preset_id": "framing.medium_close_up", "phrase": "medium close-up", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_cph_2", "category": "lens", "preset_id": "lens.100mm_portrait", "phrase": "100mm portrait", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_cph_3", "category": "aperture", "preset_id": "aperture.moderate_depth_of_field", "phrase": "moderate depth of field", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_cph_4", "category": "composition", "preset_id": "composition.centered_composition", "phrase": "centered composition", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_cph_5", "category": "camera_body", "preset_id": "camera_body.phase_one_xf", "phrase": "Phase One XF", "intensity": 40, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.war_zone_zoom",
+        "label": "War-Zone Zoom",
+        "scope": "group",
+        "group": "camera_film",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_wzz_1", "category": "lens", "preset_id": "lens.300mm_long_telephoto", "phrase": "300mm long telephoto", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_wzz_2", "category": "framing", "preset_id": "framing.medium_shot", "phrase": "medium shot", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_wzz_3", "category": "camera_movement", "preset_id": "camera_movement.snap_zoom", "phrase": "snap zoom", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_wzz_4", "category": "aperture", "preset_id": "aperture.deep_focus", "phrase": "deep focus", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_wzz_5", "category": "camera_movement", "preset_id": "camera_movement.handheld_camera", "phrase": "handheld camera", "intensity": 55, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    # ── Lighting: more looks ─────────────────────────────────────────
+    {
+        "id": "group.morning_window",
+        "label": "Morning Window",
         "scope": "group",
         "group": "lighting",
         "base_prompt": "",
         "rows": [
-            {"id": "p_pni_1", "category": "lighting_setup", "preset_id": "lighting_setup.mixed_colour_practical_lighting", "phrase": "mixed-colour practical lighting", "intensity": 65, "control_mode": "scalar", "enabled": True},
-            {"id": "p_pni_2", "category": "lighting_direction", "preset_id": "lighting_direction.side_lighting", "phrase": "side lighting", "intensity": 55, "control_mode": "scalar", "enabled": True},
-            {"id": "p_pni_3", "category": "lighting_effect", "preset_id": "lighting_effect.glowing_practical_lights", "phrase": "glowing practical lights", "intensity": 60, "control_mode": "scalar", "enabled": True},
-        ],
+            {"id": "p_mw_1", "category": "lighting_setup", "preset_id": "lighting_setup.window_lighting", "phrase": "window lighting", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_mw_2", "category": "lighting_direction", "preset_id": "lighting_direction.side_lighting", "phrase": "side lighting", "intensity": 50, "control_mode": "scalar", "enabled": True},
+            {"id": "p_mw_3", "category": "lighting_effect", "preset_id": "lighting_effect.soft_feathered_shadows", "phrase": "soft feathered shadows", "intensity": 55, "control_mode": "scalar", "enabled": True}
+        ]
     },
     {
-        "id": "group.misty_morning",
-        "label": "Misty Morning",
+        "id": "group.harsh_noon",
+        "label": "Harsh Noon",
+        "scope": "group",
+        "group": "lighting",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_hn_1", "category": "lighting_setup", "preset_id": "lighting_setup.midday_sunlight", "phrase": "midday sunlight", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_hn_2", "category": "lighting_direction", "preset_id": "lighting_direction.top_lighting", "phrase": "top lighting", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_hn_3", "category": "lighting_effect", "preset_id": "lighting_effect.hard_graphic_shadows", "phrase": "hard graphic shadows", "intensity": 60, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.blue_hour_dusk",
+        "label": "Blue Hour Dusk",
+        "scope": "group",
+        "group": "lighting",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_bhd_1", "category": "lighting_setup", "preset_id": "lighting_setup.blue_hour_lighting", "phrase": "blue-hour lighting", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_bhd_2", "category": "lighting_direction", "preset_id": "lighting_direction.rim_lighting", "phrase": "rim lighting", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_bhd_3", "category": "lighting_effect", "preset_id": "lighting_effect.chromatic_flare", "phrase": "chromatic flare", "intensity": 45, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.single_candle",
+        "label": "Single Candle",
+        "scope": "group",
+        "group": "lighting",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_sc_1", "category": "lighting_setup", "preset_id": "lighting_setup.candlelight", "phrase": "candlelight", "intensity": 70, "control_mode": "scalar", "enabled": True},
+            {"id": "p_sc_2", "category": "lighting_direction", "preset_id": "lighting_direction.light_from_below", "phrase": "light from below", "intensity": 50, "control_mode": "scalar", "enabled": True},
+            {"id": "p_sc_3", "category": "lighting_effect", "preset_id": "lighting_effect.flickering_firelight", "phrase": "flickering firelight", "intensity": 55, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.campfire_warmth",
+        "label": "Campfire Warmth",
+        "scope": "group",
+        "group": "lighting",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_cw_1", "category": "lighting_setup", "preset_id": "lighting_setup.firelight", "phrase": "firelight", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_cw_2", "category": "lighting_effect", "preset_id": "lighting_effect.flickering_firelight", "phrase": "flickering firelight", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_cw_3", "category": "lighting_direction", "preset_id": "lighting_direction.light_from_above_and_behind", "phrase": "light from above and behind", "intensity": 45, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.clinical_flat",
+        "label": "Clinical Flat",
+        "scope": "group",
+        "group": "lighting",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_cf_1", "category": "lighting_setup", "preset_id": "lighting_setup.fluorescent_lighting", "phrase": "fluorescent lighting", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_cf_2", "category": "lighting_effect", "preset_id": "lighting_effect.overexposed_highlights", "phrase": "overexposed highlights", "intensity": 45, "control_mode": "scalar", "enabled": True},
+            {"id": "p_cf_3", "category": "lighting_direction", "preset_id": "lighting_direction.front_lighting", "phrase": "front lighting", "intensity": 50, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.spotlight_drama",
+        "label": "Spotlight Drama",
+        "scope": "group",
+        "group": "lighting",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_sd_1", "category": "lighting_setup", "preset_id": "lighting_setup.stage_spotlight", "phrase": "stage spotlight", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_sd_2", "category": "lighting_direction", "preset_id": "lighting_direction.underlighting", "phrase": "underlighting", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_sd_3", "category": "lighting_effect", "preset_id": "lighting_effect.hard_graphic_shadows", "phrase": "hard graphic shadows", "intensity": 60, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.full_silhouette",
+        "label": "Full Silhouette",
+        "scope": "group",
+        "group": "lighting",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_fs_1", "category": "lighting_direction", "preset_id": "lighting_direction.silhouette_lighting", "phrase": "silhouette lighting", "intensity": 70, "control_mode": "scalar", "enabled": True},
+            {"id": "p_fs_2", "category": "lighting_direction", "preset_id": "lighting_direction.strong_backlighting", "phrase": "strong backlighting", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_fs_3", "category": "lighting_setup", "preset_id": "lighting_setup.hard_directional_lighting", "phrase": "hard directional lighting", "intensity": 50, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.beauty_studio",
+        "label": "Beauty Studio",
+        "scope": "group",
+        "group": "lighting",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_bs_1", "category": "lighting_setup", "preset_id": "lighting_setup.beauty_dish_lighting", "phrase": "beauty-dish lighting", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_bs_2", "category": "lighting_setup", "preset_id": "lighting_setup.ring_light_illumination", "phrase": "ring-light illumination", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_bs_3", "category": "lighting_setup", "preset_id": "lighting_setup.large_softbox_lighting", "phrase": "large softbox lighting", "intensity": 55, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.nightmare_underlight",
+        "label": "Nightmare Underlight",
+        "scope": "group",
+        "group": "lighting",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_nu_1", "category": "lighting_direction", "preset_id": "lighting_direction.underlighting", "phrase": "underlighting", "intensity": 70, "control_mode": "scalar", "enabled": True},
+            {"id": "p_nu_2", "category": "lighting_setup", "preset_id": "lighting_setup.low_key_lighting", "phrase": "low-key lighting", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_nu_3", "category": "lighting_effect", "preset_id": "lighting_effect.underexposed_shadows", "phrase": "underexposed shadows", "intensity": 55, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.high_key_bright",
+        "label": "High-Key Bright",
+        "scope": "group",
+        "group": "lighting",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_hkb_1", "category": "lighting_setup", "preset_id": "lighting_setup.high_key_lighting", "phrase": "high-key lighting", "intensity": 70, "control_mode": "scalar", "enabled": True},
+            {"id": "p_hkb_2", "category": "lighting_setup", "preset_id": "lighting_setup.large_softbox_lighting", "phrase": "large softbox lighting", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_hkb_3", "category": "lighting_effect", "preset_id": "lighting_effect.soft_bloom", "phrase": "soft bloom", "intensity": 50, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.sea_caustics",
+        "label": "Sea Caustics",
+        "scope": "group",
+        "group": "lighting",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_sct_1", "category": "lighting_effect", "preset_id": "lighting_effect.caustic_reflections", "phrase": "caustic reflections", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_sct_2", "category": "lighting_setup", "preset_id": "lighting_setup.underwater_caustic_lighting", "phrase": "underwater caustic lighting", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_sct_3", "category": "lighting_direction", "preset_id": "lighting_direction.light_from_above_and_behind", "phrase": "light from above and behind", "intensity": 50, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.halation_glow",
+        "label": "Halation Glow",
+        "scope": "group",
+        "group": "lighting",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_hg_1", "category": "lighting_effect", "preset_id": "lighting_effect.pronounced_halation", "phrase": "pronounced halation", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_hg_2", "category": "lighting_effect", "preset_id": "lighting_effect.light_leaks", "phrase": "light leaks", "intensity": 50, "control_mode": "scalar", "enabled": True},
+            {"id": "p_hg_3", "category": "lighting_setup", "preset_id": "lighting_setup.mixed_colour_practical_lighting", "phrase": "mixed-colour practical lighting", "intensity": 55, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    # ── Environment: more atmospheres ────────────────────────────────
+    {
+        "id": "group.autumn_leaf_storm",
+        "label": "Autumn Leaf Storm",
         "scope": "group",
         "group": "environment",
         "base_prompt": "",
         "rows": [
-            {"id": "p_mm_1", "category": "atmosphere", "preset_id": "atmosphere.mist", "phrase": "mist", "intensity": 55, "control_mode": "scalar", "enabled": True},
-            {"id": "p_mm_2", "category": "environment_movement", "preset_id": "environment_movement.gentle_breeze", "phrase": "gentle breeze", "intensity": 45, "control_mode": "scalar", "enabled": True},
-        ],
+            {"id": "p_als_1", "category": "environment_movement", "preset_id": "environment_movement.leaves_moving_through_air", "phrase": "leaves moving through air", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_als_2", "category": "atmosphere", "preset_id": "atmosphere.wind", "phrase": "wind", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_als_3", "category": "environment_movement", "preset_id": "environment_movement.gentle_breeze", "phrase": "gentle breeze", "intensity": 50, "control_mode": "scalar", "enabled": True}
+        ]
     },
     {
-        "id": "group.watercolour_paper",
-        "label": "Watercolour on Paper",
+        "id": "group.dust_bowl",
+        "label": "Dust Bowl",
+        "scope": "group",
+        "group": "environment",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_db_1", "category": "atmosphere", "preset_id": "atmosphere.dust", "phrase": "dust", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_db_2", "category": "environment_movement", "preset_id": "environment_movement.dust_moving_through_air", "phrase": "dust moving through air", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_db_3", "category": "atmosphere", "preset_id": "atmosphere.dry_desert_air", "phrase": "dry desert air", "intensity": 55, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.quiet_snowfall",
+        "label": "Quiet Snowfall",
+        "scope": "group",
+        "group": "environment",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_qs_1", "category": "atmosphere", "preset_id": "atmosphere.heavy_snowfall", "phrase": "heavy snowfall", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_qs_2", "category": "environment_movement", "preset_id": "environment_movement.snow_blowing", "phrase": "snow blowing", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_qs_3", "category": "atmosphere", "preset_id": "atmosphere.snowfall", "phrase": "snowfall", "intensity": 55, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.mist_forest",
+        "label": "Mist Forest",
+        "scope": "group",
+        "group": "environment",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_mf_1", "category": "atmosphere", "preset_id": "atmosphere.mist", "phrase": "mist", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_mf_2", "category": "atmosphere", "preset_id": "atmosphere.dense_haze", "phrase": "dense haze", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_mf_3", "category": "environment_movement", "preset_id": "environment_movement.fog_swirling", "phrase": "fog swirling", "intensity": 50, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.storm_front",
+        "label": "Storm Front",
+        "scope": "group",
+        "group": "environment",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_sf_1", "category": "atmosphere", "preset_id": "atmosphere.billowing_storm_clouds", "phrase": "billowing storm clouds", "intensity": 70, "control_mode": "scalar", "enabled": True},
+            {"id": "p_sf_2", "category": "atmosphere", "preset_id": "atmosphere.thunderstorm", "phrase": "thunderstorm", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_sf_3", "category": "atmosphere", "preset_id": "atmosphere.strong_wind", "phrase": "strong wind", "intensity": 55, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.ember_night",
+        "label": "Ember Night",
+        "scope": "group",
+        "group": "environment",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_en_1", "category": "atmosphere", "preset_id": "atmosphere.embers", "phrase": "embers", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_en_2", "category": "environment_movement", "preset_id": "environment_movement.embers_floating", "phrase": "embers floating", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_en_3", "category": "atmosphere", "preset_id": "atmosphere.smoke", "phrase": "smoke", "intensity": 50, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.hanging_debris",
+        "label": "Hanging Debris",
+        "scope": "group",
+        "group": "environment",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_hd_1", "category": "environment_movement", "preset_id": "environment_movement.debris_suspended_in_air", "phrase": "debris suspended in air", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_hd_2", "category": "atmosphere", "preset_id": "atmosphere.dust", "phrase": "dust", "intensity": 50, "control_mode": "scalar", "enabled": True},
+            {"id": "p_hd_3", "category": "atmosphere", "preset_id": "atmosphere.smoke", "phrase": "smoke", "intensity": 50, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.ashfall_wasteland",
+        "label": "Ashfall Wasteland",
+        "scope": "group",
+        "group": "environment",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_aw_1", "category": "atmosphere", "preset_id": "atmosphere.ash", "phrase": "ash", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_aw_2", "category": "environment_movement", "preset_id": "environment_movement.dust_moving_through_air", "phrase": "dust moving through air", "intensity": 50, "control_mode": "scalar", "enabled": True},
+            {"id": "p_aw_3", "category": "atmosphere", "preset_id": "atmosphere.smoke", "phrase": "smoke", "intensity": 45, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.drenching_rain",
+        "label": "Drenching Rain",
+        "scope": "group",
+        "group": "environment",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_dr_1", "category": "atmosphere", "preset_id": "atmosphere.heavy_rain", "phrase": "heavy rain", "intensity": 70, "control_mode": "scalar", "enabled": True},
+            {"id": "p_dr_2", "category": "environment_movement", "preset_id": "environment_movement.rain_driven_sideways", "phrase": "rain driven sideways", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_dr_3", "category": "atmosphere", "preset_id": "atmosphere.storm", "phrase": "storm", "intensity": 50, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.golden_pollen",
+        "label": "Golden Pollen",
+        "scope": "group",
+        "group": "environment",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_gp_1", "category": "atmosphere", "preset_id": "atmosphere.pollen", "phrase": "pollen", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_gp_2", "category": "atmosphere", "preset_id": "atmosphere.sunbeams_through_clouds", "phrase": "sunbeams through clouds", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_gp_3", "category": "atmosphere", "preset_id": "atmosphere.light_haze", "phrase": "light haze", "intensity": 45, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.ocean_storm",
+        "label": "Ocean Storm",
+        "scope": "group",
+        "group": "environment",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_os_1", "category": "environment_movement", "preset_id": "environment_movement.waves_crashing", "phrase": "waves crashing", "intensity": 70, "control_mode": "scalar", "enabled": True},
+            {"id": "p_os_2", "category": "atmosphere", "preset_id": "atmosphere.storm", "phrase": "storm", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_os_3", "category": "atmosphere", "preset_id": "atmosphere.strong_wind", "phrase": "strong wind", "intensity": 55, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.twilight_ground_fog",
+        "label": "Twilight Ground Fog",
+        "scope": "group",
+        "group": "environment",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_tgf_1", "category": "atmosphere", "preset_id": "atmosphere.ground_fog", "phrase": "ground fog", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_tgf_2", "category": "atmosphere", "preset_id": "atmosphere.light_haze", "phrase": "light haze", "intensity": 50, "control_mode": "scalar", "enabled": True},
+            {"id": "p_tgf_3", "category": "atmosphere", "preset_id": "atmosphere.sunbeams_through_clouds", "phrase": "sunbeams through clouds", "intensity": 45, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.arctic_blizzard",
+        "label": "Arctic Blizzard",
+        "scope": "group",
+        "group": "environment",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_ab_1", "category": "atmosphere", "preset_id": "atmosphere.blizzard", "phrase": "blizzard", "intensity": 70, "control_mode": "scalar", "enabled": True},
+            {"id": "p_ab_2", "category": "atmosphere", "preset_id": "atmosphere.heavy_snowfall", "phrase": "heavy snowfall", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_ab_3", "category": "environment_movement", "preset_id": "environment_movement.snow_blowing", "phrase": "snow blowing", "intensity": 55, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.volcanic_haze",
+        "label": "Volcanic Haze",
+        "scope": "group",
+        "group": "environment",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_vh_1", "category": "atmosphere", "preset_id": "atmosphere.ash", "phrase": "ash", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_vh_2", "category": "atmosphere", "preset_id": "atmosphere.smoke", "phrase": "smoke", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_vh_3", "category": "atmosphere", "preset_id": "atmosphere.dust", "phrase": "dust", "intensity": 50, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    # ── Style & Finish: more looks ───────────────────────────────────
+    {
+        "id": "group.analog_warmth",
+        "label": "Analog Warmth",
         "scope": "group",
         "group": "style_finish",
         "base_prompt": "",
         "rows": [
-            {"id": "p_wp_1", "category": "style", "preset_id": "style.watercolour_painting", "phrase": "watercolour painting", "intensity": 65, "control_mode": "scalar", "enabled": True},
-            {"id": "p_wp_2", "category": "texture", "preset_id": "texture.paper_grain", "phrase": "paper grain", "intensity": 50, "control_mode": "scalar", "enabled": True},
-            {"id": "p_wp_3", "category": "detail", "preset_id": "detail.moderate_detail", "phrase": "moderate detail", "intensity": 50, "control_mode": "scalar", "enabled": True},
-        ],
+            {"id": "p_anw_1", "category": "style", "preset_id": "style.analog_35mm_photography", "phrase": "analog 35mm photography", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_anw_2", "category": "texture", "preset_id": "texture.fine_film_grain", "phrase": "fine film grain", "intensity": 50, "control_mode": "scalar", "enabled": True},
+            {"id": "p_anw_3", "category": "detail", "preset_id": "detail.moderate_detail", "phrase": "moderate detail", "intensity": 50, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.instant_casual",
+        "label": "Instant Casual",
+        "scope": "group",
+        "group": "style_finish",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_ic_1", "category": "style", "preset_id": "style.instant_film_photography", "phrase": "instant-film photography", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_ic_2", "category": "texture", "preset_id": "texture.smooth_clean_digital_texture", "phrase": "smooth clean digital texture", "intensity": 45, "control_mode": "scalar", "enabled": True},
+            {"id": "p_ic_3", "category": "detail", "preset_id": "detail.moderate_detail", "phrase": "moderate detail", "intensity": 50, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.matte_painting_epic",
+        "label": "Matte Painting Epic",
+        "scope": "group",
+        "group": "style_finish",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_mpe_1", "category": "style", "preset_id": "style.matte_painting", "phrase": "matte painting", "intensity": 70, "control_mode": "scalar", "enabled": True},
+            {"id": "p_mpe_2", "category": "detail", "preset_id": "detail.dense_layered_detail", "phrase": "dense layered detail", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_mpe_3", "category": "texture", "preset_id": "texture.canvas_texture", "phrase": "canvas texture", "intensity": 45, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.anime_clean",
+        "label": "Anime Clean",
+        "scope": "group",
+        "group": "style_finish",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_anc_1", "category": "style", "preset_id": "style.anime_illustration", "phrase": "anime illustration", "intensity": 70, "control_mode": "scalar", "enabled": True},
+            {"id": "p_anc_2", "category": "texture", "preset_id": "texture.smooth_clean_digital_texture", "phrase": "smooth clean digital texture", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_anc_3", "category": "detail", "preset_id": "detail.intricate_detail", "phrase": "intricate detail", "intensity": 50, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.cel_shaded",
+        "label": "Cel-Shaded",
+        "scope": "group",
+        "group": "style_finish",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_cel_1", "category": "style", "preset_id": "style.cel_animation", "phrase": "cel animation", "intensity": 70, "control_mode": "scalar", "enabled": True},
+            {"id": "p_cel_2", "category": "style", "preset_id": "style.comic_book_art", "phrase": "comic-book art", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_cel_3", "category": "detail", "preset_id": "detail.minimal_detail", "phrase": "minimal detail", "intensity": 50, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.comic_halftone",
+        "label": "Comic Halftone",
+        "scope": "group",
+        "group": "style_finish",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_ch_1", "category": "style", "preset_id": "style.comic_book_art", "phrase": "comic-book art", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_ch_2", "category": "texture", "preset_id": "texture.halftone_dots", "phrase": "halftone dots", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_ch_3", "category": "style", "preset_id": "style.pen_and_ink_illustration", "phrase": "pen-and-ink illustration", "intensity": 50, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.watercolor_soft",
+        "label": "Watercolour Soft",
+        "scope": "group",
+        "group": "style_finish",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_ws_1", "category": "style", "preset_id": "style.watercolour_painting", "phrase": "watercolour painting", "intensity": 70, "control_mode": "scalar", "enabled": True},
+            {"id": "p_ws_2", "category": "texture", "preset_id": "texture.paper_grain", "phrase": "paper grain", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_ws_3", "category": "texture", "preset_id": "texture.visible_brushstrokes", "phrase": "visible brushstrokes", "intensity": 45, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.oil_classic",
+        "label": "Oil Classic",
+        "scope": "group",
+        "group": "style_finish",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_oc_1", "category": "style", "preset_id": "style.oil_painting", "phrase": "oil painting", "intensity": 70, "control_mode": "scalar", "enabled": True},
+            {"id": "p_oc_2", "category": "texture", "preset_id": "texture.impasto_texture", "phrase": "impasto texture", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_oc_3", "category": "texture", "preset_id": "texture.canvas_texture", "phrase": "canvas texture", "intensity": 50, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.photoreal_3d",
+        "label": "Photoreal 3D",
+        "scope": "group",
+        "group": "style_finish",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_p3d_1", "category": "style", "preset_id": "style.photorealistic_3d_render", "phrase": "photorealistic 3D render", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_p3d_2", "category": "texture", "preset_id": "texture.smooth_clean_digital_texture", "phrase": "smooth clean digital texture", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_p3d_3", "category": "detail", "preset_id": "detail.intricate_detail", "phrase": "intricate detail", "intensity": 55, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.film_noir_grain",
+        "label": "Film Noir Grain",
+        "scope": "group",
+        "group": "style_finish",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_fng_1", "category": "style", "preset_id": "style.cinematic_film_still", "phrase": "cinematic film still", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_fng_2", "category": "texture", "preset_id": "texture.heavy_film_grain", "phrase": "heavy film grain", "intensity": 50, "control_mode": "scalar", "enabled": True},
+            {"id": "p_fng_3", "category": "detail", "preset_id": "detail.uncluttered_environment", "phrase": "uncluttered environment", "intensity": 50, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.screenprint_artdeco",
+        "label": "Screen-Print Art Deco",
+        "scope": "group",
+        "group": "style_finish",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_sad_1", "category": "style", "preset_id": "style.screen_print", "phrase": "screen print", "intensity": 60, "control_mode": "scalar", "enabled": True},
+            {"id": "p_sad_2", "category": "texture", "preset_id": "texture.halftone_dots", "phrase": "halftone dots", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_sad_3", "category": "style", "preset_id": "style.graphic_novel_illustration", "phrase": "graphic-novel illustration", "intensity": 50, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.pixel_retro",
+        "label": "Pixel Retro",
+        "scope": "group",
+        "group": "style_finish",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_pr_1", "category": "style", "preset_id": "style.pixel_art", "phrase": "pixel art", "intensity": 70, "control_mode": "scalar", "enabled": True},
+            {"id": "p_pr_2", "category": "detail", "preset_id": "detail.minimal_detail", "phrase": "minimal detail", "intensity": 55, "control_mode": "scalar", "enabled": True},
+            {"id": "p_pr_3", "category": "style", "preset_id": "style.low_poly_render", "phrase": "low-poly render", "intensity": 45, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.documentary_grit",
+        "label": "Documentary Grit",
+        "scope": "group",
+        "group": "style_finish",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_dg_1", "category": "style", "preset_id": "style.documentary_photography", "phrase": "documentary photography", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_dg_2", "category": "texture", "preset_id": "texture.heavy_film_grain", "phrase": "heavy film grain", "intensity": 50, "control_mode": "scalar", "enabled": True},
+            {"id": "p_dg_3", "category": "detail", "preset_id": "detail.uncluttered_environment", "phrase": "uncluttered environment", "intensity": 50, "control_mode": "scalar", "enabled": True}
+        ]
+    },
+    {
+        "id": "group.sports_energy",
+        "label": "Sports Energy",
+        "scope": "group",
+        "group": "style_finish",
+        "base_prompt": "",
+        "rows": [
+            {"id": "p_se_1", "category": "style", "preset_id": "style.sports_photography", "phrase": "sports photography", "intensity": 65, "control_mode": "scalar", "enabled": True},
+            {"id": "p_se_2", "category": "texture", "preset_id": "texture.fine_film_grain", "phrase": "fine film grain", "intensity": 45, "control_mode": "scalar", "enabled": True},
+            {"id": "p_se_3", "category": "detail", "preset_id": "detail.intricate_detail", "phrase": "intricate detail", "intensity": 45, "control_mode": "scalar", "enabled": True}
+        ]
     },
 ]
 
