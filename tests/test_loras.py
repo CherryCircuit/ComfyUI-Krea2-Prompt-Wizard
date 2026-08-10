@@ -1,13 +1,16 @@
-"""Tests for the per-character LoRA pipeline and the Prompt Saver node."""
+"""Tests for the per-character LoRA pipeline, the Prompt Saver node, and
+the metadata-writing Save Image node."""
 from __future__ import annotations
 
 import json
 import os
+import sys
 import tempfile
+import types
 import unittest
 from unittest.mock import patch
 
-from src.nodes import Krea2PromptSaver, Krea2PromptWizard
+from src.nodes import Krea2PromptSaver, Krea2PromptWizard, Krea2SaveImage
 
 
 class LoRATests(unittest.TestCase):
@@ -114,6 +117,386 @@ class PromptSaverTests(unittest.TestCase):
                 saver.record("prompt text", motion_prompt="motion text", extra_pnginfo=metadata)
         self.assertEqual(metadata.get("krea2_prompt"), "prompt text")
         self.assertEqual(metadata.get("krea2_motion_prompt"), "motion text")
+
+
+class _ImageSlice:
+    def __init__(self, array):
+        self._array = array
+
+    def cpu(self):
+        return self
+
+    def numpy(self):
+        return self._array
+
+
+class SaveImageTests(unittest.TestCase):
+    """Krea2 Save Image must embed the exact prompt as PNG metadata."""
+
+    def _fake_folder_paths(self, output_dir):
+        counter = {"value": 0}
+
+        def get_output_directory():
+            return output_dir
+
+        def get_save_image_path(prefix, base, count, size):
+            counter["value"] += 1
+            os.makedirs(os.path.join(base, "krea2"), exist_ok=True)
+            return (os.path.join(base, "krea2"), "krea2_image", counter["value"] - 1, "krea2", prefix)
+
+        return types.SimpleNamespace(
+            get_output_directory=get_output_directory,
+            get_save_image_path=get_save_image_path,
+        )
+
+    def test_saves_png_with_prompt_metadata(self):
+        import numpy as np
+
+        class FakeTensor:
+            def __init__(self, array):
+                self._array = array
+                self.shape = (array.shape[0], array.shape[1], array.shape[2], array.shape[3])
+
+            def cpu(self):
+                return self
+
+            def numpy(self):
+                return self._array
+
+            def __iter__(self):
+                for index in range(self._array.shape[0]):
+                    yield _ImageSlice(self._array[index])
+
+        with tempfile.TemporaryDirectory() as tmp:
+            fake_paths = self._fake_folder_paths(tmp)
+            with patch.dict(sys.modules, {"folder_paths": fake_paths}):
+                node = Krea2SaveImage()
+                images = FakeTensor(np.zeros((1, 64, 64, 3), dtype=np.float32))
+                payload = node.save(
+                    images,
+                    filename_prefix="Krea2",
+                    prompt_text="a perfect cinematic still of Mara",
+                    motion_text="Mara smiles slowly",
+                    prompt={"nodes": []},
+                    extra_pnginfo={"workflow": {"nodes": []}},
+                )
+            self.assertEqual(payload["result"], ("krea2_image_00000_.png",))
+            self.assertEqual(payload["ui"]["images"][0]["type"], "output")
+            saved = os.path.join(tmp, "krea2", "krea2_image_00000_.png")
+            self.assertTrue(os.path.exists(saved))
+            with open(saved, "rb") as handle:
+                from PIL import Image
+
+                img = Image.open(handle)
+                self.assertEqual(img.text.get("krea2_prompt"), "a perfect cinematic still of Mara")
+                self.assertEqual(img.text.get("krea2_motion_prompt"), "Mara smiles slowly")
+                self.assertIn("prompt", img.text)
+                self.assertIn("workflow", img.text)
+
+    def test_no_prompt_text_writes_only_standard_chunks(self):
+        import numpy as np
+
+        class FakeTensor:
+            def __init__(self):
+                self.shape = (1, 16, 16, 3)
+
+            def cpu(self):
+                return self
+
+            def numpy(self):
+                return np.zeros((1, 16, 16, 3), dtype=np.float32)
+
+            def __iter__(self):
+                yield _ImageSlice(np.zeros((16, 16, 3), dtype=np.float32))
+
+        with tempfile.TemporaryDirectory() as tmp:
+            fake_paths = self._fake_folder_paths(tmp)
+            with patch.dict(sys.modules, {"folder_paths": fake_paths}):
+                payload = Krea2SaveImage().save(
+                    FakeTensor(),
+                    filename_prefix="Plain",
+                    prompt_text="",
+                    motion_text="",
+                    prompt={"nodes": []},
+                    extra_pnginfo={},
+                )
+            saved = os.path.join(tmp, "krea2", payload["result"][0])
+            with open(saved, "rb") as handle:
+                from PIL import Image
+
+                img = Image.open(handle)
+                self.assertNotIn("krea2_prompt", img.text)
+    def test_node_contract(self):
+        self.assertEqual(Krea2SaveImage.RETURN_TYPES, ("STRING",))
+        self.assertEqual(Krea2SaveImage.RETURN_NAMES, ("filename",))
+        self.assertTrue(Krea2SaveImage.OUTPUT_NODE)
+        self.assertEqual(Krea2SaveImage.CATEGORY, "_Krea2 Prompt Wizard")
+        inputs = Krea2SaveImage.INPUT_TYPES()
+        self.assertIn("images", inputs["required"])
+        self.assertIn("prompt_text", inputs["optional"])
+        self.assertIn("motion_text", inputs["optional"])
+
+
+class WizardMetadataOverrideTests(unittest.TestCase):
+    """The wizard's prompt_metadata_override writes the resolved prompt as
+    the standard 'prompt' metadata chunk."""
+
+    def test_override_writes_plain_prompt_into_extra_pnginfo(self):
+        metadata = {"workflow": {"nodes": []}}
+        state = json.dumps(
+            {
+                "base_prompt": "portrait of a traveler",
+                "rows": [],
+                "prompt_metadata_override": True,
+            }
+        )
+        Krea2PromptWizard().build(state, extra_pnginfo=metadata)
+        self.assertEqual(metadata.get("prompt"), "portrait of a traveler")
+        self.assertEqual(metadata.get("krea2_prompt"), "portrait of a traveler")
+
+    def test_override_off_keeps_graph_prompt_unset(self):
+        metadata = {"workflow": {"nodes": []}}
+        state = json.dumps({"base_prompt": "portrait", "rows": []})
+        Krea2PromptWizard().build(state, extra_pnginfo=metadata)
+        self.assertNotIn("prompt", metadata)
+        self.assertEqual(metadata.get("krea2_prompt"), "portrait")
+
+
+# ---------------------------------------------------------------------------
+# Faithful port of the Timesaver Artius Browser prompt extraction
+# (AlexYez/comfyui-artius-browser, tsab/media/prompt_metadata.py,
+# TSExtractPromptPartsFromPromptField). Used to prove the metadata the
+# wizard writes is what Timesaver shows as "Positive Prompt".
+# ---------------------------------------------------------------------------
+
+
+def ts_extract_prompt_parts(prompt_field):
+    """Port of Timesaver's TSExtractPromptPartsFromPromptField."""
+    if not isinstance(prompt_field, str):
+        return "", ""
+    text = prompt_field.strip()
+    if not text:
+        return "", ""
+    try:
+        import json as _json
+
+        payload = _json.loads(text)
+    except _json.JSONDecodeError:
+        return text[:16000], ""
+    if not isinstance(payload, dict):
+        return text[:16000], ""
+
+    positive, negative, fallback = [], [], []
+
+    def add(bucket, value):
+        if not isinstance(value, str):
+            return
+        clean = value.strip()
+        if clean and clean not in bucket:
+            bucket.append(clean)
+
+    def node_text(node):
+        inputs = node.get("inputs", {}) if isinstance(node.get("inputs"), dict) else {}
+        if isinstance(inputs.get("text"), str):
+            return inputs["text"]
+        widgets = node.get("widgets_values")
+        if isinstance(widgets, list) and widgets and isinstance(widgets[0], str):
+            return widgets[0]
+        return ""
+
+    def resolve_ref(ref):
+        if isinstance(ref, (list, tuple)) and ref:
+            rid = str(ref[0])
+            return rid if rid in payload else ""
+        return ""
+
+    text_by_node = {}
+    for node_id, node in payload.items():
+        if not isinstance(node, dict):
+            continue
+        value = node_text(node).strip()
+        if not value:
+            continue
+        text_by_node[str(node_id)] = value
+        name_blob = (str(node.get("class_type") or node.get("type") or "") + " " + str(
+            node.get("_meta", {}).get("title") if isinstance(node.get("_meta"), dict) else node.get("title") or ""
+        )).lower()
+        if "negative" in name_blob:
+            add(negative, value)
+        elif "positive" in name_blob:
+            add(positive, value)
+        elif "cliptextencode" in name_blob or "textencode" in name_blob or "prompt" in name_blob:
+            add(fallback, value)
+
+    def collect_from_ref(ref, visited=None):
+        rid = resolve_ref(ref)
+        if not rid or rid in (visited or set()):
+            return []
+        visited = set(visited or [])
+        visited.add(rid)
+        node = payload.get(rid)
+        if not isinstance(node, dict):
+            return []
+        collected = []
+        direct = text_by_node.get(rid, "")
+        if direct:
+            collected.append(direct)
+        inputs = node.get("inputs", {}) if isinstance(node.get("inputs"), dict) else {}
+        for value in inputs.values():
+            collected.extend(collect_from_ref(value, visited))
+        return collected
+
+    for node in payload.values():
+        if not isinstance(node, dict):
+            continue
+        inputs = node.get("inputs", {}) if isinstance(node.get("inputs"), dict) else {}
+        for ref in (inputs.get("positive"), inputs.get("negative")):
+            for found in collect_from_ref(ref):
+                add(positive if ref is inputs.get("positive") else negative, found)
+
+    if not positive and not negative and not fallback:
+        # Timesaver's final fallback walk: any string under a key hint of
+        # positive / prompt / text (link tuples are skipped).
+        def walk(node, key_hint=""):
+            if isinstance(node, dict):
+                for key, child in node.items():
+                    walk(child, str(key).lower())
+                return
+            if isinstance(node, list):
+                if isinstance(node[0], (str, int)) if node else False:
+                    if str(node[0]) in payload:
+                        return
+                for child in node:
+                    walk(child, key_hint)
+                return
+            if not isinstance(node, str):
+                return
+            if "negative" in key_hint:
+                add(negative, node)
+            elif "positive" in key_hint:
+                add(positive, node)
+            elif key_hint in {"prompt", "text"}:
+                add(fallback, node)
+
+        walk(payload)
+
+    if positive:
+        return "\n\n".join(positive)[:16000], "\n\n".join(negative)[:16000]
+    positive_fallback = [v for v in fallback if v not in negative]
+    if positive_fallback:
+        return "\n\n".join(positive_fallback)[:16000], "\n\n".join(negative)[:16000]
+    if not negative:
+        return "\n\n".join(fallback)[:16000], ""
+    return "", "\n\n".join(negative)[:16000]
+
+
+def png_prompt_chunk(path):
+    from PIL import Image
+
+    with Image.open(path) as img:
+        return img.info.get("prompt", "")
+
+
+class TimesaverCompatibilityTests(unittest.TestCase):
+    """Prove the metadata the wizard writes is shown as Positive Prompt by
+    the Timesaver Artius Browser's own extraction rules."""
+
+    def _save_with_saver(self, tmp, **kwargs):
+        import numpy as np
+
+        class FakeTensor:
+            def __init__(self):
+                self.shape = (1, 16, 16, 3)
+
+            def cpu(self):
+                return self
+
+            def numpy(self):
+                return np.zeros((1, 16, 16, 3), dtype=np.float32)
+
+            def __iter__(self):
+                yield _ImageSlice(np.zeros((16, 16, 3), dtype=np.float32))
+
+        fake_paths = SaveImageTests()._fake_folder_paths(tmp)
+        with patch.dict(sys.modules, {"folder_paths": fake_paths}):
+            payload = Krea2SaveImage().save(FakeTensor(), **kwargs)
+        return os.path.join(tmp, "krea2", payload["result"][0])
+
+    def test_graph_json_with_linked_krea2_prompt_weight_shows_no_positive(self):
+        """Reproduces the user's symptom: a graph JSON prompt chunk whose
+        text lives on a linked Krea2PromptWeight input yields no Positive
+        Prompt under Timesaver's rules."""
+        graph = {
+            "10": {"class_type": "Krea2PromptWizard", "inputs": {"wizard_state_json": '{"base_prompt": "scene"}'}},
+            "11": {"class_type": "Krea2PromptWeight", "inputs": {"text": [10, 0]}},
+            "12": {"class_type": "KSampler", "inputs": {"positive": [11, 1]}},
+        }
+        positive, negative = ts_extract_prompt_parts(json.dumps(graph))
+        self.assertEqual(positive, "")
+        self.assertEqual(negative, "")
+
+    def test_negative_node_titled_negative_keeps_positive_empty(self):
+        """A negative CLIPTextEncode pushes the fallback bucket away, so the
+        positive stays empty for linked prompts."""
+        graph = {
+            "11": {"class_type": "Krea2PromptWeight", "inputs": {"text": [10, 0]}},
+            "12": {"class_type": "CLIPTextEncode", "inputs": {"text": "low quality"}},
+            "13": {"class_type": "KSampler", "inputs": {"positive": [11, 1], "negative": [12, 0]}},
+        }
+        positive, negative = ts_extract_prompt_parts(json.dumps(graph))
+        self.assertEqual(positive, "")
+        self.assertEqual(negative, "low quality")
+
+    def test_plain_prompt_chunk_is_shown_as_positive_prompt(self):
+        """Timesaver treats a non-JSON prompt chunk as the Positive Prompt."""
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self._save_with_saver(
+                tmp,
+                filename_prefix="Krea2",
+                prompt_text="Character Mara (left of frame): (joy:1.5)",
+                motion_text="",
+                plain_prompt_metadata=True,
+                prompt={"nodes": []},
+                extra_pnginfo={"workflow": {"nodes": []}},
+            )
+            self.assertEqual(
+                png_prompt_chunk(path),
+                "Character Mara (left of frame): (joy:1.5)",
+            )
+            positive, _ = ts_extract_prompt_parts(png_prompt_chunk(path))
+            self.assertEqual(positive, "Character Mara (left of frame): (joy:1.5)")
+
+    def test_wizard_override_is_shown_as_positive_prompt_through_save_image(self):
+        """The wizard's prompt_metadata_override plus the standard SaveImage
+        (graph JSON first, extra_pnginfo second — PIL last chunk wins) yields
+        a plain-text prompt chunk that Timesaver shows as Positive Prompt."""
+        import numpy as np
+        from PIL import Image
+        from PIL.PngImagePlugin import PngInfo
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "save_image_style.png")
+            metadata = PngInfo()
+            # SaveImage writes the graph JSON first...
+            metadata.add_text("prompt", json.dumps({"11": {"class_type": "Krea2PromptWeight", "inputs": {"text": [10, 0]}}}))
+            # ...then the extra_pnginfo loop writes the wizard's override.
+            metadata.add_text("prompt", "portrait of a traveler")
+            metadata.add_text("workflow", json.dumps({"nodes": []}))
+            Image.fromarray(np.zeros((16, 16, 3), dtype=np.uint8)).save(path, pnginfo=metadata)
+            self.assertEqual(png_prompt_chunk(path), "portrait of a traveler")
+            positive, _ = ts_extract_prompt_parts(png_prompt_chunk(path))
+            self.assertEqual(positive, "portrait of a traveler")
+
+    def test_literal_clip_text_encode_in_graph_is_shown_as_positive(self):
+        """The classic route: a CLIPTextEncode with a literal (unlinked)
+        text widget is found by Timesaver's node buckets."""
+        graph = {
+            "11": {"class_type": "Krea2PromptWeight", "inputs": {"text": [10, 0]}},
+            "12": {"class_type": "CLIPTextEncode", "inputs": {"text": "the literal prompt", "clip": [1, 1]}},
+            "13": {"class_type": "KSampler", "inputs": {"positive": [11, 1]}},
+        }
+        positive, _ = ts_extract_prompt_parts(json.dumps(graph))
+        self.assertEqual(positive, "the literal prompt")
 
 
 if __name__ == "__main__":

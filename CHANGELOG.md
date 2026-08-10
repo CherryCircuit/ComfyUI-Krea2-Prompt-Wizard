@@ -1,5 +1,42 @@
 # CHANGELOG
 
+## 1.3.3 — 2026-08-10
+
+### Features
+
+- **Timesaver Artius Browser "Positive Prompt" support.** Root cause
+  identified from Timesaver's own extraction code
+  (`TSExtractPromptPartsFromPromptField`): it shows the `prompt` chunk
+  as the Positive Prompt only when it is plain text, and when it is the
+  graph JSON it skips *linked* text inputs — exactly what
+  `Krea2PromptWeight` produces. Two built-in fixes:
+  - New wizard setting *"Write the prompt as the standard 'prompt'
+    metadata chunk (Timesaver / A1111 compatible)"* — the resolved
+    prompt is written as the final `prompt` chunk every execution;
+    standard Save Image embeds it (PIL readers take the last chunk).
+  - `Krea2 Save Image` gains a `plain_prompt_metadata` input that
+    writes a single plain-text `prompt` chunk.
+  The graph JSON remains available in the `workflow` chunk either way.
+- Tests now include a faithful port of Timesaver's extraction rules,
+  proving: the old graph-JSON/linked-input format shows no positive
+  prompt (the reported symptom), while both fixes are shown as the
+  Positive Prompt.
+
+## 1.3.2 — 2026-08-09
+
+### Features
+
+- **Krea2 Save Image** — new built-in image saver that embeds the exact
+  generated prompt into the PNG as its own `krea2_prompt` text chunk
+  (plus `krea2_motion_prompt`), alongside the standard `prompt` /
+  `workflow` chunks. Connect the KSampler output to `images` and the
+  wizard's `Prompt Output` to `prompt_text`. End-to-end test writes a
+  real PNG and verifies the metadata round-trip.
+- Docs for metadata-savvy third-party savers (WAS Node Suite,
+  ComfyUI-Image-Saver, MelMass SaveImageWithMetaData, Efficiency
+  Nodes) that pick up the wizard's `extra_pnginfo["krea2_prompt"]`
+  automatically.
+
 ## 1.3.1 — 2026-08-09
 
 Fixes and polish from the 1.3.0 round.

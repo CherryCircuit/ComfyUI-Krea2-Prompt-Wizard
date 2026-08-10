@@ -670,6 +670,18 @@
       ]));
       panel.appendChild(el("div", { class: "krea2-settings-copy" },
         "Connect Prompt Output to the text encoder used by the image. The normal Save Image node will then store the resolved text as krea2_prompt when metadata is enabled in ComfyUI."));
+      panel.appendChild(el("label", { class: "krea2-inline-check", title: "Readers such as the Timesaver Artius Browser and A1111-style viewers show a plain-text 'prompt' metadata chunk as the Positive Prompt" }, [
+        el("input", {
+          type: "checkbox",
+          checked: !!state.prompt_metadata_override,
+          onChange: function (event) {
+            state.prompt_metadata_override = !!event.target.checked;
+            markDirty();
+            render();
+          },
+        }),
+        el("span", null, "Write the prompt as the standard 'prompt' metadata chunk (Timesaver / A1111 compatible)"),
+      ]));
       panel.appendChild(el("label", { class: "krea2-inline-check" }, [
         el("input", {
           type: "checkbox",

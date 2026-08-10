@@ -519,6 +519,13 @@ class Krea2PromptWizard:
             extra_pnginfo["krea2_prompt"] = result.final_prompt
             if result.motion_prompt:
                 extra_pnginfo["krea2_motion_prompt"] = result.motion_prompt
+            if state.get("prompt_metadata_override"):
+                # Timesaver / A1111-style readers treat the "prompt" chunk as
+                # the positive prompt when it is plain text rather than the
+                # graph JSON. SaveImage writes the graph first and then every
+                # extra_pnginfo key, so this plain-text value is written last
+                # and wins when readers load the chunk (PIL: last chunk wins).
+                extra_pnginfo["prompt"] = result.final_prompt
 
         model_out, lora_warnings = self._apply_character_loras(model, state)
         warnings = list(result.warnings)
@@ -604,6 +611,140 @@ class Krea2PromptWizard:
             except Exception as exc:  # pragma: no cover - comfy runtime only
                 warnings.append(f"Could not apply LoRA '{lora_name}': {exc}")
         return current, warnings
+
+
+# ---------------------------------------------------------------------------
+# Krea2 Save Image
+# ---------------------------------------------------------------------------
+
+
+class Krea2SaveImage:
+    """Saves an image with the exact generated prompt embedded as PNG metadata.
+
+    Unlike the plain Save Image node, this always writes the resolved
+    prompt text into the PNG as its own text chunk (``krea2_prompt``,
+    plus ``krea2_motion_prompt`` when provided) in addition to the
+    standard ``prompt`` / ``workflow`` chunks. The prompt survives even
+    when the graph JSON changes, so the image carries the exact text
+    that generated it.
+
+    Connect the wizard's ``Prompt Output`` to ``prompt_text`` (and
+    optionally ``Video Motion Prompt`` to ``motion_text``).
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "images": ("IMAGE",),
+                "filename_prefix": (
+                    "STRING",
+                    {
+                        "default": "Krea2",
+                        "tooltip": "Prefix for the saved file names.",
+                    },
+                ),
+            },
+            "optional": {
+                "prompt_text": (
+                    "STRING",
+                    {
+                        "default": "",
+                        "multiline": True,
+                        "forceInput": True,
+                        "tooltip": "The exact generated prompt to embed as PNG metadata (connect Prompt Output).",
+                    },
+                ),
+                "motion_text": (
+                    "STRING",
+                    {
+                        "default": "",
+                        "multiline": True,
+                        "forceInput": True,
+                        "tooltip": "Optional motion prompt embedded as PNG metadata.",
+                    },
+                ),
+                "plain_prompt_metadata": (
+                    "BOOLEAN",
+                    {
+                        "default": False,
+                        "tooltip": "Write the prompt text as the standard 'prompt' metadata chunk instead of the graph JSON. Readers such as the Timesaver Artius Browser and A1111-style viewers then show it as the Positive Prompt.",
+                    },
+                ),
+            },
+            "hidden": {
+                "prompt": "PROMPT",
+                "extra_pnginfo": "EXTRA_PNGINFO",
+            },
+        }
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("filename",)
+    OUTPUT_NODE = True
+    FUNCTION = "save"
+    CATEGORY = "_Krea2 Prompt Wizard"
+    DESCRIPTION = "Saves images with the exact generated prompt embedded as PNG metadata (krea2_prompt chunk)."
+    SEARCH_ALIASES = ["save image", "image saver", "png metadata", "prompt metadata"]
+
+    def save(
+        self,
+        images,
+        filename_prefix: str = "Krea2",
+        prompt_text: str = "",
+        motion_text: str = "",
+        plain_prompt_metadata: bool = False,
+        prompt=None,
+        extra_pnginfo=None,
+    ):
+        import json as _json
+        import os as _os
+
+        import numpy as np
+        from PIL import Image
+        from PIL.PngImagePlugin import PngInfo
+
+        import folder_paths  # type: ignore
+
+        output_dir = folder_paths.get_output_directory()
+        full_output_folder, filename, counter, subfolder, _prefix = (
+            folder_paths.get_save_image_path(
+                filename_prefix,
+                output_dir,
+                images.shape[0],
+                images.shape[1],
+            )
+        )
+        results = []
+        for image in images:
+            i = 255.0 * image.cpu().numpy()
+            img = Image.fromarray(np.clip(i, 0, 255).astype(np.uint8))
+            metadata = PngInfo()
+            if plain_prompt_metadata and prompt_text:
+                # Timesaver / A1111-style readers treat a plain-text "prompt"
+                # chunk as the positive prompt. The graph JSON is still
+                # available in the "workflow" chunk.
+                metadata.add_text("prompt", str(prompt_text))
+            elif prompt is not None:
+                metadata.add_text("prompt", _json.dumps(prompt))
+            workflow = extra_pnginfo.get("workflow") if isinstance(extra_pnginfo, dict) else None
+            if workflow is not None:
+                metadata.add_text("workflow", _json.dumps(workflow))
+            if prompt_text:
+                metadata.add_text("krea2_prompt", str(prompt_text))
+            if motion_text:
+                metadata.add_text("krea2_motion_prompt", str(motion_text))
+            file = f"{filename}_{counter:05}_.png"
+            img.save(
+                _os.path.join(full_output_folder, file),
+                pnginfo=metadata,
+                compress_level=4,
+            )
+            results.append({"filename": file, "subfolder": subfolder, "type": "output"})
+            counter += 1
+        return {
+            "ui": {"images": results},
+            "result": (file,),
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -752,6 +893,7 @@ NODE_CLASS_MAPPINGS = {
     "Krea2WeightedPhrase": Krea2WeightedPhrase,
     "Krea2PromptAssembler": Krea2PromptAssembler,
     "Krea2PromptWizard": Krea2PromptWizard,
+    "Krea2SaveImage": Krea2SaveImage,
     "Krea2PromptSaver": Krea2PromptSaver,
     "Krea2PromptInspector": Krea2PromptInspector,
 }
@@ -760,6 +902,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "Krea2WeightedPhrase": "Krea2 Weighted Phrase",
     "Krea2PromptAssembler": "Krea2 Prompt Assembler",
     "Krea2PromptWizard": "Krea2 Prompt Wizard",
+    "Krea2SaveImage": "Krea2 Save Image",
     "Krea2PromptSaver": "Krea2 Prompt Saver",
     "Krea2PromptInspector": "Krea2 Prompt Inspector",
 }

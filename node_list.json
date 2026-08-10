@@ -2,5 +2,7 @@
   "Krea2PromptWizard": "Krea2 Prompt Wizard",
   "Krea2WeightedPhrase": "Krea2 Weighted Phrase",
   "Krea2PromptAssembler": "Krea2 Prompt Assembler",
-  "Krea2PromptInspector": "Krea2 Prompt Inspector"
+  "Krea2PromptInspector": "Krea2 Prompt Inspector",
+  "Krea2SaveImage": "Krea2 Save Image",
+  "Krea2PromptSaver": "Krea2 Prompt Saver"
 }

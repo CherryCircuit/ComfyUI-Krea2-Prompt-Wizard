@@ -102,6 +102,50 @@ A few honest notes on how this works under the hood:
   assigned, the node still works — it warns you and the LoRAs are not
   applied.
 
+### Krea2 Save Image (prompt embedded in the PNG)
+
+If you want the exact prompt **inside the image file itself**, use the
+new **Krea2 Save Image** node instead of the plain Save Image:
+
+```
+KSampler output ──▶ Krea2 Save Image (images)
+Wizard Prompt Output ──▶ Krea2 Save Image (prompt_text)
+Wizard Video Motion Prompt ──▶ Krea2 Save Image (motion_text, optional)
+```
+
+It writes the standard `prompt` / `workflow` chunks **plus** the exact
+resolved prompt text as its own `krea2_prompt` PNG chunk (and
+`krea2_motion_prompt` when provided) — readable by any PNG metadata
+tool. Several popular packs do the same automatically (WAS Node Suite's
+"Save Image with Metadata", ComfyUI-Image-Saver, MelMass's
+SaveImageWithMetaData, Efficiency Nodes), because the wizard already
+writes `extra_pnginfo["krea2_prompt"]` on every execution.
+
+### Getting the prompt into Timesaver's "Positive Prompt" field
+
+The **Timesaver Artius Browser** (and A1111-style viewers) read the
+standard `prompt` PNG chunk and show it as the Positive Prompt **only
+when it is plain text, not the graph JSON**. With a `CLIPTextEncode`
+node the graph JSON carries the literal prompt text, so Timesaver shows
+it; with `Krea2 Prompt Weight` the text is a *linked* input (a node
+reference, not literal text), so Timesaver has nothing to display.
+
+Two built-in ways to fix it:
+
+1. **Wizard setting** — enable *"Write the prompt as the standard
+   'prompt' metadata chunk (Timesaver / A1111 compatible)"* in Node
+   settings. The wizard then writes the resolved prompt as the final
+   `prompt` chunk on every execution; the standard Save Image embeds it
+   and Timesaver shows it as **Positive Prompt**. The graph JSON moves
+   out of the `prompt` chunk (it stays available in the `workflow`
+   chunk).
+2. **Krea2 Save Image** — turn on its *plain_prompt_metadata* input.
+   The saved PNG then carries a single plain-text `prompt` chunk with
+   the exact prompt, with no graph JSON duplication at all.
+
+Either way the workflow JSON stays intact in the `workflow` chunk, so
+Timesaver's workflow view and PNG→workflow features keep working.
+
 ### Krea2 Prompt Saver (metadata workaround)
 
 Your prompt *is* written into `extra_pnginfo` as `krea2_prompt`, but
