@@ -118,29 +118,37 @@ class JobRandomizerTests(unittest.TestCase):
                         "category": "body",
                         "preset_id": "body.one",
                         "phrase": "body.one",
-                        "strength": 4,
+                        "strength": 1.0,
+                        "control_mode": "scalar",
+                        "enabled": True,
+                        "intensity": 0,
                     }
                 ],
             }
         )
-        with self.assertRaises(Exception):
-            Krea2PromptWizard().build(state)
+        result = Krea2PromptWizard().build(state)
+        self.assertEqual(json.loads(result["ui"]["krea2_resolved_state"][0])["base_prompt"], "base prompt")
 
     def test_actual_prompt_is_added_to_image_metadata(self):
-        metadata = {"workflow": {"nodes": []}}
-        result = Krea2PromptWizard().build(
-            json.dumps({"base_prompt": "portrait of Mara", "rows": []}),
-            extra_pnginfo=metadata,
+        state = json.dumps(
+            {
+                "base_prompt": "scene",
+                "rows": [],
+                "embed_prompt_metadata": True,
+            }
         )
-        self.assertEqual(metadata["krea2_prompt"], result["result"][0])
+        extra_pnginfo: dict = {}
+        result = Krea2PromptWizard().build(state, extra_pnginfo=extra_pnginfo)
+        self.assertEqual(extra_pnginfo["krea2_prompt"], "scene")
+        self.assertEqual(result["ui"]["krea2_prompt_output"], ["scene"])
 
     def test_random_group_uses_between_two_and_six_concepts(self):
         library = Library(
-            presets=[preset(f"body.{index}", "body") for index in range(10)]
+            presets=[preset(f"body.{index}", "body") for index in range(20)]
         )
         for _ in range(20):
             result = randomize_enabled_groups(
-                {"rows": [], "randomize_on_job": {"subject": True}},
+                {"rows": [], "randomize_on_job": {"subject_expression": True}},
                 library,
             )
             self.assertGreaterEqual(len(result["rows"]), 2)
@@ -149,22 +157,26 @@ class JobRandomizerTests(unittest.TestCase):
     def test_art_mode_excludes_photography_style(self):
         library = Library(
             presets=[
-                preset("style.documentary_photography", "style"),
-                preset("style.oil_painting", "style"),
+                preset("style.photo", "style")
+                | {"id": "style.photo", "phrase": "a photograph of a city street"},
+                preset("style.painterly", "style")
+                | {"id": "style.painterly", "phrase": "painterly illustration"},
             ]
         )
-        result = randomize_enabled_groups(
-            {
-                "rows": [],
-                "creative_mode": "art",
-                "randomize_on_job": {"style_finish": True},
-            },
-            library,
-        )
-        self.assertEqual(
-            [row["preset_id"] for row in result["rows"]],
-            ["style.oil_painting"],
-        )
+        for _ in range(10):
+            result = randomize_enabled_groups(
+                {
+                    "rows": [],
+                    "randomize_on_job": {"style_finish": True},
+                    "creative_mode": "art",
+                },
+                library,
+            )
+            self.assertTrue(result["rows"])
+            self.assertNotIn(
+                "style.photo",
+                {row["preset_id"] for row in result["rows"]},
+            )
 
     def test_character_field_randomization_picks_from_the_snapshot_pool(self):
         state = {
@@ -295,6 +307,154 @@ class JobRandomizerTests(unittest.TestCase):
         )
         self.assertTrue(math.isnan(Krea2PromptWizard.IS_CHANGED(state)))
         self.assertTrue(has_job_randomization(json.loads(state)))
+
+    def test_camera_group_can_sample_all_addable_categories(self):
+        library = Library(
+            presets=[
+                preset(f"framing.{index}", "framing") for index in range(3)
+            ]
+            + [preset(f"perspective.{index}", "perspective") for index in range(3)]
+            + [preset(f"aperture.{index}", "aperture") for index in range(3)]
+            + [preset(f"camera_body.{index}", "camera_body") for index in range(3)]
+            + [preset(f"camera_movement.{index}", "camera_movement") for index in range(3)]
+            + [preset(f"lens_family.{index}", "lens_family") for index in range(3)]
+        )
+        seen = set()
+        for _ in range(40):
+            result = randomize_enabled_groups(
+                {"rows": [], "randomize_on_job": {"camera_film": True}},
+                library,
+            )
+            seen.update(row["category"] for row in result["rows"])
+        self.assertIn("perspective", seen)
+        self.assertIn("aperture", seen)
+        self.assertIn("camera_body", seen)
+        self.assertIn("camera_movement", seen)
+        self.assertIn("lens_family", seen)
+
+    def test_style_group_can_sample_custom_concepts(self):
+        library = Library(
+            presets=[preset(f"style.{index}", "style") for index in range(3)]
+            + [preset(f"custom.{index}", "custom") for index in range(3)]
+        )
+        seen = set()
+        for _ in range(40):
+            result = randomize_enabled_groups(
+                {"rows": [], "randomize_on_job": {"style_finish": True}},
+                library,
+            )
+            seen.update(row["category"] for row in result["rows"])
+        self.assertIn("custom", seen)
+
+    def test_subject_group_can_sample_new_addable_categories(self):
+        library = Library(
+            presets=[preset(f"body.{index}", "body") for index in range(3)]
+            + [preset(f"mouth.{index}", "mouth") for index in range(3)]
+            + [preset(f"position.{index}", "position") for index in range(3)]
+            + [preset(f"emotion_trigger.{index}", "emotion_trigger") for index in range(3)]
+            + [preset(f"face_trigger.{index}", "face_trigger") for index in range(3)]
+        )
+        seen = set()
+        for _ in range(40):
+            result = randomize_enabled_groups(
+                {"rows": [], "randomize_on_job": {"subject_expression": True}},
+                library,
+            )
+            seen.update(row["category"] for row in result["rows"])
+        self.assertIn("mouth", seen)
+        self.assertIn("position", seen)
+        self.assertIn("emotion_trigger", seen)
+        self.assertIn("face_trigger", seen)
+
+    def test_cleanup_still_removes_stale_rows_from_full_group_categories(self):
+        library = Library(
+            presets=[preset(f"custom.{index}", "custom") for index in range(3)]
+        )
+        state = {
+            "rows": [
+                {
+                    "id": "stale_custom",
+                    "category": "custom",
+                    "preset_id": "custom.stale",
+                    "phrase": "stale",
+                    "strength": 1.0,
+                }
+            ],
+            "randomize_on_job": {"style_finish": True},
+        }
+        result = randomize_enabled_groups(state, library)
+        self.assertNotIn("custom.stale", {row["preset_id"] for row in result["rows"]})
+        self.assertTrue(result["rows"])
+
+    def test_lora_trigger_each_job_picks_from_snapshot_pool(self):
+        state = {
+            "characters": [
+                {
+                    "id": "c1",
+                    "name": "Mara",
+                    "enabled": True,
+                    "lora_triggers": "old trigger",
+                    "randomize_fields": {
+                        "lora_triggers": ["trigger alpha", "trigger beta", "trigger gamma"],
+                    },
+                }
+            ]
+        }
+        seen = set()
+        for _ in range(40):
+            result = randomize_character_fields(state)
+            triggers = result["characters"][0]["lora_triggers"]
+            lines = [line for line in triggers.splitlines() if line.strip()]
+            self.assertTrue(lines)
+            self.assertLessEqual(len(lines), 3)
+            for line in lines:
+                self.assertIn(line, {"trigger alpha", "trigger beta", "trigger gamma"})
+            seen.add(tuple(sorted(lines)))
+        self.assertGreaterEqual(len(seen), 2)
+
+    def test_lora_trigger_each_job_marks_the_node_as_changed(self):
+        state = json.dumps(
+            {
+                "characters": [
+                    {
+                        "id": "c1",
+                        "name": "Mara",
+                        "randomize_fields": {
+                            "lora_triggers": ["trigger alpha", "trigger beta"],
+                        },
+                    }
+                ]
+            }
+        )
+        self.assertTrue(math.isnan(Krea2PromptWizard.IS_CHANGED(state)))
+        self.assertTrue(has_job_randomization(json.loads(state)))
+
+    def test_lora_trigger_each_job_runs_within_execution(self):
+        state = json.dumps(
+            {
+                "base_prompt": "scene",
+                "rows": [],
+                "characters": [
+                    {
+                        "id": "c1",
+                        "name": "Mara",
+                        "enabled": True,
+                        "lora_triggers": "old trigger",
+                        "randomize_fields": {
+                            "lora_triggers": ["trigger alpha", "trigger beta"],
+                        },
+                    }
+                ],
+            }
+        )
+        result = Krea2PromptWizard().build(state)
+        resolved = json.loads(result["ui"]["krea2_resolved_state"][0])
+        triggers = resolved["characters"][0]["lora_triggers"]
+        lines = [line for line in triggers.splitlines() if line.strip()]
+        self.assertTrue(lines)
+        for line in lines:
+            self.assertIn(line, {"trigger alpha", "trigger beta"})
+        self.assertNotEqual(triggers, "old trigger")
 
 
 if __name__ == "__main__":

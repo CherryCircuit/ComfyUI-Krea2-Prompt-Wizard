@@ -1001,10 +1001,10 @@
     /* Direction groups: the same category structure as the Concepts tab,
      * scoped to one cast member. */
     const DIRECTION_GROUPS = [
-      { id: "emotion", label: "Emotion", categories: EMOTION_CATEGORIES, emptyHint: "No emotion set." },
-      { id: "face", label: "Face & gaze", categories: FACE_CATEGORIES, emptyHint: "No facial action set." },
-      { id: "body", label: "Body & movement", categories: BODY_CATEGORIES, emptyHint: "No body language set." },
-      { id: "placement", label: "Placement", categories: POSITION_CATEGORIES, emptyHint: "No placement set." },
+      { id: "emotion", icon: "💭", label: "Emotion", categories: EMOTION_CATEGORIES, emptyHint: "No emotion set." },
+      { id: "face", icon: "👁", label: "Face & gaze", categories: FACE_CATEGORIES, emptyHint: "No facial action set." },
+      { id: "body", icon: "🕺", label: "Body & movement", categories: BODY_CATEGORIES, emptyHint: "No body language set." },
+      { id: "placement", icon: "📍", label: "Placement", categories: POSITION_CATEGORIES, emptyHint: "No placement set." },
     ];
 
     function directionGroupPresetId(groupKey) {
@@ -1140,6 +1140,7 @@
       const collapsed = !!(character.collapsed_direction || {})[groupKey];
       section.classList.toggle("is-collapsed", collapsed);
       const header = el("div", { class: "krea2-wizard-category-header" }, [
+        group.icon ? el("span", { class: "krea2-wizard-category-icon", "aria-hidden": "true" }, group.icon) : null,
         el("strong", { class: "krea2-wizard-category-title" }, group.label),
         el("span", { class: "krea2-wizard-category-summary", title: rows.map(function (row) {
           return row.label || row.preset_id;
@@ -1212,11 +1213,11 @@
         onClick: function (event) {
           event.stopPropagation();
           if (!character.randomize_direction_groups) character.randomize_direction_groups = {};
-          character.randomize_direction_groups[groupKey] = !eachJobOn;
+          character.randomize_direction_groups[groupKey] = !character.randomize_direction_groups[groupKey];
           markDirty();
           render();
         },
-      }, "🔀");
+      }, "🔁");
       const actions = el("div", { class: "krea2-wizard-category-actions" }, [
         addBtn,
         presetSelect,
@@ -1531,9 +1532,29 @@
 
     const scheduleAppearanceRender = debounce(function () { render(); }, 350);
 
+    function randomizeAppearanceField(character, field) {
+      character[field.key] = randomChoice(field.options);
+      if (field.key === "ensemble" && character[field.key]) {
+        character.clothing_top = "";
+        character.clothing_bottom = "";
+      }
+      if ((field.key === "clothing_top" || field.key === "clothing_bottom") && character[field.key]) {
+        character.ensemble = "";
+      }
+    }
+
+    function setAppearanceFieldEachJob(character, field, enabled) {
+      if (!character.randomize_fields) character.randomize_fields = {};
+      if (enabled) {
+        character.randomize_fields[field.key] = field.options.slice();
+      } else {
+        delete character.randomize_fields[field.key];
+      }
+    }
+
     function buildAppearanceFieldRow(character, field) {
       const combobox = comboboxForField(character, field);
-      const eachRun = (character.randomize_fields || {})[field.key];
+      const eachRun = !!(character.randomize_fields || {})[field.key];
       const useEnsemble = Boolean(String(character.ensemble || "").trim());
       const isSeparate = field.key === "clothing_top" || field.key === "clothing_bottom";
       const disabledByEnsemble = useEnsemble && isSeparate;
@@ -1544,43 +1565,45 @@
       }
       const randomBtn = el("button", {
         type: "button",
-        class: "krea2-wizard-btn krea2-icon-btn krea2-field-random" + (eachRun ? " is-active" : ""),
-        title: eachRun
-          ? field.label + " randomizes every queued job. Click to roll once; Shift-click to turn each-run off."
-          : "Roll " + field.label + " once. Shift-click toggles randomize-each-run.",
-        "aria-label": eachRun
-          ? field.label + " randomizes each run"
-          : "Randomize " + field.label,
+        class: "krea2-wizard-btn krea2-icon-btn krea2-field-random",
+        title: disabledByEnsemble
+          ? field.label + " is disabled because an ensemble is chosen."
+          : "Roll " + field.label + " once now.",
+        "aria-label": "Randomize " + field.label + " once",
+        disabled: disabledByEnsemble,
         onClick: function (event) {
-          if (event && event.shiftKey) {
-            if (!character.randomize_fields) character.randomize_fields = {};
-            if (character.randomize_fields[field.key]) {
-              delete character.randomize_fields[field.key];
-            } else {
-              character.randomize_fields[field.key] = field.options.slice();
-            }
-            markDirty();
-            render();
-            return;
-          }
-          character[field.key] = randomChoice(field.options);
-          if (field.key === "ensemble" && character[field.key]) {
-            character.clothing_top = "";
-            character.clothing_bottom = "";
-          }
-          if ((field.key === "clothing_top" || field.key === "clothing_bottom") && character[field.key]) {
-            character.ensemble = "";
-          }
+          if (event && typeof event.stopPropagation === "function") event.stopPropagation();
+          if (disabledByEnsemble) return;
+          randomizeAppearanceField(character, field);
           markDirty();
           render();
         },
-      }, eachRun ? "🔀" : "🎲");
+      }, "🎲");
+      const eachJobBtn = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-icon-btn krea2-field-each-job krea2-shuffle" + (eachRun ? " is-active" : ""),
+        title: eachRun
+          ? field.label + " randomizes for every queued job. Click to keep it fixed."
+          : "Keep " + field.label + " changing for every queued job.",
+        "aria-label": eachRun
+          ? field.label + " randomizes every queued job"
+          : "Randomize " + field.label + " every queued job",
+        "aria-pressed": eachRun ? "true" : "false",
+        disabled: disabledByEnsemble,
+        onClick: function (event) {
+          if (event && typeof event.stopPropagation === "function") event.stopPropagation();
+          if (disabledByEnsemble) return;
+          setAppearanceFieldEachJob(character, field, !eachRun);
+          markDirty();
+          render();
+        },
+      }, "🔁");
       const row = el("label", { class: "krea2-character-field" + (disabledByEnsemble ? " is-disabled" : "") }, [
         el("span", null, field.label),
         el("div", { class: "krea2-field-row" }, [
           combobox.input,
           combobox.datalist,
-          randomBtn,
+          el("div", { class: "krea2-field-random-controls" }, [randomBtn, eachJobBtn]),
         ]),
       ]);
       return row;
@@ -1689,11 +1712,48 @@
         markDirty();
         render();
       }, "krea2-field-random krea2-icon-btn");
+      const loraEachJobOn = !!(character.randomize_fields || {}).lora_triggers;
+      const loraEachJobBtn = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-icon-btn krea2-lora-each-job krea2-shuffle" + (loraEachJobOn ? " is-active" : ""),
+        title: loraEachJobOn
+          ? "LoRA trigger words change for every queued job. Click to keep them fixed."
+          : "Randomize this character's LoRA trigger words for every queued job.",
+        "aria-label": "Randomize LoRA trigger words every queued job",
+        "aria-pressed": loraEachJobOn ? "true" : "false",
+        onClick: function () {
+          if (!character.randomize_fields) character.randomize_fields = {};
+          if (character.randomize_fields.lora_triggers) {
+            delete character.randomize_fields.lora_triggers;
+          } else {
+            let lines = String(character.lora_triggers || "").split(/\r?\n/)
+              .map(function (line) { return line.trim(); }).filter(Boolean);
+            if (!lines.length) {
+              const presets = characterRowPresets().filter(function (preset) {
+                return LORA_CATEGORIES.includes(preset.category) && !preset.disabled;
+              });
+              for (let i = presets.length - 1; i > 0; i -= 1) {
+                const j = Math.floor(Math.random() * (i + 1));
+                const swap = presets[i];
+                presets[i] = presets[j];
+                presets[j] = swap;
+              }
+              for (const preset of presets.slice(0, 4)) {
+                const phrase = String(preset.phrase || preset.label || "").trim();
+                if (phrase && !lines.includes(phrase)) lines.push(phrase);
+              }
+            }
+            character.randomize_fields.lora_triggers = lines;
+          }
+          markDirty();
+          render();
+        },
+      }, "🔁");
       section.appendChild(el("div", { class: "krea2-direction-block-head" }, [
         el("strong", null, "LoRA"),
         el("span", { class: "krea2-direction-hint" }, "applies to THIS character — connect a model to the node's Model input"),
         el("span", { class: "krea2-structured-spacer" }),
-        randomBtn,
+        el("div", { class: "krea2-wizard-random-controls" }, [randomBtn, loraEachJobBtn]),
         picker,
       ]));
       const loraSelect = el("select", {
@@ -1759,7 +1819,7 @@
         dataset: { characterId: character.id },
       });
       const header = el("div", { class: "krea2-character-card-header" });
-      header.appendChild(buildCharacterAvatar(character));
+      const avatar = buildCharacterAvatar(character);
       const name = el("input", {
         type: "text",
         class: "krea2-compact-input krea2-character-name",
@@ -1772,12 +1832,30 @@
         el("input", { type: "checkbox", checked: character.enabled !== false, onChange: function (event) { character.enabled = !!event.target.checked; markDirty(); render(); } }),
         el("span", null, "Include"),
       ]);
-      const randomAll = diceButton("Randomize this entire character's look", function () {
+      const randomAll = diceButton("Randomize this entire character's look once now", function () {
         CHARACTER_APPEARANCE.forEach(function (field) {
-          character[field.key] = randomChoice(field.options);
+          randomizeAppearanceField(character, field);
         });
         markDirty(); render();
+      }, "krea2-character-random-look krea2-icon-btn");
+      const allFieldsEachJob = CHARACTER_APPEARANCE.every(function (field) {
+        return !!(character.randomize_fields || {})[field.key];
       });
+      const randomAllEachJob = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-icon-btn krea2-shuffle krea2-character-random-each-job" + (allFieldsEachJob ? " is-active" : ""),
+        title: allFieldsEachJob
+          ? "This character's full look changes for every queued job. Click to keep the look fixed."
+          : "Randomize every appearance field for this character on each queued job.",
+        "aria-label": "Randomize this character's full look every queued job",
+        "aria-pressed": allFieldsEachJob ? "true" : "false",
+        onClick: function () {
+          CHARACTER_APPEARANCE.forEach(function (field) {
+            setAppearanceFieldEachJob(character, field, !allFieldsEachJob);
+          });
+          markDirty(); render();
+        },
+      }, "🔁");
       const save = el("button", {
         type: "button",
         class: "krea2-wizard-btn krea2-save-character",
@@ -1795,11 +1873,25 @@
       const expandBtn = el("button", {
         type: "button",
         class: "krea2-character-expand krea2-icon-btn",
-        title: character.expanded ? "Collapse this character" : "Expand this character",
-        "aria-label": character.expanded ? "Collapse" : "Expand",
-        onClick: function () { character.expanded = !character.expanded; persist(); render(); },
-      }, character.expanded ? "▾" : "▸");
-      header.append(name, summary, el("span", { class: "krea2-structured-spacer" }), enabled, randomAll, save, remove, expandBtn);
+        title: expanded ? "Collapse this character" : "Expand this character",
+        "aria-label": expanded ? "Collapse" : "Expand",
+        onClick: function () {
+          character.expanded = character.expanded === false;
+          persist(); render();
+        },
+      }, expanded ? "▾" : "▸");
+      const identity = el("div", { class: "krea2-character-card-identity" }, [name, summary]);
+      if (!expanded) {
+        identity.appendChild(characterChips(character));
+      }
+      const actions = el("div", { class: "krea2-character-card-actions" }, [
+        enabled,
+        el("div", { class: "krea2-wizard-random-controls" }, [randomAll, randomAllEachJob]),
+        save,
+        remove,
+        expandBtn,
+      ]);
+      header.append(avatar, identity, actions);
 
       const body = el("div", { class: "krea2-character-card-body" });
       if (expanded) {
@@ -1825,23 +1917,78 @@
           const index = state.characters.indexOf(character); state.characters[index] = replacement;
           markDirty(); render();
         } }, "Apply");
-        body.appendChild(el("div", { class: "krea2-character-preset-row" }, [presetSelect, applyPreset]));
 
-        body.appendChild(el("textarea", {
+        /* v1.5.0: expanded members are structured subcards instead of one
+         * continuous mega-form. Identity, Appearance, Direction and LoRA
+         * each get their own labeled panel. */
+        const identitySubcard = el("div", { class: "krea2-subcard krea2-identity-subcard" });
+        identitySubcard.appendChild(el("div", { class: "krea2-subcard-head" }, [
+          el("span", { class: "krea2-subcard-title" }, "Identity"),
+          el("span", { class: "krea2-subcard-hint" }, "preset look · role, background, distinctive features"),
+        ]));
+        identitySubcard.appendChild(el("div", { class: "krea2-character-preset-row" }, [presetSelect, applyPreset]));
+        identitySubcard.appendChild(el("textarea", {
           class: "krea2-compact-textarea krea2-character-identity",
           rows: "1",
           "aria-label": "Character identity",
           placeholder: "Role, background, distinctive features...",
           onInput: function (event) { character.identity = event.target.value; markDirty(); },
         }, character.identity || ""));
+        body.appendChild(identitySubcard);
 
-        body.appendChild(appearanceColumns(character));
-        body.appendChild(renderCharacterDirection(character));
+        const appearanceSubcard = el("div", { class: "krea2-subcard krea2-appearance-subcard" });
+        appearanceSubcard.appendChild(el("div", { class: "krea2-subcard-head" }, [
+          el("span", { class: "krea2-subcard-title" }, "Appearance"),
+          el("span", { class: "krea2-subcard-hint" }, "pick or type · 🎲 rolls once · 🔁 randomizes every queued job"),
+        ]));
+        appearanceSubcard.appendChild(appearanceColumns(character));
+        body.appendChild(appearanceSubcard);
+
+        const directionSubcard = el("div", { class: "krea2-subcard krea2-direction-subcard" });
+        directionSubcard.appendChild(el("div", { class: "krea2-subcard-head" }, [
+          el("span", { class: "krea2-subcard-title" }, "Direction"),
+          el("span", { class: "krea2-subcard-hint" }, "quick directions + per-category concepts for this character only"),
+        ]));
+        directionSubcard.appendChild(renderCharacterDirection(character));
+        body.appendChild(directionSubcard);
+
         body.appendChild(renderLoraSection(character));
       }
       card.appendChild(header);
       card.appendChild(body);
       return card;
+    }
+
+    /* v1.5.0: compact identity chips shown on collapsed cast members.
+     * One pill per populated direction group plus the LoRA, so the card
+     * stays scannable at reduced zoom without hovering. */
+    function characterChips(character) {
+      const chips = el("div", { class: "krea2-character-chips" });
+      let hasContent = false;
+      for (const group of DIRECTION_GROUPS) {
+        const labels = (character.rows || []).filter(function (row) {
+          return group.categories.includes(row.category);
+        }).map(function (row) { return row.label || row.preset_id; });
+        if (!labels.length) continue;
+        chips.appendChild(el("span", {
+          class: "krea2-chip krea2-character-chip",
+          title: group.label + ": " + labels.join(", "),
+        }, (group.icon || "") + group.label + " · " + labels.length));
+        hasContent = true;
+      }
+      const loraName = String(character.lora_name || "").trim();
+      if (loraName) {
+        chips.appendChild(el("span", {
+          class: "krea2-chip krea2-character-chip krea2-chip-lora",
+          title: "LoRA: " + loraName,
+        }, "⚡ LoRA · " + loraName));
+        hasContent = true;
+      }
+      if (!hasContent) {
+        chips.appendChild(el("span", { class: "krea2-character-chips-empty" },
+          "No direction or LoRA set yet — expand to craft one"));
+      }
+      return chips;
     }
 
     function saveCharacterPreset(character, suggestedLabel) {
@@ -1878,9 +2025,20 @@
       const exportBtn = el("button", { type: "button", class: "krea2-wizard-btn krea2-quiet-btn", onClick: exportStructuredPresets }, "Export");
       const importInput = el("input", { type: "file", accept: "application/json", hidden: true, onChange: importStructuredPresets });
       const importBtn = el("button", { type: "button", class: "krea2-wizard-btn krea2-quiet-btn", onClick: function () { importInput.click(); } }, "Import");
+      /* v1.5.0: cast-level randomization stays in the cast header so the
+       * whole cast can be re-rolled without opening every member. */
+      const castRandomAll = diceButton("Randomize every character's full look once now", function () {
+        (state.characters || []).forEach(function (character) {
+          CHARACTER_APPEARANCE.forEach(function (field) {
+            randomizeAppearanceField(character, field);
+          });
+        });
+        markDirty();
+        render();
+      }, "krea2-cast-random-all");
       section.appendChild(el("div", { class: "krea2-structured-heading" }, [
         el("strong", null, "People & Characters"),
-        el("span", { class: "krea2-structured-spacer" }), add, exportBtn, importBtn, importInput,
+        el("span", { class: "krea2-structured-spacer" }), castRandomAll, add, exportBtn, importBtn, importInput,
       ]));
       if (!state.characters.length) {
         const starter = el("select", { class: "krea2-compact-select", "aria-label": "Add a preset character" });
@@ -1909,9 +2067,73 @@
     }
 
     function renderSettingEditor() {
-      const section = el("section", { class: "krea2-structured-section" });
+      const section = el("section", { class: "krea2-structured-section krea2-scene-editor" });
       const setting = state.setting;
       const settingEachJob = !!(state.randomize_on_job || {}).setting;
+      const compact = state.scene_collapsed === true;
+      section.classList.toggle("is-compact", compact);
+
+      /* Shared controls: dice (roll once) and shuffle (every queued job). */
+      const randomizeScene = function () {
+        const preset = randomChoice(SETTING_PRESETS);
+        setting.enabled = true; setting.name = preset[0]; setting.description = preset[1];
+        markDirty(); render();
+      };
+      const sceneDice = diceButton("Randomize the scene", randomizeScene);
+      const sceneShuffle = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-icon-btn krea2-shuffle" + (settingEachJob ? " is-active" : ""),
+        title: settingEachJob
+          ? "Shuffle on: a fresh scene is chosen for every queued job. Click to stop."
+          : "Shuffle off: the scene stays fixed. Click to pick a fresh scene every queued job.",
+        "aria-label": "Randomize the scene every queued job",
+        onClick: function () {
+          state.randomize_on_job = state.randomize_on_job || {};
+          state.randomize_on_job.setting = !settingEachJob;
+          state.setting_random_pool = SETTING_PRESETS.map(function (preset) { return { name: preset[0], description: preset[1] }; });
+          if (!settingEachJob) setting.enabled = true;
+          markDirty(); render();
+        },
+      }, "🔀");
+      const expandBtn = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-scene-expand",
+        title: compact ? "Expand the scene editor" : "Collapse the scene editor to one line",
+        "aria-label": compact ? "Expand scene editor" : "Collapse scene editor",
+        "aria-expanded": compact ? "false" : "true",
+        onClick: function () {
+          state.scene_collapsed = !compact;
+          markDirty();
+          render();
+        },
+      }, compact ? "Expand" : "Collapse");
+
+      /* v1.5.0: compact state — one-line semantic summary with the dice,
+       * shuffle and expand controls. */
+      if (compact) {
+        const summary = el("div", { class: "krea2-scene-summary" }, [
+          el("strong", { class: "krea2-scene-name" },
+            setting.enabled && setting.name ? setting.name : "Scene"),
+          el("span", {
+            class: "krea2-scene-summary-text",
+            title: setting.description || "",
+          }, setting.enabled
+            ? (setting.description || "No description yet — expand to describe the scene.")
+            : "Not included yet — expand to describe the scene."),
+        ]);
+        const actions = el("div", { class: "krea2-scene-compact-actions" }, [
+          el("label", { class: "krea2-inline-check", title: "Include this scene in the prompt" }, [
+            el("input", { type: "checkbox", checked: !!setting.enabled, onChange: function (event) { setting.enabled = !!event.target.checked; markDirty(); render(); } }),
+            el("span", null, "Include"),
+          ]),
+          sceneDice,
+          sceneShuffle,
+          expandBtn,
+        ]);
+        section.appendChild(el("div", { class: "krea2-scene-compact-row" }, [summary, actions]));
+        return section;
+      }
+
       const heading = el("div", { class: "krea2-structured-heading" }, [
         el("strong", null, "Scene"),
         el("span", { class: "krea2-structured-spacer" }),
@@ -1919,21 +2141,8 @@
           el("input", { type: "checkbox", checked: !!setting.enabled, onChange: function (event) { setting.enabled = !!event.target.checked; markDirty(); render(); } }),
           el("span", null, "Include"),
         ]),
-        el("button", {
-          type: "button",
-          class: "krea2-wizard-btn krea2-icon-btn krea2-shuffle" + (settingEachJob ? " is-active" : ""),
-          title: settingEachJob
-            ? "Shuffle on: a fresh scene is chosen for every queued job. Click to stop."
-            : "Shuffle off: the scene stays fixed. Click to pick a fresh scene every queued job.",
-          "aria-label": "Randomize the scene every queued job",
-          onClick: function () {
-            state.randomize_on_job = state.randomize_on_job || {};
-            state.randomize_on_job.setting = !settingEachJob;
-            state.setting_random_pool = SETTING_PRESETS.map(function (preset) { return { name: preset[0], description: preset[1] }; });
-            if (!settingEachJob) setting.enabled = true;
-            markDirty(); render();
-          },
-        }, "🔀"),
+        sceneShuffle,
+        expandBtn,
       ]);
       section.appendChild(heading);
       const toolbar = el("div", { class: "krea2-structured-toolbar krea2-scene-toolbar" });
@@ -1966,7 +2175,7 @@
       savedSettings.forEach(function (preset, index) { saved.appendChild(el("option", { value: String(index) }, preset.label || "Scene")); });
       toolbar.append(
         builtins,
-        diceButton("Randomize the scene", function () { const preset = randomChoice(SETTING_PRESETS); setting.enabled = true; setting.name = preset[0]; setting.description = preset[1]; markDirty(); render(); }),
+        sceneDice,
         saved,
         el("button", {
           type: "button",
@@ -2868,7 +3077,7 @@ function buildGroupPresetPicker(group) {
             markDirty();
             render();
           },
-        }, "🔀");
+        }, "🔁");
         const randomControls = el("div", { class: "krea2-wizard-random-controls" }, [
           randomBtn,
           randomEachJob,
@@ -2931,8 +3140,11 @@ function buildGroupPresetPicker(group) {
       }
     }
 
-    /* Groups owned by the Scene tab: camera, lighting, environment, style. */
-    const SCENE_GROUPS = ["camera_film", "lighting", "environment", "style_finish"];
+    /* Groups owned by the Scene tab: subject/expression, camera, lighting,
+     * environment, style. The global Subject & Expression pool covers the
+     * subject's body language and expression concepts that are not owned by
+     * a specific cast member (per-character direction stays in the Cast tab). */
+    const SCENE_GROUPS = ["subject_expression", "camera_film", "lighting", "environment", "style_finish"];
 
     function renderCastTab() {
       structuredHost.innerHTML = "";
@@ -3218,6 +3430,7 @@ function buildGroupPresetPicker(group) {
           "active_tab", "footer_open", "settings_open", "collapsed",
           "selected_character_id", "show_work",
           "show_motion_prompt", "show_face_guidance", "show_concepts_tab",
+          "scene_collapsed",
         ];
         for (const key of uiKeys) {
           if (key in state) merged[key] = state[key];

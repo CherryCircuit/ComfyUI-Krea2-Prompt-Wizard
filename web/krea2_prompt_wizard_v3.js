@@ -4,17 +4,17 @@ import { app } from "../../scripts/app.js";
 window.app = app;
 
 // These are .mjs so ComfyUI does not auto-import them independently and out of order.
-await import("./js/state.mjs?v=6");
-await import("./js/searchable_selector.mjs?v=6");
-await import("./js/preset_row.mjs?v=6");
-await import("./js/library_editor.mjs?v=6");
-await import("./js/materialize.mjs?v=6");
-await import("./js/inspector.mjs?v=6");
-await import("./js/wizard_widget.mjs?v=6");
+await import("./js/state.mjs?v=9");
+await import("./js/searchable_selector.mjs?v=9");
+await import("./js/preset_row.mjs?v=9");
+await import("./js/library_editor.mjs?v=9");
+await import("./js/materialize.mjs?v=9");
+await import("./js/inspector.mjs?v=9");
+await import("./js/wizard_widget.mjs?v=9");
 
 const stylesheet = document.createElement("link");
 stylesheet.rel = "stylesheet";
-stylesheet.href = new URL("./css/wizard.css?v=6", import.meta.url).href;
+stylesheet.href = new URL("./css/wizard.css?v=9", import.meta.url).href;
 document.head.appendChild(stylesheet);
 
 app.registerExtension({
@@ -93,18 +93,18 @@ app.registerExtension({
           {
             serialize: false,
             hideOnZoom: false,
-            getMinHeight: () => 600,
+            getMinHeight: () => 480,
           },
         );
         wizard.domWidget = domWidget;
         domWidget.computeSize = () => [
           Math.max(this.size?.[0] || 700, 700),
-          Math.max(wizard.root.scrollHeight || 0, 650),
+          Math.max(wizard.root.scrollHeight || 0, 560),
         ];
         this.resizable = true;
         this.setSize([
           Math.max(this.size?.[0] || 0, 700),
-          Math.max(this.size?.[1] || 0, 720),
+          Math.max(this.size?.[1] || 0, 640),
         ]);
       } catch (error) {
         console.error("[Krea2PromptWizard] widget creation failed", error);
