@@ -126,7 +126,21 @@ body.dark {
 
 .krea2-field-wide { grid-column: 1 / -1; }
 .krea2-field-row { flex-wrap: nowrap; }
-.krea2-field-row .krea2-compact-select { flex: 1; min-width: 0; }
+.krea2-field-row .krea2-compact-select,
+.krea2-field-row .krea2-combobox { flex: 1; min-width: 0; }
+.krea2-field-random-controls,
+.krea2-wizard-random-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+.krea2-field-random-controls .krea2-icon-btn {
+  width: 23px;
+  min-width: 23px;
+  height: 22px;
+  font-size: 12px;
+}
 
 .krea2-compact-input,
 .krea2-compact-select,
@@ -142,7 +156,24 @@ body.dark {
 }
 
 .krea2-compact-textarea { width: 100%; resize: vertical; }
-.krea2-field-random { width: 24px; padding: 2px; border: 1px solid var(--krea2-border); border-radius: 3px; background: var(--krea2-bg-strong); color: var(--krea2-text); cursor: pointer; }
+.krea2-field-random,
+.krea2-field-each-job {
+  border: 1px solid var(--krea2-border);
+  border-radius: 3px;
+  background: var(--krea2-bg-strong);
+  color: var(--krea2-text);
+  cursor: pointer;
+}
+.krea2-field-each-job.is-active,
+.krea2-character-random-each-job.is-active,
+.krea2-shuffle.is-active {
+  border-color: var(--krea2-accent);
+  background: color-mix(in srgb, var(--krea2-accent) 32%, var(--krea2-bg-strong));
+  color: #fff;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--krea2-accent) 40%, transparent);
+}
+.krea2-field-random:disabled,
+.krea2-field-each-job:disabled { opacity: 0.4; cursor: not-allowed; }
 .krea2-inline-check { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
 
 .krea2-icon-btn {
@@ -1919,18 +1950,39 @@ body.dark {
 }
 .krea2-character-card.is-expanded { border-color: var(--krea2-accent); }
 .krea2-character-card-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
+  gap: 12px;
+  padding: 10px 12px;
+  min-height: 108px;
 }
 .krea2-character-card-header .krea2-avatar {
-  width: 46px;
-  height: 62px;
-  flex: 0 0 46px;
-  transform: scale(0.6);
+  width: 84px;
+  height: 124px;
+  flex: 0 0 84px;
+  transform: scale(0.8);
   transform-origin: top left;
-  margin: -14px -20px -16px 0;
+  margin: 0 -12px 0 0;
+}
+.krea2-character-card-identity {
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  min-width: 0;
+}
+.krea2-character-card-identity .krea2-character-summary {
+  max-width: none;
+  white-space: normal;
+  line-height: 1.35;
+}
+.krea2-character-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+  max-width: 220px;
 }
 .krea2-character-card-header .krea2-avatar-label { display: none; }
 .krea2-character-name { min-width: 110px; max-width: 180px; font-weight: 600; }
@@ -2252,9 +2304,9 @@ body.dark {
 .comfyui-dark-theme,
 .dark-theme,
 body.dark {
-  --krea2-panel: #202329;
-  --krea2-bg: #202329;
-  --krea2-bg-strong: #2b3038;
+  --krea2-panel: #1b1c21;
+  --krea2-bg: #1b1c21;
+  --krea2-bg-strong: #25262d;
   --krea2-bg-soft: rgba(255, 255, 255, 0.06);
   --krea2-border: transparent;
   --krea2-text: #f5f5f7;
@@ -2265,8 +2317,8 @@ body.dark {
 }
 
 .krea2-wizard-root {
-  gap: 16px;
-  padding: 16px;
+  gap: 10px;
+  padding: 12px;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, "Segoe UI", sans-serif;
   font-size: 12px;
   line-height: 1.35;
@@ -2351,9 +2403,9 @@ body.dark {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 10px;
-  min-height: 46px;
-  padding: 10px 12px;
+  gap: 8px;
+  min-height: 40px;
+  padding: 7px 12px;
   border: 0;
   border-radius: 16px;
   background: color-mix(in srgb, var(--krea2-bg-strong) 86%, transparent);
@@ -2401,6 +2453,81 @@ body.dark {
   box-shadow: none;
 }
 
+/* Prompt-craft group cards: soft surfaces with a hairline divider so the
+ * header, toolbar and concept rows read as one compact Apple-style panel. */
+.krea2-wizard-category {
+  border: 0 !important;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--krea2-bg-strong);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--krea2-text) 6%, transparent);
+}
+.krea2-wizard-category-header {
+  padding: 7px 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--krea2-text) 7%, transparent);
+}
+.krea2-wizard-category-header .krea2-wizard-category-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+.krea2-wizard-category-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--krea2-text);
+}
+.krea2-wizard-category-count {
+  font-size: 10px;
+  color: var(--krea2-text-faint);
+  background: color-mix(in srgb, var(--krea2-panel) 70%, transparent);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.krea2-wizard-category-actions {
+  padding: 6px 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--krea2-text) 5%, transparent);
+}
+.krea2-wizard-category-content {
+  padding: 6px 8px 8px;
+}
+
+/* Concept chips inside a group card read as inset rows, not boxes. */
+.krea2-row {
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--krea2-panel) 45%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--krea2-text) 4%, transparent);
+  transition: box-shadow 0.15s ease, background 0.15s ease;
+}
+.krea2-row:hover {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--krea2-accent) 30%, transparent);
+}
+
+/* Compact direction groups inside a cast card share the card look. */
+.krea2-character-category {
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--krea2-panel) 55%, transparent);
+}
+.krea2-direction-heading {
+  font-size: 11px !important;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--krea2-text-dim) !important;
+  border: 0 !important;
+}
+.krea2-direction-block-head strong,
+.krea2-direction-label {
+  font-size: 11px !important;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--krea2-text-dim) !important;
+  border: 0 !important;
+}
+.krea2-direction-hint {
+  color: var(--krea2-text-faint);
+}
+
 .krea2-wizard-editor,
 .krea2-structured-host,
 .krea2-tab-host,
@@ -2409,7 +2536,7 @@ body.dark {
 .krea2-character-direction,
 .krea2-character-grid-wrap,
 .krea2-footer-body {
-  gap: 12px;
+  gap: 8px;
 }
 
 .krea2-structured-heading strong,
@@ -2451,17 +2578,48 @@ body.dark {
 
 .krea2-character-card {
   padding: 0;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 .krea2-character-card.is-expanded {
   box-shadow: inset 0 0 0 9999px color-mix(in srgb, var(--krea2-accent) 3%, transparent);
 }
 .krea2-character-card-header {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
   padding: 10px 12px;
-  min-height: 46px;
+  min-height: 108px;
+}
+.krea2-character-card-header .krea2-avatar {
+  width: 84px;
+  height: 124px;
+  flex: 0 0 84px;
+  transform: scale(0.8);
+  transform-origin: top left;
+  margin: 0 -12px 0 0;
+}
+.krea2-character-card-identity {
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  min-width: 0;
+}
+.krea2-character-card-identity .krea2-character-summary {
+  max-width: none;
+  white-space: normal;
+  line-height: 1.35;
+}
+.krea2-character-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  flex-wrap: wrap;
+  max-width: 220px;
 }
 .krea2-character-card-body {
-  padding: 12px;
+  padding: 10px 12px;
   background: color-mix(in srgb, var(--krea2-bg-strong) 72%, var(--krea2-panel));
 }
 .krea2-character-details {
@@ -2485,8 +2643,8 @@ body.dark {
 .krea2-avatar.is-unspecified { box-shadow: inset 0 0 0 2px rgba(161, 161, 170, 0.4); }
 
 .krea2-character-columns {
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 10px;
 }
 .krea2-character-column {
   gap: 6px;
@@ -2533,8 +2691,296 @@ body.dark {
 }
 
 @media (max-width: 760px) {
+  .krea2-character-card-header {
+    grid-template-columns: 72px minmax(0, 1fr);
+    align-items: start;
+  }
+  .krea2-character-card-header .krea2-avatar {
+    width: 72px;
+    height: 106px;
+    flex-basis: 72px;
+  }
+  .krea2-character-card-actions { grid-column: 2; justify-content: flex-start; max-width: none; }
   .krea2-character-columns { grid-template-columns: 1fr !important; }
   .krea2-prompt-chip { grid-template-columns: auto minmax(0, 1fr) auto; }
   .krea2-prompt-chip-meta { display: none; }
+}
+
+/* ---------------------------------------------------------------------------
+ * v1.5.0 Compact dark prompt-craft surface
+ * Tightens the v1.4 Apple-style base into the concept-art B2 direction:
+ * frosted header bar, one-line Scene summary, identity-first collapsed cast
+ * rows with visible chips, and structured subcards for expanded members.
+ * Every control from v1.4 remains; this layer only repacks and restyles.
+ * --------------------------------------------------------------------------- */
+.krea2-wizard-root {
+  gap: 8px;
+  padding: 10px;
+  font-size: 11.5px;
+}
+
+/* Header: frosted pill bar with the mode switch, presets and history. */
+.krea2-wizard-top {
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--krea2-bg-strong) 74%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  backdrop-filter: blur(14px) saturate(160%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--krea2-text) 6%, transparent),
+    0 1px 0 color-mix(in srgb, var(--krea2-text) 4%, transparent);
+}
+
+.krea2-wizard-top .krea2-wizard-saved {
+  gap: 4px;
+  min-width: 200px;
+  max-width: 480px;
+}
+
+.krea2-wizard-btn {
+  padding: 4px 9px;
+  min-height: 24px;
+  font-size: 11px;
+}
+.krea2-icon-btn {
+  width: 26px;
+  min-width: 26px;
+  height: 24px;
+  font-size: 13px;
+}
+.krea2-wizard-random-all { width: auto; min-width: 26px; }
+
+/* Mode tabs: compact segmented control. */
+.krea2-wizard-tabs {
+  gap: 2px;
+  padding: 3px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--krea2-bg-strong) 62%, transparent);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  backdrop-filter: blur(12px) saturate(150%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--krea2-text) 5%, transparent);
+}
+.krea2-wizard-tab {
+  padding: 5px 10px;
+  font-size: 11.5px;
+}
+
+/* Sticky prompt summary chip: tighter but still the scan target. */
+.krea2-prompt-chip {
+  min-height: 36px;
+  padding: 6px 11px;
+  border-radius: 14px;
+}
+.krea2-prompt-chip-text { font-size: 10.5px; }
+
+/* Prompt-craft group cards: tighter headers and action rows. */
+.krea2-wizard-category-header { padding: 6px 9px; }
+.krea2-wizard-category-title { font-size: 11.5px; }
+.krea2-wizard-category-count { padding: 1px 7px; font-size: 9.5px; }
+.krea2-wizard-category-actions {
+  padding: 5px 9px;
+  flex-wrap: wrap;
+}
+.krea2-wizard-category-content { padding: 5px 7px 7px; }
+.krea2-wizard-category-summary {
+  font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* Scene editor: one-line summary card by default. */
+.krea2-scene-editor {
+  padding: 0;
+  overflow: hidden;
+}
+.krea2-scene-compact-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+}
+.krea2-scene-summary {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.krea2-scene-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--krea2-text);
+}
+.krea2-scene-summary-text {
+  font-size: 10.5px;
+  color: var(--krea2-text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.krea2-scene-compact-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+}
+.krea2-scene-expand { white-space: nowrap; }
+.krea2-scene-editor:not(.is-compact) { padding: 8px; }
+
+/* Cast editor header keeps Add Character and cast-level dice. */
+.krea2-cast-random-all { width: auto; min-width: 26px; }
+
+/* Identity-first cast rows: compact avatar, strong name, chips. */
+.krea2-character-card-header {
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 8px 10px;
+  min-height: 64px;
+}
+.krea2-character-card-header .krea2-avatar {
+  width: 56px;
+  height: 78px;
+  flex-basis: 56px;
+  transform: none;
+  margin: 0;
+  border-radius: 10px;
+}
+.krea2-character-card-header .krea2-avatar-art {
+  transform: scale(0.61);
+  transform-origin: top left;
+}
+.krea2-character-name {
+  font-size: 13px;
+  font-weight: 650;
+  min-width: 90px;
+  max-width: 200px;
+}
+.krea2-character-card-identity { gap: 3px; }
+.krea2-character-summary { font-size: 10.5px; }
+.krea2-character-card-actions {
+  gap: 4px;
+  max-width: 210px;
+}
+
+/* Collapsed-member chips: direction counts and LoRA, always visible. */
+.krea2-character-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  margin-top: 2px;
+}
+.krea2-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--krea2-accent) 10%, transparent);
+  color: var(--krea2-text-dim);
+  font-size: 10px;
+  line-height: 1.3;
+  padding: 2px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.krea2-chip.krea2-character-chip {
+  border: 1px solid color-mix(in srgb, var(--krea2-text) 8%, transparent);
+}
+.krea2-chip.krea2-chip-lora { background: color-mix(in srgb, var(--krea2-accent) 16%, transparent); }
+.krea2-character-chips-empty {
+  font-size: 10px;
+  color: var(--krea2-text-faint);
+}
+
+/* Expanded members: labeled subcards instead of one continuous form. */
+.krea2-subcard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 9px 11px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--krea2-bg-strong) 55%, var(--krea2-panel));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--krea2-text) 5%, transparent);
+}
+.krea2-subcard-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid color-mix(in srgb, var(--krea2-text) 6%, transparent);
+}
+.krea2-subcard-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--krea2-text-dim);
+}
+.krea2-subcard-hint {
+  font-size: 10px;
+  color: var(--krea2-text-faint);
+}
+.krea2-subcard-hint:empty { display: none; }
+
+/* Direction blocks inside a subcard lose their outer chrome. */
+.krea2-direction-subcard .krea2-character-direction {
+  margin: 0;
+  padding: 0;
+  border: 0 !important;
+  background: transparent;
+}
+.krea2-direction-subcard .krea2-direction-heading { margin-bottom: 2px; }
+
+/* No horizontal scrolling: let rows wrap and text break inside cards. */
+.krea2-wizard-editor,
+.krea2-tab-host,
+.krea2-structured-section,
+.krea2-character-card,
+.krea2-wizard-categories,
+.krea2-character-direction,
+.krea2-subcard,
+.krea2-scene-top {
+  min-width: 0;
+}
+.krea2-wizard-category-content { min-width: 0; }
+.krea2-row { min-width: 0; }
+.krea2-wizard-category-header,
+.krea2-direction-block-head {
+  min-width: 0;
+}
+.krea2-row-label,
+.krea2-preview-concept {
+  overflow-wrap: anywhere;
+}
+
+/* Visible focus states across every interactive surface. */
+.krea2-wizard-btn:focus-visible,
+.krea2-wizard-tab:focus-visible,
+.krea2-character-tab:focus-visible,
+.krea2-character-expand:focus-visible,
+.krea2-emotion-chip:focus-visible,
+.krea2-shuffle:focus-visible,
+.krea2-field-random:focus-visible,
+.krea2-field-each-job:focus-visible,
+.krea2-compact-input:focus-visible,
+.krea2-compact-select:focus-visible,
+.krea2-compact-textarea:focus-visible,
+.krea2-wizard-base:focus-visible,
+.krea2-wizard-saved-select:focus-visible {
+  outline: 2px solid var(--krea2-accent-strong);
+  outline-offset: 1px;
+}
+
+@media (max-width: 900px) {
+  .krea2-character-card-header {
+    grid-template-columns: 56px minmax(0, 1fr);
+    align-items: start;
+  }
+  .krea2-character-card-actions { grid-column: 2; justify-content: flex-start; max-width: none; }
+  .krea2-scene-compact-row { flex-wrap: wrap; }
+  .krea2-scene-compact-actions { flex: 1 1 auto; justify-content: flex-end; }
 }
 

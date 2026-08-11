@@ -129,11 +129,18 @@
   });
 
   const RANDOM_GROUP_CATEGORIES = Object.freeze({
-    subject_expression: Object.freeze(["body", "subject_movement", "emotion", "face", "gaze"]),
-    camera_film: Object.freeze(["framing", "angle", "lens", "composition", "film_color"]),
+    subject_expression: Object.freeze([
+      "body", "subject_movement", "emotion", "emotion_trigger",
+      "face", "face_trigger", "gaze", "mouth", "position",
+    ]),
+    camera_film: Object.freeze([
+      "framing", "angle", "perspective", "lens", "aperture",
+      "camera_body", "composition", "camera_movement", "lens_family",
+      "film_color",
+    ]),
     lighting: Object.freeze(["lighting_setup", "lighting_direction", "lighting_effect"]),
     environment: Object.freeze(["atmosphere", "environment_movement"]),
-    style_finish: Object.freeze(["style", "texture", "detail"]),
+    style_finish: Object.freeze(["style", "texture", "detail", "custom"]),
   });
 
   const CATEGORY_GROUPS = Object.freeze(
@@ -192,6 +199,10 @@
       show_face_guidance: false,
       show_concepts_tab: false,
       show_motion_prompt: false,
+      // v1.5.0: the Scene editor opens as a one-line summary card and
+      // expands to the full field set. The flag is pure UI state and is
+      // preserved across workflow saves/restores and job executions.
+      scene_collapsed: true,
     };
   }
 
@@ -231,6 +242,7 @@
       "show_face_guidance",
       "show_concepts_tab",
       "show_motion_prompt",
+      "scene_collapsed",
     ]) {
       if (key in raw) base[key] = raw[key];
     }

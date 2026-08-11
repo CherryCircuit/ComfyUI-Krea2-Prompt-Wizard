@@ -228,17 +228,49 @@ if (findByClass(wizard.root, "krea2-row-preview").length !== 0
     || findByClass(wizard.root, "krea2-row-group").length !== 0) {
   throw new Error("Compact concept cards must not render legacy detail controls.");
 }
-if (findByClass(wizard.root, "krea2-wizard-category").length !== 4) {
-  throw new Error("The Scene tab must absorb the four global concept groups.");
+if (findByClass(wizard.root, "krea2-wizard-category").length !== 5) {
+  throw new Error("The Scene tab must absorb the five global concept groups including Subject & Expression.");
 }
-if (findByClass(wizard.root, "krea2-wizard-random-controls").length !== 4) {
+if (findByClass(wizard.root, "krea2-wizard-random-controls").length !== 5) {
   throw new Error("Each scene concept group must keep its dice and shuffle controls.");
 }
-if (findByClass(wizard.root, "krea2-shuffle").length < 4) {
+if (findByClass(wizard.root, "krea2-shuffle").length < 5) {
   throw new Error("Group each-job flags must use the shuffle icon.");
 }
 if (findByClass(wizard.root, "krea2-wizard-category-load").length !== 0) {
   throw new Error("Group presets must load automatically without a Load button.");
+}
+
+/* --- Global Subject & Expression section is visible and explicit ----- */
+const sceneSections = findByClass(wizard.root, "krea2-wizard-category");
+const subjectSection = sceneSections.find((section) => {
+  const titles = findByClass(section, "krea2-wizard-category-title");
+  return titles.length && textOf(titles[0]).includes("Subject & Expression");
+});
+if (!subjectSection) {
+  throw new Error("The global Subject & Expression section must render on the Scene tab.");
+}
+if (findByClass(subjectSection, "krea2-wizard-category-random").length !== 1
+    || findByClass(subjectSection, "krea2-shuffle").length !== 1
+    || findByClass(subjectSection, "krea2-wizard-category-count").length !== 1
+    || findByClass(subjectSection, "krea2-wizard-category-add").length !== 1
+    || findByClass(subjectSection, "krea2-wizard-category-save").length !== 1) {
+  throw new Error("Subject & Expression must expose count, dice, each-job, add, and save-preset controls.");
+}
+
+/* --- Scene group each-job toggles work without Shift ----------------- */
+const cameraSection = sceneSections.find((section) => {
+  const titles = findByClass(section, "krea2-wizard-category-title");
+  return titles.length && textOf(titles[0]).includes("Camera & Film");
+});
+const cameraEachJob = findByClass(cameraSection, "krea2-shuffle")[0];
+cameraEachJob.listeners.click({ stopPropagation() {} });
+if (!JSON.parse(stateWidget.value).randomize_on_job.camera_film) {
+  throw new Error("Clicking a scene group each-job toggle must persist the flag without Shift.");
+}
+cameraEachJob.listeners.click({ stopPropagation() {} });
+if (JSON.parse(stateWidget.value).randomize_on_job.camera_film) {
+  throw new Error("Clicking an active scene group each-job toggle must turn it off.");
 }
 
 /* Footer: collapsible prompt section on every tab */
@@ -305,10 +337,11 @@ if (findByClass(wizard.root, "krea2-avatar").length !== 2
     || findByClass(wizard.root, "krea2-character-columns").length !== 2
     || findByClass(wizard.root, "krea2-combobox").length < 20
     || findByClass(wizard.root, "krea2-field-random").length < 20
+    || findByClass(wizard.root, "krea2-field-each-job").length < 20
     || findByClass(wizard.root, "krea2-lora-section").length !== 2
     || findByClass(wizard.root, "krea2-quick-directions").length !== 2
     || findByClass(wizard.root, "krea2-character-category").length < 6) {
-  throw new Error("Each cast member must render as an expandable card with appearance comboboxes, shift-aware random controls, quick directions, direction sections, and a LoRA section.");
+  throw new Error("Each cast member must render as an expandable card with appearance comboboxes, explicit random controls, quick directions, direction sections, and a LoRA section.");
 }
 if (findByClass(wizard.root, "krea2-character-tab").length !== 0) {
   throw new Error("Cast members must be stacked sections, not click-to-switch tabs.");
@@ -317,10 +350,10 @@ if (findByClass(wizard.root, "krea2-icon-btn").length < 8) {
   throw new Error("Randomization controls must use compact dice buttons.");
 }
 
-const firstAppearanceRandom = findByClass(wizard.root, "krea2-field-random")[0];
-firstAppearanceRandom.listeners.click({ shiftKey: true });
-if (findByClass(wizard.root, "krea2-field-random").filter((btn) => btn.className.includes("is-active")).length < 1) {
-  throw new Error("Shift-click on an appearance random icon must toggle each-run mode.");
+const firstAppearanceEachJob = findByClass(wizard.root, "krea2-field-each-job")[0];
+firstAppearanceEachJob.listeners.click({});
+if (findByClass(wizard.root, "krea2-field-each-job").filter((btn) => btn.className.includes("is-active")).length < 1) {
+  throw new Error("Clicking an appearance each-job icon must toggle each-run mode without Shift.");
 }
 const sexFields = findByClass(wizard.root, "krea2-combobox").filter((input) => input["aria-label"] === "Sex");
 if (sexFields.length !== 2) {
@@ -345,6 +378,34 @@ if (!insideEach("krea2-character-category", "krea2-wizard-category-count")
     || !insideEach("krea2-character-category", "krea2-wizard-category-save")
     || !insideEach("krea2-character-category", "krea2-wizard-category-add")) {
   throw new Error("Direction sections must expose count, dice, save-preset, and add controls like the Concepts tab.");
+}
+if (!insideEach("krea2-character-category", "krea2-shuffle")) {
+  throw new Error("Every direction group must expose its own visible each-job toggle.");
+}
+if (findByClass(wizard.root, "krea2-character-category")
+  .some((section) => {
+    const buttons = findByClass(section, "button");
+    return buttons.some((btn) => /Shift-click|shiftKey/i.test(btn.title || btn["aria-label"] || ""));
+  })) {
+  throw new Error("Direction randomization controls must not require Shift.");
+}
+
+/* --- Direction each-job toggles work without Shift ------------------ */
+const firstDirectionSection = findByClass(wizard.root, "krea2-character-category")[0];
+const firstDirectionEachJob = findByClass(firstDirectionSection, "krea2-shuffle")[0];
+const firstDirectionCardId = findByClass(wizard.root, "krea2-character-card")[0].dataset.characterId;
+firstDirectionEachJob.listeners.click({ stopPropagation() {} });
+const directionPersisted = JSON.parse(stateWidget.value).characters
+  .find((item) => item.id === firstDirectionCardId);
+if (!directionPersisted.randomize_direction_groups
+    || !directionPersisted.randomize_direction_groups.emotion) {
+  throw new Error("Clicking a direction each-job toggle must persist the flag without Shift.");
+}
+firstDirectionEachJob.listeners.click({ stopPropagation() {} });
+const directionPersistedOff = JSON.parse(stateWidget.value).characters
+  .find((item) => item.id === firstDirectionCardId);
+if (directionPersistedOff.randomize_direction_groups.emotion) {
+  throw new Error("Clicking an active direction each-job toggle must turn it off.");
 }
 
 /* --- Avatar art layer -------------------------------------------------- */
@@ -524,12 +585,39 @@ if (!window.KREA2.helpers.compilePreview) throw new Error("compilePreview must e
 wizard.setState(eachRunState);
 switchTab("cast");
 await new Promise((resolve) => setTimeout(resolve, 25));
-const runFlags = findByClass(wizard.root, "krea2-field-random");
-if (runFlags.length < 25) {
-  throw new Error("Each appearance field must expose a compressed random/each-run control.");
+const rollButtons = findByClass(wizard.root, "krea2-field-random");
+const eachJobButtons = findByClass(wizard.root, "krea2-field-each-job");
+if (rollButtons.length < 25 || eachJobButtons.length < 25) {
+  throw new Error("Each appearance field must expose separate roll-once and each-job controls.");
 }
-if (runFlags.filter((btn) => btn.className.includes("is-active")).length < 2) {
-  throw new Error("Fields flagged for each-run randomization must render as active shuffle icons.");
+if (eachJobButtons.filter((btn) => btn.className.includes("is-active")).length < 2) {
+  throw new Error("Fields flagged for each-run randomization must render as active each-job icons.");
+}
+if (rollButtons.some((btn) => /Shift-click/i.test(btn.title || ""))
+    || eachJobButtons.some((btn) => /Shift-click/i.test(btn.title || ""))) {
+  throw new Error("Appearance randomization controls must not require Shift-click.");
+}
+
+/* --- LoRA trigger words have one-shot and each-job controls ---------- */
+const loraEachJobButtons = findByClass(wizard.root, "krea2-lora-each-job");
+if (loraEachJobButtons.length !== 2) {
+  throw new Error("Every cast member's LoRA section must expose a trigger-word each-job control.");
+}
+const firstLoraEachJob = loraEachJobButtons[0];
+firstLoraEachJob.listeners.click({});
+const loraPersisted = JSON.parse(stateWidget.value).characters.find((item) => item.id === "d1");
+if (!loraPersisted.randomize_fields
+    || !Array.isArray(loraPersisted.randomize_fields.lora_triggers)
+    || !loraPersisted.randomize_fields.lora_triggers.length) {
+  throw new Error("Enabling LoRA each-job must snapshot the trigger-word pool into state.");
+}
+if (findByClass(wizard.root, "krea2-lora-each-job")
+  .filter((btn) => btn.className.includes("is-active")).length !== 1) {
+  throw new Error("Enabling LoRA each-job must render the toggle active.");
+}
+firstLoraEachJob.listeners.click({});
+if (JSON.parse(stateWidget.value).characters.find((item) => item.id === "d1").randomize_fields.lora_triggers) {
+  throw new Error("Disabling LoRA each-job must drop the snapshot pool.");
 }
 
 /* --- Direction sections collapse per character -------------------- */
@@ -631,6 +719,54 @@ if (characterPresets.length !== 1) {
 }
 window.confirm = originalConfirm;
 window.fetch = originalFetch;
+
+/* --- v1.5 compact prompt-craft surface ---------------------------------- */
+switchTab("scene");
+const sceneEditors = findByClass(wizard.root, "krea2-scene-editor");
+if (sceneEditors.length !== 1) {
+  throw new Error("The Scene tab must render the scene editor card.");
+}
+if (!(sceneEditors[0].className || "").split(/\s+/).includes("is-compact")) {
+  throw new Error("The scene editor must open as a one-line compact card by default.");
+}
+const sceneExpandBtn = findByClass(wizard.root, "krea2-scene-expand")[0];
+if (!sceneExpandBtn || sceneExpandBtn["aria-expanded"] !== "false") {
+  throw new Error("The compact scene card must expose an explicit expand control.");
+}
+sceneExpandBtn.listeners.click({});
+if (JSON.parse(stateWidget.value).scene_collapsed !== false
+    || findByClass(wizard.root, "krea2-scene-description").length !== 1) {
+  throw new Error("Expanding the scene must reveal the full scene editor and persist the flag.");
+}
+
+switchTab("cast");
+if (findByClass(wizard.root, "krea2-cast-random-all").length !== 1) {
+  throw new Error("The cast header must keep a cast-level randomization control.");
+}
+if (findByClass(wizard.root, "krea2-subcard").length < 6) {
+  throw new Error("Expanded cast members must render Identity, Appearance and Direction subcards.");
+}
+
+const collapsedState = JSON.parse(JSON.stringify(eachRunState));
+collapsedState.characters[0].lora_name = "mecha-char v2.safetensors";
+wizard.setState(collapsedState);
+switchTab("cast");
+const cardExpand = findByClass(wizard.root, "krea2-character-expand")[0];
+cardExpand.listeners.click({});
+const collapsedCards = findByClass(wizard.root, "krea2-character-card");
+if ((collapsedCards[0].className || "").split(/\s+/).includes("is-expanded")
+    || findByClass(wizard.root, "krea2-character-chips").length !== 1) {
+  throw new Error("Collapsed cast members must stay identity-first and render direction chips.");
+}
+const chipsHost = findByClass(wizard.root, "krea2-character-chips")[0];
+if (findByClass(chipsHost, "krea2-character-chip").length < 2
+    || !textOf(chipsHost).includes("LoRA")) {
+  throw new Error("Collapsed chips must summarize direction groups and the LoRA without hovering.");
+}
+cardExpand.listeners.click({});
+if (findByClass(wizard.root, "krea2-character-chips").length !== 0) {
+  throw new Error("Expanding a cast member must reveal its subcards instead of the chips.");
+}
 
 wizard.recordExecution("first prompt");
 wizard.recordExecution("second prompt");
