@@ -2984,3 +2984,481 @@ body.dark {
   .krea2-scene-compact-actions { flex: 1 1 auto; justify-content: flex-end; }
 }
 
+/* ---------------------------------------------------------------------------
+ * v2.0 B2 concept: dark glass shell + compact overview card
+ * Final layer. The wizard opens as one rounded glass card: title header,
+ * prompt preview + copy, one-line Scene · Shot summary, collapsed cast rows
+ * with chips, and a LoRA summary row. The full editors keep the same shell
+ * styling when expanded. The palette is scoped to the root (and its fixed
+ * overlays) instead of competing at :root level.
+ * --------------------------------------------------------------------------- */
+.krea2-wizard-root,
+.krea2-searchable-panel,
+.krea2-library-dialog {
+  --krea2-panel: #10141a;
+  --krea2-bg: #171c24;
+  --krea2-bg-strong: #1e2530;
+  --krea2-bg-soft: rgba(255, 255, 255, 0.05);
+  --krea2-border: rgba(255, 255, 255, 0.09);
+  --krea2-text: #eef1f6;
+  --krea2-text-dim: #a8b1c0;
+  --krea2-text-faint: #7a8492;
+  --krea2-accent: #5b9dff;
+  --krea2-accent-strong: #8ab9ff;
+  --krea2-pad: 10px;
+  --krea2-radius: 14px;
+  --krea2-control-radius: 9px;
+}
+
+.krea2-wizard-root {
+  border-radius: 20px;
+  padding: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 40%),
+    linear-gradient(180deg, #171c26, #10141b);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+.krea2-searchable-panel {
+  border-color: var(--krea2-border);
+  background: color-mix(in srgb, var(--krea2-panel) 94%, transparent);
+}
+.krea2-library-dialog {
+  background: var(--krea2-bg);
+  color: var(--krea2-text);
+  border: 1px solid var(--krea2-border);
+}
+
+/* The compact shell is the primary surface; the legacy editors are hidden
+ * while it is showing and return inside the same shell when expanded. */
+.krea2-b2-shell {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.krea2-wizard-compact .krea2-b2-shell { display: flex; }
+.krea2-wizard-expanded .krea2-b2-shell { display: flex; }
+
+.krea2-wizard-compact .krea2-wizard-top,
+.krea2-wizard-compact .krea2-prompt-chip,
+.krea2-wizard-compact .krea2-wizard-tabs,
+.krea2-wizard-compact .krea2-wizard-editor,
+.krea2-wizard-compact .krea2-wizard-footer {
+  display: none !important;
+}
+
+/* In expanded mode the B2 shell is the primary surface; the legacy tab
+ * bar, tab hosts and footer chrome stay hidden so the expanded editor
+ * keeps the B2 styling. The settings host remains reachable. */
+.krea2-wizard-expanded .krea2-wizard-top,
+.krea2-wizard-expanded .krea2-prompt-chip,
+.krea2-wizard-expanded .krea2-wizard-tabs,
+.krea2-wizard-expanded .krea2-cast-tab,
+.krea2-wizard-expanded .krea2-scene-tab,
+.krea2-wizard-expanded .krea2-concepts-tab,
+.krea2-wizard-expanded .krea2-prompt-tab,
+.krea2-wizard-expanded .krea2-wizard-footer {
+  display: none !important;
+}
+
+/* Title header */
+.krea2-b2-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 2px 2px 0;
+  min-width: 0;
+}
+.krea2-b2-title-name {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--krea2-text);
+}
+.krea2-b2-title-meta {
+  font-size: 9.5px;
+  color: var(--krea2-text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.krea2-b2-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--krea2-text-faint);
+  white-space: nowrap;
+}
+
+/* Prompt preview card */
+.krea2-b2-prompt {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--krea2-bg-strong) 82%, transparent);
+  box-shadow: inset 0 0 0 1px var(--krea2-border);
+  min-width: 0;
+}
+.krea2-b2-prompt-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--krea2-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.krea2-b2-prompt-copy { white-space: nowrap; }
+
+/* One-line Scene · Shot summary */
+.krea2-b2-scene-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 7px 10px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--krea2-bg-strong) 55%, transparent);
+  box-shadow: inset 0 0 0 1px var(--krea2-border);
+  min-width: 0;
+}
+.krea2-b2-scene-summary {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--krea2-text);
+}
+
+/* Cast heading + collapsed rows */
+.krea2-b2-cast-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 2px;
+  margin-top: 2px;
+  min-width: 0;
+}
+.krea2-b2-cast-count { font-size: 10px; color: var(--krea2-text-dim); }
+.krea2-b2-cast-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.krea2-b2-cast-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--krea2-bg-strong) 70%, transparent);
+  box-shadow: inset 0 0 0 1px var(--krea2-border);
+  color: var(--krea2-text);
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.krea2-b2-cast-row:hover {
+  background: color-mix(in srgb, var(--krea2-accent) 10%, var(--krea2-bg-strong));
+}
+.krea2-b2-cast-row.is-disabled { opacity: 0.55; }
+.krea2-b2-cast-row .krea2-avatar {
+  width: 42px;
+  height: 60px;
+  flex: 0 0 42px;
+  border-radius: 8px;
+  transform: none;
+  margin: 0;
+}
+.krea2-b2-cast-row .krea2-avatar-art {
+  transform: scale(0.42);
+  transform-origin: top left;
+}
+.krea2-b2-cast-row-name {
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 84px;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.krea2-b2-cast-row .krea2-character-chips {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-top: 0;
+  gap: 4px;
+}
+.krea2-b2-cast-row-chevron {
+  flex: 0 0 auto;
+  color: var(--krea2-text-faint);
+  font-size: 16px;
+}
+.krea2-b2-empty-cast {
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--krea2-bg-strong) 40%, transparent);
+  box-shadow: inset 0 0 0 1px var(--krea2-border);
+  color: var(--krea2-text-faint);
+  font-size: 10.5px;
+}
+
+/* LoRA summary row */
+.krea2-b2-lora-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--krea2-accent) 7%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--krea2-accent) 22%, transparent);
+  min-width: 0;
+}
+.krea2-b2-lora-summary {
+  font-size: 10.5px;
+  color: var(--krea2-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* Bottom expand row */
+.krea2-b2-bottom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 2px 0;
+  min-width: 0;
+}
+.krea2-b2-helper {
+  flex: 1 1 auto;
+  font-size: 9.5px;
+  color: var(--krea2-text-faint);
+}
+.krea2-b2-expand-wizard { white-space: nowrap; font-weight: 600; }
+
+/* ------------------------------------------------------------------
+ * Expanded B2: the glass-card shell grows into the full stacked editor.
+ * Every section is a B2 card; the legacy chrome is hidden by the rules
+ * above. The node grows because the shell is the only visible surface.
+ * ------------------------------------------------------------------ */
+.krea2-b2-collapse { white-space: nowrap; font-weight: 600; }
+
+.krea2-b2-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--krea2-bg-strong) 70%, transparent);
+  box-shadow: inset 0 0 0 1px var(--krea2-border);
+  min-width: 0;
+}
+.krea2-b2-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+/* Scene + Shot card: editable Type / Setting / Shot rows. */
+.krea2-b2-scene-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.krea2-b2-field-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.krea2-b2-field-label {
+  flex: 0 0 84px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--krea2-text-faint);
+  white-space: nowrap;
+}
+.krea2-b2-field-row > select,
+.krea2-b2-field-row > .krea2-compact-select,
+.krea2-b2-field-row > .krea2-wizard-creative-mode,
+.krea2-b2-field-row > .krea2-wizard-prompt-field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.krea2-b2-scene-prompt {
+  min-width: 0;
+  border-top: 1px dashed color-mix(in srgb, var(--krea2-border) 60%, transparent);
+  padding-top: 8px;
+}
+.krea2-b2-scene-prompt .krea2-wizard-base {
+  max-height: 60px;
+  min-height: 30px;
+}
+.krea2-b2-scene-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.krea2-b2-scene-detail.is-hidden { display: none; }
+.krea2-b2-scene-detail .krea2-scene-description { max-height: 64px; }
+.krea2-scene-detail-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+.krea2-scene-detail-row .krea2-scene-description {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.krea2-b2-scene-concepts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  border-top: 1px dashed color-mix(in srgb, var(--krea2-border) 60%, transparent);
+  padding-top: 8px;
+}
+.krea2-b2-scene-concepts-hint {
+  font-size: 9.5px;
+  color: var(--krea2-text-faint);
+}
+
+/* Cast section inside the B2 card. */
+.krea2-b2-cast-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Final Prompt Preview card: the single preview surface in expanded mode. */
+.krea2-b2-final-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.krea2-b2-final-preview .krea2-wizard-preview-host {
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--krea2-bg) 80%, transparent);
+  box-shadow: inset 0 0 0 1px var(--krea2-border);
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * Compact expanded-state cast cards: a small header plus the four appearance
+ * fields (Hair, Eyes, Build, Fit) in a 2-column grid, quick directions, the
+ * LoRA select + strength slider, and the concept chips. Spacing stays in the
+ * 8-14px range so the expanded node keeps the concept's proportion instead
+ * of the full legacy appearance wall.
+ * --------------------------------------------------------------------------- */
+.krea2-b2-character-card {
+  margin-bottom: 0;
+  border-radius: 12px;
+}
+.krea2-b2-character-card .krea2-character-card-header {
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 6px 10px;
+  min-height: 0;
+}
+.krea2-b2-character-card .krea2-character-card-header .krea2-avatar {
+  width: 44px;
+  height: 60px;
+  flex: 0 0 44px;
+  transform: none;
+  margin: 0;
+  border-radius: 8px;
+}
+.krea2-b2-character-card .krea2-character-card-header .krea2-avatar-art {
+  transform: scale(0.48);
+  transform-origin: top left;
+}
+.krea2-b2-character-card .krea2-character-card-identity { gap: 2px; }
+.krea2-b2-character-card .krea2-character-name {
+  min-width: 80px;
+  max-width: 160px;
+}
+.krea2-b2-character-card .krea2-character-card-actions {
+  gap: 4px;
+  max-width: none;
+}
+.krea2-b2-character-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 10px 10px;
+  background: color-mix(in srgb, var(--krea2-bg-strong) 72%, var(--krea2-panel));
+  border-top: 1px solid color-mix(in srgb, var(--krea2-border) 60%, transparent);
+}
+.krea2-b2-appearance-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 10px;
+  min-width: 0;
+}
+.krea2-b2-appearance-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.krea2-b2-appearance-field .krea2-b2-field-label { flex: 0 0 auto; }
+.krea2-b2-quick-directions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.krea2-b2-lora-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.krea2-b2-lora-controls .krea2-compact-select {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.krea2-b2-lora-controls .krea2-lora-strength {
+  flex: 1 1 auto;
+  max-width: 180px;
+}
+.krea2-b2-lora-strength-label {
+  font-size: 10px;
+  color: var(--krea2-text-dim);
+  white-space: nowrap;
+}
+.krea2-b2-concept-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+

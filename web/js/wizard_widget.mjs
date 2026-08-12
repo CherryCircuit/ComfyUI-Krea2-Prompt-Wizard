@@ -320,6 +320,8 @@
     let persistedState = JSON.stringify(state);
     let latestPreview = null;
     let previewSequence = 0;
+    let previousExpanded = null;
+    let contractNextSync = false;
 
     const root = el("div", { class: "krea2-wizard-root" });
     const executionHistory = [];
@@ -518,6 +520,15 @@
     root.appendChild(stickyPromptChip);
     root.appendChild(editorBody);
     root.appendChild(footerHost);
+
+    /* v2.0 B2 shell: the compact overview card. It is the primary surface
+     * while wizard_expanded is false; the legacy editors render inside the
+     * shell's expanded mode instead. */
+    const b2Shell = el("div", {
+      class: "krea2-b2-shell",
+      "aria-label": "Krea2 Prompt Wizard overview",
+    });
+    root.appendChild(b2Shell);
 
     /* The backend supplies the built-in category presets together with the
      * user's saved presets. Keeping one source prevents stale browser-only
@@ -751,7 +762,9 @@
         id: id,
         name: "Character " + ((state.characters || []).length + 1),
         enabled: true,
-        expanded: true,
+        // v2.0 B2 shell: new cast members start collapsed; the user opens
+        // them explicitly inside the expanded editor.
+        expanded: false,
         identity: "",
         sex: "",
         age: "",
@@ -1663,6 +1676,51 @@
         .trim();
     }
 
+    /* Shared LoRA picker + strength slider, used by the full LoRA section
+     * and the compact B2 expanded-state cards. */
+    function buildLoraSelect(character) {
+      const loraSelect = el("select", {
+        class: "krea2-compact-select",
+        "aria-label": "LoRA for " + (character.name || "this character"),
+        onChange: function (event) {
+          const name = event.target.value;
+          character.lora_name = name;
+          if (name && !String(character.lora_triggers || "").trim()) {
+            const stem = loraFileNameStem(name);
+            if (stem) character.lora_triggers = stem;
+          }
+          markDirty();
+          render();
+        },
+      });
+      loraSelect.appendChild(el("option", { value: "" }, "No LoRA — " + (loras.length ? loras.length + " available" : "connect to list your loras")));
+      for (const name of loras) {
+        loraSelect.appendChild(el("option", { value: name }, name));
+      }
+      if (loras.includes(character.lora_name)) loraSelect.value = character.lora_name;
+      return loraSelect;
+    }
+
+    function buildLoraStrengthControl(character) {
+      const strength = Number(character.lora_strength) || 0.8;
+      const strengthInput = el("input", {
+        type: "range",
+        min: "0",
+        max: "2",
+        step: "0.05",
+        value: String(strength),
+        class: "krea2-lora-strength",
+        "aria-label": "LoRA strength",
+        onInput: function (event) {
+          character.lora_strength = Math.round(Number(event.target.value) * 20) / 20;
+          markDirty();
+          scheduleAppearanceRender();
+        },
+      });
+      const strengthValue = el("span", { class: "krea2-lora-strength-value" }, strength.toFixed(2));
+      return { input: strengthInput, value: strengthValue };
+    }
+
     function renderLoraSection(character) {
       const section = el("div", { class: "krea2-lora-section" });
       const picker = el("button", {
@@ -1756,41 +1814,10 @@
         el("div", { class: "krea2-wizard-random-controls" }, [randomBtn, loraEachJobBtn]),
         picker,
       ]));
-      const loraSelect = el("select", {
-        class: "krea2-compact-select",
-        "aria-label": "LoRA for " + (character.name || "this character"),
-        onChange: function (event) {
-          const name = event.target.value;
-          character.lora_name = name;
-          if (name && !String(character.lora_triggers || "").trim()) {
-            const stem = loraFileNameStem(name);
-            if (stem) character.lora_triggers = stem;
-          }
-          markDirty();
-          render();
-        },
-      });
-      loraSelect.appendChild(el("option", { value: "" }, "No LoRA — " + (loras.length ? loras.length + " available" : "connect to list your loras")));
-      for (const name of loras) {
-        loraSelect.appendChild(el("option", { value: name }, name));
-      }
-      if (loras.includes(character.lora_name)) loraSelect.value = character.lora_name;
-      const strength = Number(character.lora_strength) || 0.8;
-      const strengthInput = el("input", {
-        type: "range",
-        min: "0",
-        max: "2",
-        step: "0.05",
-        value: String(strength),
-        class: "krea2-lora-strength",
-        "aria-label": "LoRA strength",
-        onInput: function (event) {
-          character.lora_strength = Math.round(Number(event.target.value) * 20) / 20;
-          markDirty();
-          scheduleAppearanceRender();
-        },
-      });
-      const strengthValue = el("span", { class: "krea2-lora-strength-value" }, strength.toFixed(2));
+      const loraSelect = buildLoraSelect(character);
+      const strengthControl = buildLoraStrengthControl(character);
+      const strengthInput = strengthControl.input;
+      const strengthValue = strengthControl.value;
       const loraRow = el("div", { class: "krea2-lora-controls" }, [
         loraSelect,
         el("span", { class: "krea2-direction-label" }, "strength"),
@@ -2066,6 +2093,31 @@
       target.style.height = Math.max(target.scrollHeight || 0, 28) + "px";
     }
 
+    /* Shared scene controls: dice (roll once) and shuffle (every queued job).
+     * Used by both the compact B2 shell and the full scene editor. */
+    function randomizeSceneOnce() {
+      const preset = randomChoice(SETTING_PRESETS);
+      const setting = state.setting && typeof state.setting === "object"
+        ? state.setting
+        : (state.setting = { enabled: false, name: "", description: "" });
+      setting.enabled = true;
+      setting.name = preset[0];
+      setting.description = preset[1];
+      markDirty();
+      render();
+    }
+
+    function toggleSceneShuffle(eachJobOn) {
+      state.randomize_on_job = state.randomize_on_job || {};
+      state.randomize_on_job.setting = !eachJobOn;
+      state.setting_random_pool = SETTING_PRESETS.map(function (preset) {
+        return { name: preset[0], description: preset[1] };
+      });
+      if (!eachJobOn && state.setting) state.setting.enabled = true;
+      markDirty();
+      render();
+    }
+
     function renderSettingEditor() {
       const section = el("section", { class: "krea2-structured-section krea2-scene-editor" });
       const setting = state.setting;
@@ -2073,13 +2125,7 @@
       const compact = state.scene_collapsed === true;
       section.classList.toggle("is-compact", compact);
 
-      /* Shared controls: dice (roll once) and shuffle (every queued job). */
-      const randomizeScene = function () {
-        const preset = randomChoice(SETTING_PRESETS);
-        setting.enabled = true; setting.name = preset[0]; setting.description = preset[1];
-        markDirty(); render();
-      };
-      const sceneDice = diceButton("Randomize the scene", randomizeScene);
+      const sceneDice = diceButton("Randomize the scene", randomizeSceneOnce);
       const sceneShuffle = el("button", {
         type: "button",
         class: "krea2-wizard-btn krea2-icon-btn krea2-shuffle" + (settingEachJob ? " is-active" : ""),
@@ -2088,11 +2134,7 @@
           : "Shuffle off: the scene stays fixed. Click to pick a fresh scene every queued job.",
         "aria-label": "Randomize the scene every queued job",
         onClick: function () {
-          state.randomize_on_job = state.randomize_on_job || {};
-          state.randomize_on_job.setting = !settingEachJob;
-          state.setting_random_pool = SETTING_PRESETS.map(function (preset) { return { name: preset[0], description: preset[1] }; });
-          if (!settingEachJob) setting.enabled = true;
-          markDirty(); render();
+          toggleSceneShuffle(settingEachJob);
         },
       }, "🔀");
       const expandBtn = el("button", {
@@ -3243,6 +3285,588 @@ function buildGroupPresetPicker(group) {
       return section;
     }
 
+    /* ------------------------------------------------------------------
+     * v2.0 B2 compact shell: the primary surface of the wizard.
+     * One rounded overview card with title, prompt preview + copy, a
+     * one-line Scene · Shot summary, collapsed cast rows with chips, and
+     * a LoRA summary. Every advanced control stays reachable through the
+     * expanded editor.
+     * ------------------------------------------------------------------ */
+    function characterHasChips(character) {
+      if (String(character.lora_name || "").trim()) return true;
+      return Array.isArray(character.rows) && character.rows.some(function (row) {
+        return row && row.enabled !== false;
+      });
+    }
+
+    function b2CastRow(character) {
+      const row = el("div", {
+        class: "krea2-b2-cast-row" + (character.enabled === false ? " is-disabled" : ""),
+        role: "button",
+        tabindex: "0",
+        title: "Open the full editor at " + (character.name || "this character"),
+        onClick: function () {
+          state.wizard_expanded = true;
+          if (character.expanded === false) character.expanded = true;
+          markDirty();
+          render();
+        },
+      });
+      row.append(
+        buildCharacterAvatar(character),
+        el("span", { class: "krea2-b2-cast-row-name" }, character.name || "Character"),
+      );
+      if (characterHasChips(character)) row.appendChild(characterChips(character));
+      row.appendChild(el("span", { class: "krea2-b2-cast-row-chevron" }, "›"));
+      return row;
+    }
+
+    /* Shared B2 building blocks used by both the compact shell and the
+     * expanded editor so the two surfaces stay visually identical. */
+    function b2MetaCounts(compiled) {
+      const enabledCharacters = (state.characters || []).filter(function (character) {
+        return character && character.enabled !== false;
+      });
+      const activeConcepts = (state.rows || []).filter(function (row) {
+        return row && row.enabled !== false;
+      }).length;
+      const activeLoras = enabledCharacters.filter(function (character) {
+        return String(character.lora_name || "").trim();
+      }).length;
+      const promptText = (compiled && compiled.final_prompt) || "";
+      const tokens = promptText.trim() ? promptText.trim().split(/\s+/).length : 0;
+      return {
+        tokens: tokens,
+        cast: enabledCharacters.length,
+        concepts: activeConcepts,
+        loras: activeLoras,
+      };
+    }
+
+    function b2TitleHeader(meta) {
+      return el("div", { class: "krea2-b2-title" }, [
+        el("span", { class: "krea2-b2-title-name" }, "Krea2 Prompt Wizard"),
+        el("span", { class: "krea2-b2-title-meta" },
+          meta.tokens + " words · " + meta.cast + " cast · "
+          + meta.concepts + " concepts · " + meta.loras + " LoRA"),
+      ]);
+    }
+
+    function b2PromptRow(promptText) {
+      return el("div", { class: "krea2-b2-prompt" }, [
+        el("span", { class: "krea2-b2-label" }, "Prompt"),
+        el("div", { class: "krea2-b2-prompt-text", title: promptText || "" },
+          promptText || "No generation prompt yet"),
+        el("button", {
+          type: "button",
+          class: "krea2-wizard-btn krea2-b2-prompt-copy",
+          title: "Copy compiled prompt",
+          "aria-label": "Copy compiled prompt",
+          onClick: function () { copy(promptText); },
+        }, "📋 Copy"),
+      ]);
+    }
+
+    function b2LoraRow() {
+      const enabledCharacters = (state.characters || []).filter(function (character) {
+        return character && character.enabled !== false;
+      });
+      const loraNames = enabledCharacters.map(function (character) {
+        return String(character.lora_name || "").trim();
+      }).filter(Boolean);
+      return el("div", { class: "krea2-b2-lora-row" }, [
+        el("span", { class: "krea2-b2-label" }, "LoRA"),
+        el("div", { class: "krea2-b2-lora-summary" },
+          loraNames.length ? loraNames.join(" · ") : "— none —"),
+      ]);
+    }
+
+    /* The compact expanded-state card. It shows only the four appearance
+     * fields in a 2-column grid, quick directions, the LoRA select and
+     * strength slider, and the concept chips — never the full appearance
+     * wall or the direction sections of the legacy renderer. */
+    const B2_APPEARANCE_FIELDS = (function () {
+      const byKey = {};
+      CHARACTER_APPEARANCE.forEach(function (field) { byKey[field.key] = field; });
+      return [
+        { key: "hair_style", label: "Hair", options: byKey.hair_style.options },
+        { key: "eyes", label: "Eyes", options: byKey.eyes.options },
+        { key: "body_type", label: "Build", options: byKey.body_type.options },
+        { key: "fitness", label: "Fit", options: byKey.fitness.options },
+      ];
+    })();
+
+    function b2LoraControls(character) {
+      const strength = buildLoraStrengthControl(character);
+      return el("div", { class: "krea2-b2-lora-controls" }, [
+        el("span", { class: "krea2-b2-field-label" }, "LoRA"),
+        buildLoraSelect(character),
+        el("span", { class: "krea2-b2-lora-strength-label" }, "strength"),
+        strength.input,
+        strength.value,
+      ]);
+    }
+
+    function renderB2CompactCharacterCard(character, index) {
+      const expanded = character.expanded !== false;
+      const card = el("section", {
+        class: "krea2-character-card krea2-b2-character-card" + (expanded ? " is-expanded" : ""),
+        dataset: { characterId: character.id },
+      });
+      const header = el("div", { class: "krea2-character-card-header" });
+      const avatar = buildCharacterAvatar(character);
+      const name = el("input", {
+        type: "text",
+        class: "krea2-compact-input krea2-character-name",
+        value: character.name || "",
+        "aria-label": "Character name",
+        onInput: function (event) { character.name = event.target.value; markDirty(); },
+      });
+      const summary = el("span", { class: "krea2-character-summary" }, characterSummary(character) || "No appearance set yet");
+      const enabled = el("label", { class: "krea2-inline-check", title: "Include this character in the prompt" }, [
+        el("input", { type: "checkbox", checked: character.enabled !== false, onChange: function (event) { character.enabled = !!event.target.checked; markDirty(); render(); } }),
+        el("span", null, "Include"),
+      ]);
+      const randomAll = diceButton("Randomize this entire character's look once now", function () {
+        CHARACTER_APPEARANCE.forEach(function (field) {
+          randomizeAppearanceField(character, field);
+        });
+        markDirty(); render();
+      }, "krea2-character-random-look krea2-icon-btn");
+      const allFieldsEachJob = B2_APPEARANCE_FIELDS.every(function (field) {
+        return !!(character.randomize_fields || {})[field.key];
+      });
+      const randomAllEachJob = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-icon-btn krea2-shuffle krea2-character-random-each-job" + (allFieldsEachJob ? " is-active" : ""),
+        title: allFieldsEachJob
+          ? "This character's appearance changes for every queued job. Click to keep it fixed."
+          : "Randomize this character's appearance for every queued job.",
+        "aria-label": "Randomize this character's appearance every queued job",
+        "aria-pressed": allFieldsEachJob ? "true" : "false",
+        onClick: function () {
+          B2_APPEARANCE_FIELDS.forEach(function (field) {
+            setAppearanceFieldEachJob(character, field, !allFieldsEachJob);
+          });
+          markDirty(); render();
+        },
+      }, "🔁");
+      const save = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-save-character",
+        title: "Save this character's look as a reusable preset",
+        onClick: function () { saveCharacterPreset(character, name.value || character.name); },
+      }, "Save");
+      const remove = el("button", { type: "button", class: "krea2-wizard-btn krea2-icon-btn krea2-danger", title: "Delete character", "aria-label": "Delete character", onClick: function () {
+        if (!window.confirm("Delete \u201c" + (character.name || "this character") + "\u201d from the cast?")) return;
+        state.characters = state.characters.filter(function (item) { return item.id !== character.id; });
+        if (state.selected_character_id === character.id) {
+          state.selected_character_id = state.characters.length ? state.characters[0].id : null;
+        }
+        markDirty(); render();
+      } }, "×");
+      const expandBtn = el("button", {
+        type: "button",
+        class: "krea2-character-expand krea2-icon-btn",
+        title: expanded ? "Collapse this character" : "Expand this character",
+        "aria-label": expanded ? "Collapse" : "Expand",
+        onClick: function () {
+          character.expanded = character.expanded === false;
+          persist(); render();
+        },
+      }, expanded ? "▾" : "▸");
+      const identity = el("div", { class: "krea2-character-card-identity" }, [name, summary]);
+      if (!expanded) {
+        identity.appendChild(characterChips(character));
+      }
+      const actions = el("div", { class: "krea2-character-card-actions" }, [
+        enabled,
+        el("div", { class: "krea2-wizard-random-controls" }, [randomAll, randomAllEachJob]),
+        save,
+        remove,
+        expandBtn,
+      ]);
+      header.append(avatar, identity, actions);
+
+      const body = el("div", { class: "krea2-b2-character-body" });
+      if (expanded) {
+        const grid = el("div", { class: "krea2-b2-appearance-grid" });
+        for (const field of B2_APPEARANCE_FIELDS) {
+          const combobox = comboboxForField(character, field);
+          grid.appendChild(el("label", { class: "krea2-b2-appearance-field" }, [
+            el("span", { class: "krea2-b2-field-label" }, field.label),
+            combobox.input,
+            combobox.datalist,
+          ]));
+        }
+        body.appendChild(grid);
+
+        const quick = el("div", { class: "krea2-b2-quick-directions" }, [
+          el("div", { class: "krea2-direction-label" }, "Quick directions"),
+          renderQuickDirectionChips(character),
+        ]);
+        body.appendChild(quick);
+
+        body.appendChild(b2LoraControls(character));
+
+        body.appendChild(el("div", { class: "krea2-b2-concept-chips" }, [
+          el("div", { class: "krea2-direction-label" }, "Direction & LoRA"),
+          characterChips(character),
+        ]));
+      }
+      card.appendChild(header);
+      card.appendChild(body);
+      return card;
+    }
+
+    function renderB2Shell() {
+      b2Shell.innerHTML = "";
+      const compiled = compilePreview(state);
+      const promptText = (compiled && compiled.final_prompt) || "";
+      const meta = b2MetaCounts(compiled);
+      const header = b2TitleHeader(meta);
+      const promptRow = b2PromptRow(promptText);
+
+      const sceneName = state.setting && state.setting.enabled
+        ? (state.setting.name || "Scene")
+        : "No scene";
+      const shotLabel = state.master_preset_label || "No shot preset";
+      const sceneDescription = (state.setting && state.setting.description) || "";
+      const sceneShuffleOn = !!(state.randomize_on_job || {}).setting;
+      const sceneRow = el("div", { class: "krea2-b2-scene-row" }, [
+        el("span", { class: "krea2-b2-label" }, "Scene · Shot"),
+        el("div", {
+          class: "krea2-b2-scene-summary",
+          title: sceneDescription || "",
+        }, sceneName + " · " + shotLabel),
+        el("label", { class: "krea2-inline-check", title: "Include this scene in the prompt" }, [
+          el("input", {
+            type: "checkbox",
+            checked: !!(state.setting && state.setting.enabled),
+            onChange: function (event) {
+              if (!state.setting || typeof state.setting !== "object") {
+                state.setting = { enabled: false, name: "", description: "" };
+              }
+              state.setting.enabled = !!event.target.checked;
+              markDirty();
+              render();
+            },
+          }),
+          el("span", null, "Include"),
+        ]),
+        diceButton("Randomize the scene", randomizeSceneOnce),
+        el("button", {
+          type: "button",
+          class: "krea2-wizard-btn krea2-icon-btn krea2-shuffle" + (sceneShuffleOn ? " is-active" : ""),
+          title: sceneShuffleOn
+            ? "Shuffle on: a fresh scene is chosen for every queued job. Click to stop."
+            : "Shuffle off: the scene stays fixed. Click to pick a fresh scene every queued job.",
+          "aria-label": "Randomize the scene every queued job",
+          onClick: function () { toggleSceneShuffle(sceneShuffleOn); },
+        }, "🔁"),
+        el("button", {
+          type: "button",
+          class: "krea2-wizard-btn krea2-b2-scene-expand",
+          title: "Open the full scene and shot editors",
+          "aria-label": "Expand scene editor",
+          onClick: function () {
+            state.wizard_expanded = true;
+            state.scene_collapsed = false;
+            state.active_tab = "scene";
+            markDirty();
+            render();
+          },
+        }, "Expand"),
+      ]);
+
+      const castCount = (state.characters || []).length;
+      const castHeading = el("div", { class: "krea2-b2-cast-heading" }, [
+        el("span", { class: "krea2-b2-label krea2-b2-cast-label" }, "Cast"),
+        el("span", { class: "krea2-b2-cast-count" },
+          castCount + (castCount === 1 ? " character" : " characters")),
+        el("span", { class: "krea2-structured-spacer" }),
+        el("button", {
+          type: "button",
+          class: "krea2-wizard-btn krea2-b2-add-character",
+          onClick: function () {
+            const character = newCharacter();
+            state.characters.push(character);
+            state.selected_character_id = character.id;
+            markDirty();
+            render();
+          },
+        }, "+ Character"),
+      ]);
+
+      const castList = el("div", { class: "krea2-b2-cast-list" });
+      if (!castCount) {
+        castList.appendChild(el("div", { class: "krea2-b2-empty-cast" },
+          "No cast yet — add a character or open the full editor."));
+      } else {
+        for (const character of state.characters) {
+          castList.appendChild(b2CastRow(character));
+        }
+      }
+
+      const loraRow = b2LoraRow();
+
+      const bottom = el("div", { class: "krea2-b2-bottom" }, [
+        el("span", { class: "krea2-b2-helper" },
+          "Character looks, direction, scene and shot controls live in the full editor."),
+        el("button", {
+          type: "button",
+          class: "krea2-wizard-btn krea2-b2-expand-wizard",
+          onClick: function () {
+            state.wizard_expanded = true;
+            markDirty();
+            render();
+          },
+        }, "Expand editor ···"),
+      ]);
+
+      b2Shell.append(header, promptRow, sceneRow, castHeading, castList, loraRow, bottom);
+    }
+
+    /* ------------------------------------------------------------------
+     * v2.0 B2 expanded shell: the same glass-card shell grows into the
+     * full stacked editor. The legacy tab bar, tab hosts and footer stay
+     * out of the way; every editor is re-rendered inside B2 cards so the
+     * expanded node keeps the B2 styling.
+     * ------------------------------------------------------------------ */
+    function b2BuiltinSceneSelect() {
+      const select = el("select", {
+        class: "krea2-compact-select krea2-b2-scene-select",
+        "aria-label": "Scene setting",
+        title: "Pick a scene — it applies immediately",
+        onChange: function (event) {
+          const preset = SETTING_PRESETS[Number(event.target.value)];
+          if (!preset) return;
+          if (!state.setting || typeof state.setting !== "object") {
+            state.setting = { enabled: false, name: "", description: "" };
+          }
+          state.setting.enabled = true;
+          state.setting.name = preset[0];
+          state.setting.description = preset[1];
+          markDirty();
+          render();
+        },
+      });
+      const setting = state.setting || {};
+      select.appendChild(el("option", { value: "" },
+        "Selected scene: " + (setting.enabled && setting.name ? setting.name : "— choose one —")));
+      SETTING_PRESETS.forEach(function (preset, index) {
+        select.appendChild(el("option", { value: String(index) }, preset[0]));
+      });
+      return select;
+    }
+
+    function renderB2ExpandedShell() {
+      b2Shell.innerHTML = "";
+      const compiled = compilePreview(state);
+      const promptText = (compiled && compiled.final_prompt) || "";
+      const meta = b2MetaCounts(compiled);
+
+      /* 1. B2 title header with compact actions and a Collapse control. */
+      const title = b2TitleHeader(meta);
+      title.appendChild(el("span", { class: "krea2-structured-spacer" }));
+      title.appendChild(el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-icon-btn",
+        title: "Copy compiled prompt",
+        "aria-label": "Copy compiled prompt",
+        onClick: function () { copy(promptText); },
+      }, "📋"));
+      title.appendChild(el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-b2-collapse",
+        title: "Collapse the editor back to the compact overview",
+        "aria-label": "Collapse the editor",
+        onClick: function () {
+          state.wizard_expanded = false;
+          markDirty();
+          render();
+        },
+      }, "Collapse editor ▾"));
+
+      /* 2. Compact prompt card at the top with copy. */
+      const promptRow = b2PromptRow(promptText);
+
+      /* 3. Scene + Shot card: editable Type / Setting / Shot rows plus the
+       * Include, dice and shuffle controls and the global concept groups. */
+      const setting = state.setting && typeof state.setting === "object"
+        ? state.setting
+        : { enabled: false, name: "", description: "" };
+      const sceneShuffleOn = !!(state.randomize_on_job || {}).setting;
+      const sceneDetailOn = state.scene_collapsed !== true;
+      const sceneHead = el("div", { class: "krea2-b2-card-head" }, [
+        el("span", { class: "krea2-b2-label" }, "Scene · Shot"),
+        el("label", { class: "krea2-inline-check", title: "Include this scene in the prompt" }, [
+          el("input", {
+            type: "checkbox",
+            checked: !!setting.enabled,
+            onChange: function (event) {
+              if (!state.setting || typeof state.setting !== "object") {
+                state.setting = { enabled: false, name: "", description: "" };
+              }
+              state.setting.enabled = !!event.target.checked;
+              markDirty();
+              render();
+            },
+          }),
+          el("span", null, "Include"),
+        ]),
+        diceButton("Randomize the scene", randomizeSceneOnce),
+        el("button", {
+          type: "button",
+          class: "krea2-wizard-btn krea2-icon-btn krea2-shuffle" + (sceneShuffleOn ? " is-active" : ""),
+          title: sceneShuffleOn
+            ? "Shuffle on: a fresh scene is chosen for every queued job. Click to stop."
+            : "Shuffle off: the scene stays fixed. Click to pick a fresh scene every queued job.",
+          "aria-label": "Randomize the scene every queued job",
+          onClick: function () { toggleSceneShuffle(sceneShuffleOn); },
+        }, "🔁"),
+        el("span", { class: "krea2-structured-spacer" }),
+        el("button", {
+          type: "button",
+          class: "krea2-wizard-btn krea2-b2-scene-expand",
+          title: sceneDetailOn ? "Collapse the scene description" : "Expand the scene description",
+          "aria-label": sceneDetailOn ? "Collapse scene description" : "Expand scene description",
+          "aria-expanded": sceneDetailOn ? "true" : "false",
+          onClick: function () {
+            state.scene_collapsed = sceneDetailOn;
+            markDirty();
+            render();
+          },
+        }, sceneDetailOn ? "Collapse detail" : "Expand detail"),
+      ]);
+      const sceneRows = el("div", { class: "krea2-b2-scene-rows" }, [
+        el("div", { class: "krea2-b2-field-row krea2-b2-field-type" }, [
+          el("span", { class: "krea2-b2-field-label" }, "Type"),
+          creativeModeControl,
+        ]),
+        el("div", { class: "krea2-b2-field-row krea2-b2-field-setting" }, [
+          el("span", { class: "krea2-b2-field-label" }, "Setting"),
+          b2BuiltinSceneSelect(),
+        ]),
+        el("div", { class: "krea2-b2-field-row krea2-b2-field-shot" }, [
+          el("span", { class: "krea2-b2-field-label" }, "Shot"),
+          masterPresetSelect,
+        ]),
+      ]);
+      const scenePrompt = el("div", { class: "krea2-b2-scene-prompt" });
+      scenePrompt.appendChild(basePromptControl.root);
+      const sceneDetail = el("div", {
+        class: "krea2-b2-scene-detail" + (sceneDetailOn ? "" : " is-hidden"),
+      });
+      const description = el("textarea", {
+        class: "krea2-compact-textarea krea2-scene-description",
+        rows: "2",
+        "aria-label": "Scene description",
+        placeholder: "Describe the scene's background and atmosphere…",
+        onInput: function (event) {
+          if (!state.setting || typeof state.setting !== "object") {
+            state.setting = { enabled: false, name: "", description: "" };
+          }
+          state.setting.description = event.target.value;
+          autoExpandTextarea(event);
+          markDirty();
+        },
+      }, setting.description || "");
+      autoExpandTextarea({ target: description });
+      sceneDetail.appendChild(el("div", { class: "krea2-scene-detail-row" }, [
+        el("span", { class: "krea2-b2-field-label" }, "Description"),
+        description,
+      ]));
+
+      categoryBody.innerHTML = "";
+      renderGroupSections(categoryBody, SCENE_GROUPS);
+      const sceneConcepts = el("div", { class: "krea2-b2-scene-concepts" }, [
+        el("div", { class: "krea2-b2-card-head" }, [
+          el("span", { class: "krea2-b2-label" }, "Concepts"),
+          el("span", { class: "krea2-b2-scene-concepts-hint" },
+            "subject · camera · lighting · environment · style"),
+        ]),
+        categoryBody,
+      ]);
+      const sceneCard = el("div", { class: "krea2-b2-card krea2-b2-scene-card" }, [
+        sceneHead,
+        sceneRows,
+        scenePrompt,
+        sceneDetail,
+        sceneConcepts,
+      ]);
+
+      /* 4. Cast section: compact expanded-state cards with the four-field
+       * appearance grid, quick directions, LoRA select and concept chips,
+       * wrapped in the B2 card, plus a global LoRA summary row. */
+      const castCount = (state.characters || []).length;
+      const castHead = el("div", { class: "krea2-b2-card-head" }, [
+        el("span", { class: "krea2-b2-label krea2-b2-cast-label" }, "Cast"),
+        el("span", { class: "krea2-b2-cast-count" },
+          castCount + (castCount === 1 ? " character" : " characters")),
+        el("span", { class: "krea2-structured-spacer" }),
+        diceButton("Randomize every character's full look once now", function () {
+          (state.characters || []).forEach(function (character) {
+            CHARACTER_APPEARANCE.forEach(function (field) {
+              randomizeAppearanceField(character, field);
+            });
+          });
+          markDirty();
+          render();
+        }, "krea2-cast-random-all"),
+        el("button", {
+          type: "button",
+          class: "krea2-wizard-btn krea2-b2-add-character",
+          onClick: function () {
+            const character = newCharacter();
+            character.expanded = true;
+            state.characters.push(character);
+            state.selected_character_id = character.id;
+            markDirty();
+            render();
+          },
+        }, "+ Character"),
+      ]);
+      const castList = el("div", { class: "krea2-b2-cast-list" });
+      if (!castCount) {
+        castList.appendChild(el("div", { class: "krea2-b2-empty-cast" },
+          "No cast yet — add a character to start."));
+      } else {
+        state.characters.forEach(function (character, index) {
+          castList.appendChild(renderB2CompactCharacterCard(character, index));
+        });
+      }
+      const castCard = el("div", { class: "krea2-b2-card krea2-b2-cast-card" }, [
+        castHead,
+        castList,
+        b2LoraRow(),
+      ]);
+
+      /* 6. Final Prompt Preview card at the bottom: the single prompt
+       * preview surface of the expanded shell. */
+      const finalHead = el("div", { class: "krea2-b2-card-head" }, [
+        el("span", { class: "krea2-b2-label" }, "Final Prompt Preview"),
+        el("span", { class: "krea2-structured-spacer" }),
+        el("button", {
+          type: "button",
+          class: "krea2-wizard-btn krea2-b2-prompt-copy",
+          title: "Copy compiled prompt",
+          "aria-label": "Copy compiled prompt",
+          onClick: function () { copy(promptText); },
+        }, "📋 Copy"),
+      ]);
+      const finalBody = el("div", { class: "krea2-b2-final-body" });
+      if (state.show_motion_prompt) {
+        finalBody.appendChild(renderMotionSection());
+      }
+      finalBody.appendChild(livePreview.root);
+      const finalPreview = el("div", {
+        class: "krea2-b2-card krea2-b2-final-preview",
+      }, [finalHead, finalBody]);
+
+      b2Shell.append(title, promptRow, sceneCard, castCard, finalPreview);
+    }
+
     /* Footer: collapsible prompt section shown on every tab. */
     function renderFooter() {
       footerHost.innerHTML = "";
@@ -3285,10 +3909,13 @@ function buildGroupPresetPicker(group) {
         castHost.innerHTML = "";
         sceneHost.innerHTML = "";
         conceptsHost.innerHTML = "";
-        castHost.appendChild(el("div", { class: "krea2-wizard-fatal" }, [
+        const fatal = el("div", { class: "krea2-wizard-fatal" }, [
           el("strong", null, "The wizard hit an error while rendering."),
           el("code", null, String(error && error.message ? error.message : error)),
-        ]));
+        ]);
+        castHost.appendChild(fatal);
+        b2Shell.innerHTML = "";
+        b2Shell.appendChild(fatal);
         renderFooter();
       }
     }
@@ -3296,21 +3923,30 @@ function buildGroupPresetPicker(group) {
     function renderUnsafe() {
       basePromptControl.input.value = state.base_prompt || "";
       sizeBasePrompt();
-      renderTabBar();
+      const expanded = state.wizard_expanded === true;
+      root.classList.toggle("krea2-wizard-compact", !expanded);
+      root.classList.toggle("krea2-wizard-expanded", expanded);
+      if (previousExpanded === true && !expanded) contractNextSync = true;
+      previousExpanded = expanded;
       renderNodeSettings();
-      const activeTab = state.active_tab || "cast";
       castHost.innerHTML = "";
       sceneHost.innerHTML = "";
       conceptsHost.innerHTML = "";
       structuredHost.innerHTML = "";
       categoryBody.innerHTML = "";
-      if (activeTab === "cast") renderCastTab();
-      else if (activeTab === "scene") renderSceneTab();
-      else if (activeTab === "concepts") renderConceptsTab();
-      renderFooter();
+      footerHost.innerHTML = "";
+      tabBar.innerHTML = "";
+      b2Shell.innerHTML = "";
+      b2Shell.classList.toggle("krea2-b2-expanded", expanded);
+      if (expanded) {
+        renderB2ExpandedShell();
+      } else {
+        renderB2Shell();
+      }
       updateHistoryControls();
       renderLivePreview(true);
-      syncNodeHeight();
+      syncNodeHeight(contractNextSync);
+      contractNextSync = false;
     }
 
     function sizeBasePrompt() {
@@ -3320,20 +3956,61 @@ function buildGroupPresetPicker(group) {
       input.style.height = Math.max(52, input.scrollHeight || 0) + "px";
     }
 
-    function syncNodeHeight() {
+    /* Node sizing: grow to fit content in both modes, and contract the
+     * node after a collapse so the compact shell leaves no blank region.
+     * Manual enlargement is respected except that the compact surface is
+     * always pulled back to its content height. */
+    const MIN_NODE_HEIGHT = 96;
+    const SETTLE_PASSES = 4;
+    function syncNodeHeight(allowContract) {
       const schedule = window.requestAnimationFrame || function (callback) {
         return window.setTimeout(callback, 0);
       };
-      schedule(function () {
+      const measure = function () {
         if (!root.isConnected || !node.setSize) return;
         const current = node.size || [root.offsetWidth || 520, root.offsetHeight || 1];
-        const desiredHeight = Math.ceil(root.scrollHeight + 24);
+        const compact = state.wizard_expanded !== true;
+        const content = compact ? root.querySelector(".krea2-b2-shell") : root;
+        const desiredHeight = Math.ceil((content ? content.scrollHeight : root.scrollHeight) + 24);
         const desiredWidth = Math.ceil(root.scrollWidth || current[0] || 520);
+        const blankRegion = current[1] - desiredHeight;
         if (current[1] < desiredHeight || current[0] < desiredWidth) {
           node.setSize([Math.max(current[0] || 0, desiredWidth), Math.max(current[1] || 0, desiredHeight)]);
+        } else if (allowContract || (compact && blankRegion > 48)) {
+          const contracted = Math.max(desiredHeight, MIN_NODE_HEIGHT);
+          if (contracted < current[1] - 2) {
+            node.setSize([Math.max(current[0] || 0, desiredWidth), contracted]);
+          }
         }
         if (node.setDirtyCanvas) node.setDirtyCanvas(true);
-      });
+      };
+      schedule(measure);
+      if (allowContract) {
+        /* The host widget is still sized to the previous expanded height on
+         * the first frame, so root.scrollHeight reports the stale expanded
+         * content height there. Re-measure after the layout settles so the
+         * compact shell's real ~296px content height drives the node down
+         * to ~320px instead of leaving the old expanded height. The pass
+         * count is bounded so the retry can never loop forever. */
+        let passes = SETTLE_PASSES;
+        const settle = function () {
+          if (passes <= 0) return;
+          passes -= 1;
+          schedule(function () {
+            if (!root.isConnected || !node.setSize) return;
+            const current = node.size || [root.offsetWidth || 520, root.offsetHeight || 1];
+            const compact = state.wizard_expanded !== true;
+            const content = compact ? root.querySelector(".krea2-b2-shell") : root;
+            const desiredHeight = Math.ceil((content ? content.scrollHeight : root.scrollHeight) + 24);
+            const contracted = Math.max(desiredHeight, MIN_NODE_HEIGHT);
+            if (contracted >= current[1] - 2) return;
+            node.setSize([Math.max(current[0] || 0, Math.ceil(root.scrollWidth || current[0] || 520)), contracted]);
+            if (node.setDirtyCanvas) node.setDirtyCanvas(true);
+            settle();
+          });
+        };
+        settle();
+      }
     }
 
     function copy(text) {
@@ -3430,7 +4107,7 @@ function buildGroupPresetPicker(group) {
           "active_tab", "footer_open", "settings_open", "collapsed",
           "selected_character_id", "show_work",
           "show_motion_prompt", "show_face_guidance", "show_concepts_tab",
-          "scene_collapsed",
+          "scene_collapsed", "wizard_expanded",
         ];
         for (const key of uiKeys) {
           if (key in state) merged[key] = state[key];

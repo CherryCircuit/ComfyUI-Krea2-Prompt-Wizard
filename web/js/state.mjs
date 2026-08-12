@@ -203,6 +203,10 @@
       // expands to the full field set. The flag is pure UI state and is
       // preserved across workflow saves/restores and job executions.
       scene_collapsed: true,
+      // v2.0 B2 shell: the wizard opens as a compact glass overview card.
+      // The flag is pure UI state and is preserved across workflow
+      // saves/restores and job executions.
+      wizard_expanded: false,
     };
   }
 
@@ -243,6 +247,7 @@
       "show_concepts_tab",
       "show_motion_prompt",
       "scene_collapsed",
+      "wizard_expanded",
     ]) {
       if (key in raw) base[key] = raw[key];
     }
@@ -314,6 +319,7 @@
       base.random_strength_max = swap;
     }
     base.settings_open = !!base.settings_open;
+    base.wizard_expanded = !!base.wizard_expanded;
     base.embed_prompt_metadata = base.embed_prompt_metadata !== false;
     return base;
   }

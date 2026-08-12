@@ -93,18 +93,25 @@ app.registerExtension({
           {
             serialize: false,
             hideOnZoom: false,
-            getMinHeight: () => 480,
+            // v2.0: the compact B2 shell is ~300-520px tall; the floor only
+            // guards an empty state instead of forcing legacy minimums.
+            getMinHeight: () => 96,
           },
         );
         wizard.domWidget = domWidget;
-        domWidget.computeSize = () => [
-          Math.max(this.size?.[0] || 700, 700),
-          Math.max(wizard.root.scrollHeight || 0, 560),
-        ];
+        domWidget.computeSize = () => {
+          const compact = wizard.root.classList.contains("krea2-wizard-compact");
+          const shell = wizard.root.querySelector(".krea2-b2-shell");
+          const contentHeight = compact && shell ? shell.scrollHeight : wizard.root.scrollHeight;
+          return [
+            Math.max(this.size?.[0] || 700, 700),
+            Math.max(contentHeight || 0, 96),
+          ];
+        };
         this.resizable = true;
         this.setSize([
           Math.max(this.size?.[0] || 0, 700),
-          Math.max(this.size?.[1] || 0, 640),
+          Math.max(this.size?.[1] || 0, 360),
         ]);
       } catch (error) {
         console.error("[Krea2PromptWizard] widget creation failed", error);

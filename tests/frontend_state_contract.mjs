@@ -30,6 +30,38 @@ if (!restored.collapsed.emotion) {
   throw new Error("Collapsed category state must survive workflow restoration.");
 }
 
+if (state.wizard_expanded !== false) {
+  throw new Error("New wizard states must default to the compact B2 shell.");
+}
+const expandedProbe = window.KREA2.helpers.coerceState({
+  rows: [],
+  wizard_expanded: true,
+});
+if (expandedProbe.wizard_expanded !== true) {
+  throw new Error("wizard_expanded must survive workflow restoration.");
+}
+const collapsedProbe = window.KREA2.helpers.coerceState({
+  rows: [],
+  wizard_expanded: "yes",
+});
+if (collapsedProbe.wizard_expanded !== true || typeof collapsedProbe.wizard_expanded !== "boolean") {
+  throw new Error("wizard_expanded must be coerced to a boolean.");
+}
+
+const expandedRoundTrip = window.KREA2.helpers.coerceState({
+  rows: [],
+  wizard_expanded: true,
+  scene_collapsed: false,
+  footer_open: true,
+  active_tab: "scene",
+});
+if (expandedRoundTrip.wizard_expanded !== true
+    || expandedRoundTrip.scene_collapsed !== false
+    || expandedRoundTrip.footer_open !== true
+    || expandedRoundTrip.active_tab !== "scene") {
+  throw new Error("Expanded-mode UI flags must survive workflow restoration.");
+}
+
 const preview = await window.KREA2.helpers.fetchCompiledPreview({ rows: [] });
 if (preview.final_prompt !== "portrait") {
   throw new Error("The authoritative preview response was not returned.");

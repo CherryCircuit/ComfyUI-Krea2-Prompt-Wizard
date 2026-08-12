@@ -168,21 +168,90 @@ function switchTab(tabId) {
   wizard.setTab(tabId);
 }
 
-if (findByClass(wizard.root, "krea2-wizard-tab").length !== 2) {
-  throw new Error("The wizard must expose Cast and Scene tabs (Concepts hidden by default).");
+/* --- v2.0 B2 compact shell is the primary surface by default ------------ */
+if (!(wizard.root.className || "").split(/\s+/).includes("krea2-wizard-compact")) {
+  throw new Error("The wizard must open in the compact B2 shell by default.");
 }
-if (findByClass(wizard.root, "krea2-wizard-creative-option").length !== 2) {
-  throw new Error("The creative mode toggle must remain visible in the header.");
+if (findByClass(wizard.root, "krea2-b2-shell").length !== 1
+    || findByClass(wizard.root, "krea2-b2-title-name").length !== 1
+    || findByClass(wizard.root, "krea2-b2-prompt-text").length !== 1
+    || findByClass(wizard.root, "krea2-b2-prompt-copy").length !== 1
+    || findByClass(wizard.root, "krea2-b2-scene-row").length !== 1
+    || findByClass(wizard.root, "krea2-b2-cast-heading").length !== 1
+    || findByClass(wizard.root, "krea2-b2-lora-row").length !== 1
+    || findByClass(wizard.root, "krea2-b2-expand-wizard").length !== 1) {
+  throw new Error("The compact B2 shell must render title, prompt preview with copy, scene/shot row, cast heading, LoRA row and an expand control.");
 }
-if (!findByClass(wizard.root, "krea2-structured-section").length) {
-  throw new Error("The Cast tab must render the character editor by default.");
+if (!textOf(findByClass(wizard.root, "krea2-b2-prompt-text")[0]).includes("joy")) {
+  throw new Error("The compact prompt preview must show the compiled prompt.");
+}
+if (findByClass(wizard.root, "krea2-wizard-tab").length !== 0
+    || findByClass(wizard.root, "krea2-wizard-category").length !== 0
+    || findByClass(wizard.root, "krea2-footer-toggle").length !== 0
+    || findByClass(wizard.root, "krea2-wizard-base").length !== 0) {
+  throw new Error("Compact mode must not render tabs, concept groups, the footer preview or the giant prompt textarea.");
+}
+const shellAddCharacter = findByClass(wizard.root, "krea2-b2-add-character")[0];
+if (!shellAddCharacter) {
+  throw new Error("The compact cast heading must expose an add-character control.");
+}
+shellAddCharacter.listeners.click({});
+const shellCharacter = JSON.parse(stateWidget.value).characters[0];
+if (!shellCharacter || shellCharacter.expanded !== false) {
+  throw new Error("New characters must default to collapsed.");
+}
+if (findByClass(wizard.root, "krea2-b2-cast-row").length !== 1) {
+  throw new Error("The compact shell must list cast members as collapsed rows.");
+}
+findByClass(wizard.root, "krea2-b2-expand-wizard")[0].listeners.click({});
+const expandedRootClasses = (wizard.root.className || "").split(/\s+/);
+if (JSON.parse(stateWidget.value).wizard_expanded !== true
+    || !expandedRootClasses.includes("krea2-wizard-expanded")
+    || findByClass(wizard.root, "krea2-b2-expanded").length !== 1
+    || findByClass(wizard.root, "krea2-b2-final-preview").length !== 1
+    || findByClass(wizard.root, "krea2-b2-scene-rows").length !== 1
+    || findByClass(wizard.root, "krea2-b2-cast-card").length !== 1) {
+  throw new Error("Expanding the wizard must reveal the expanded B2 shell and persist the flag.");
+}
+if (findByClass(wizard.root, "krea2-wizard-tab").length !== 0
+    || findByClass(wizard.root, "krea2-footer-toggle").length !== 0) {
+  throw new Error("Expanded B2 must not expose the legacy tab chrome or footer as its surface.");
+}
+const b2Collapse = findByClass(wizard.root, "krea2-b2-collapse")[0];
+if (!b2Collapse) {
+  throw new Error("The expanded B2 title header must expose a Collapse editor control.");
+}
+b2Collapse.listeners.click({});
+const collapsedRootClasses = (wizard.root.className || "").split(/\s+/);
+if (JSON.parse(stateWidget.value).wizard_expanded !== false
+    || !collapsedRootClasses.includes("krea2-wizard-compact")
+    || collapsedRootClasses.includes("krea2-wizard-expanded")
+    || findByClass(wizard.root, "krea2-b2-expand-wizard").length !== 1
+    || findByClass(wizard.root, "krea2-b2-final-preview").length !== 0) {
+  throw new Error("Collapsing the editor must return to the compact B2 shell.");
+}
+findByClass(wizard.root, "krea2-b2-expand-wizard")[0].listeners.click({});
+if (JSON.parse(stateWidget.value).wizard_expanded !== true) {
+  throw new Error("Re-expanding must work after a collapse.");
+}
+
+if (findByClass(wizard.root, "krea2-wizard-tab").length !== 0) {
+  throw new Error("Expanded B2 must not expose the legacy Cast and Scene tab chrome.");
+}
+const sceneTypeRow = findByClass(wizard.root, "krea2-b2-field-type")[0];
+if (!sceneTypeRow || findByClass(sceneTypeRow, "krea2-wizard-creative-option").length !== 2) {
+  throw new Error("The Scene + Shot Type row must expose the Photography/Artwork toggle.");
+}
+if (findByClass(wizard.root, "krea2-b2-cast-card").length !== 1
+    || findByClass(wizard.root, "krea2-character-card").length !== 1) {
+  throw new Error("The expanded B2 cast section must render the character cards.");
 }
 if (findByClass(wizard.root, "krea2-wizard-saved").length !== 1) {
   throw new Error("The full-prompt preset control must live in the top bar.");
 }
 
 const promptInput = findByClass(wizard.root, "krea2-wizard-base")[0];
-wizard.setState({ schema_version: 1, base_prompt: "restored prompt", rows: [] });
+wizard.setState({ schema_version: 1, base_prompt: "restored prompt", rows: [], wizard_expanded: true });
 switchTab("scene");
 const restoredInput = findByClass(wizard.root, "krea2-wizard-base")[0];
 restoredInput.listeners.input({ target: { value: "updated prompt" } });
@@ -193,6 +262,7 @@ if (JSON.parse(stateWidget.value).base_prompt !== "updated prompt") {
 wizard.setState({
   schema_version: 1,
   base_prompt: "portrait",
+  wizard_expanded: true,
   show_concepts_tab: true,
   rows: [{
     id: "row_smoke",
@@ -208,7 +278,7 @@ wizard.setState({
     verification: "general visual vocabulary",
   }],
 });
-if (findByClass(wizard.root, "krea2-wizard-tab").length !== 2) {
+if (findByClass(wizard.root, "krea2-wizard-tab").length !== 0) {
   throw new Error("The retired Concepts tab must stay hidden even when old workflows carry show_concepts_tab.");
 }
 switchTab("scene");
@@ -273,16 +343,16 @@ if (JSON.parse(stateWidget.value).randomize_on_job.camera_film) {
   throw new Error("Clicking an active scene group each-job toggle must turn it off.");
 }
 
-/* Footer: collapsible prompt section on every tab */
+/* Final Prompt Preview: the single expanded-mode preview surface */
 switchTab("cast");
-if (findByClass(wizard.root, "krea2-footer-toggle").length !== 1) {
-  throw new Error("A collapsible Prompt footer must exist on every tab.");
+if (findByClass(wizard.root, "krea2-footer-toggle").length !== 0) {
+  throw new Error("Expanded B2 must not render the legacy collapsible footer.");
 }
-findByClass(wizard.root, "krea2-footer-toggle")[0].listeners.click({});
-if (findByClass(wizard.root, "krea2-wizard-preview-host").length !== 1
+if (findByClass(wizard.root, "krea2-b2-final-preview").length !== 1
+    || findByClass(wizard.root, "krea2-wizard-preview-host").length !== 1
     || findByClass(wizard.root, "krea2-preview-pretty").length !== 1
     || findByClass(wizard.root, "krea2-wizard-preview").length !== 1) {
-  throw new Error("The Prompt footer must render both readable and prompt-code preview views.");
+  throw new Error("The B2 final prompt preview must render readable and prompt-code views.");
 }
 if (findByClass(wizard.root, "krea2-preview-tab").length !== 0) {
   throw new Error("The preview must be stacked, not hidden behind Pretty/Code tabs.");
@@ -317,6 +387,7 @@ if (findByClass(wizard.root, "krea2-motion-section").length !== 1
 const structuredState = {
   schema_version: 1,
   base_prompt: "team portrait",
+  wizard_expanded: true,
   rows: [],
   characters: [
     { id: "a", name: "Mara", enabled: true, identity: "veteran pilot", clothing: "sci-fi flight suit" },
@@ -332,16 +403,28 @@ if (!structuredPrompt.includes("Character Mara") || !structuredPrompt.includes("
 }
 switchTab("cast");
 if (findByClass(wizard.root, "krea2-avatar").length !== 2
-    || findByClass(wizard.root, "krea2-character-card").length !== 2
+    || findByClass(wizard.root, "krea2-b2-character-card").length !== 2
     || findByClass(wizard.root, "krea2-save-character").length !== 2
-    || findByClass(wizard.root, "krea2-character-columns").length !== 2
-    || findByClass(wizard.root, "krea2-combobox").length < 20
-    || findByClass(wizard.root, "krea2-field-random").length < 20
-    || findByClass(wizard.root, "krea2-field-each-job").length < 20
-    || findByClass(wizard.root, "krea2-lora-section").length !== 2
     || findByClass(wizard.root, "krea2-quick-directions").length !== 2
-    || findByClass(wizard.root, "krea2-character-category").length < 6) {
-  throw new Error("Each cast member must render as an expandable card with appearance comboboxes, explicit random controls, quick directions, direction sections, and a LoRA section.");
+    || findByClass(wizard.root, "krea2-b2-lora-controls").length !== 2
+    || findByClass(wizard.root, "krea2-lora-strength").length !== 2) {
+  throw new Error("Each cast member must render as a compact B2 card with quick directions and a LoRA select + strength slider.");
+}
+const compactComboboxes = findByClass(wizard.root, "krea2-combobox");
+if (compactComboboxes.length !== 8) {
+  throw new Error("Compact cast cards must expose exactly the four appearance fields per character (8 comboboxes total).");
+}
+for (const field of ["Hair", "Eyes", "Build", "Fit"]) {
+  if (compactComboboxes.filter((input) => input["aria-label"] === field).length !== 2) {
+    throw new Error("Each compact cast card must expose exactly one " + field + " field.");
+  }
+}
+if (findByClass(wizard.root, "krea2-character-columns").length !== 0
+    || findByClass(wizard.root, "krea2-subcard").length !== 0
+    || findByClass(wizard.root, "krea2-character-category").length !== 0
+    || findByClass(wizard.root, "krea2-lora-section").length !== 0
+    || findByClass(wizard.root, "krea2-field-random").length !== 0) {
+  throw new Error("The expanded B2 cast must not render the legacy full appearance wall, direction sections or LoRA sections.");
 }
 if (findByClass(wizard.root, "krea2-character-tab").length !== 0) {
   throw new Error("Cast members must be stacked sections, not click-to-switch tabs.");
@@ -350,62 +433,34 @@ if (findByClass(wizard.root, "krea2-icon-btn").length < 8) {
   throw new Error("Randomization controls must use compact dice buttons.");
 }
 
-const firstAppearanceEachJob = findByClass(wizard.root, "krea2-field-each-job")[0];
-firstAppearanceEachJob.listeners.click({});
-if (findByClass(wizard.root, "krea2-field-each-job").filter((btn) => btn.className.includes("is-active")).length < 1) {
-  throw new Error("Clicking an appearance each-job icon must toggle each-run mode without Shift.");
+const firstHeaderEachJob = findByClass(wizard.root, "krea2-character-random-each-job")[0];
+if (!firstHeaderEachJob) {
+  throw new Error("Every compact cast card must expose an each-job appearance toggle.");
 }
-const sexFields = findByClass(wizard.root, "krea2-combobox").filter((input) => input["aria-label"] === "Sex");
-if (sexFields.length !== 2) {
-  throw new Error("Each cast member must expose a Sex field.");
+firstHeaderEachJob.listeners.click({});
+const eachJobPersisted = JSON.parse(stateWidget.value).characters
+  .find((item) => item.id === "a");
+if (!eachJobPersisted.randomize_fields
+    || !eachJobPersisted.randomize_fields.hair_style
+    || !eachJobPersisted.randomize_fields.eyes
+    || !eachJobPersisted.randomize_fields.body_type
+    || !eachJobPersisted.randomize_fields.fitness) {
+  throw new Error("Clicking a compact card each-job toggle must flag the four visible appearance fields.");
 }
-const ethnicityFields = findByClass(wizard.root, "krea2-combobox").filter((input) => input["aria-label"] === "Ethnicity");
-if (ethnicityFields.length !== 2) {
-  throw new Error("Each cast member must expose an Ethnicity field.");
-}
-
-/* --- Direction sections carry the full Concepts-tab action set --------- */
-const directionSections = findByClass(wizard.root, "krea2-character-category");
-if (directionSections.length < 6) {
-  throw new Error("Each cast member must render Concepts-style direction sections.");
-}
-function insideEach(sectionClass, childClass) {
-  return findByClass(wizard.root, sectionClass)
-    .every((section) => findByClass(section, childClass).length >= 1);
-}
-if (!insideEach("krea2-character-category", "krea2-wizard-category-count")
-    || !insideEach("krea2-character-category", "krea2-wizard-category-random")
-    || !insideEach("krea2-character-category", "krea2-wizard-category-save")
-    || !insideEach("krea2-character-category", "krea2-wizard-category-add")) {
-  throw new Error("Direction sections must expose count, dice, save-preset, and add controls like the Concepts tab.");
-}
-if (!insideEach("krea2-character-category", "krea2-shuffle")) {
-  throw new Error("Every direction group must expose its own visible each-job toggle.");
-}
-if (findByClass(wizard.root, "krea2-character-category")
-  .some((section) => {
-    const buttons = findByClass(section, "button");
-    return buttons.some((btn) => /Shift-click|shiftKey/i.test(btn.title || btn["aria-label"] || ""));
-  })) {
-  throw new Error("Direction randomization controls must not require Shift.");
+if (findByClass(wizard.root, "krea2-character-random-each-job")
+  .filter((btn) => btn.className.includes("is-active")).length !== 1) {
+  throw new Error("A compact card with each-run appearance enabled must render its each-job toggle active.");
 }
 
-/* --- Direction each-job toggles work without Shift ------------------ */
-const firstDirectionSection = findByClass(wizard.root, "krea2-character-category")[0];
-const firstDirectionEachJob = findByClass(firstDirectionSection, "krea2-shuffle")[0];
-const firstDirectionCardId = findByClass(wizard.root, "krea2-character-card")[0].dataset.characterId;
-firstDirectionEachJob.listeners.click({ stopPropagation() {} });
-const directionPersisted = JSON.parse(stateWidget.value).characters
-  .find((item) => item.id === firstDirectionCardId);
-if (!directionPersisted.randomize_direction_groups
-    || !directionPersisted.randomize_direction_groups.emotion) {
-  throw new Error("Clicking a direction each-job toggle must persist the flag without Shift.");
+/* --- Compact cards keep quick directions + chips, not full sections --- */
+if (!findByClass(wizard.root, "krea2-b2-character-card")
+  .every((card) => findByClass(card, "krea2-emotion-chip").length >= 10)
+  || !findByClass(wizard.root, "krea2-b2-character-card")
+  .every((card) => findByClass(card, "krea2-character-chips").length === 1)) {
+  throw new Error("Every compact card must render quick-direction chips and the concept chip row.");
 }
-firstDirectionEachJob.listeners.click({ stopPropagation() {} });
-const directionPersistedOff = JSON.parse(stateWidget.value).characters
-  .find((item) => item.id === firstDirectionCardId);
-if (directionPersistedOff.randomize_direction_groups.emotion) {
-  throw new Error("Clicking an active direction each-job toggle must turn it off.");
+if (findByClass(wizard.root, "krea2-character-category").length !== 0) {
+  throw new Error("Compact cards must not render Concepts-style direction sections.");
 }
 
 /* --- Avatar art layer -------------------------------------------------- */
@@ -432,35 +487,19 @@ if (!legacyPreview.includes("costume: elegant formal dress")
   throw new Error("Migrated legacy clothing must compile as the costume field only.");
 }
 
-/* --- Ensemble / separates exclusivity ------------------------------ */
-const ensembleInput = findByClass(wizard.root, "krea2-combobox")
-  .find((input) => input["aria-label"] === "Ensemble (full costume)");
-const topInput = findByClass(wizard.root, "krea2-combobox")
-  .find((input) => input["aria-label"] === "Top");
-if (!ensembleInput || !topInput) {
-  throw new Error("Ensemble and Top comboboxes must exist.");
-}
-function currentCastMember() {
-  const persisted = JSON.parse(stateWidget.value);
-  return persisted.characters.find((item) => item.id === "d1") || persisted.characters[0];
-}
-ensembleInput.listeners.input({ target: { value: "western cowboy outfit" } });
-const afterEnsemble = currentCastMember();
-if (afterEnsemble.ensemble !== "western cowboy outfit"
-    || afterEnsemble.clothing_top !== "" || afterEnsemble.clothing_bottom !== "") {
-  throw new Error("Choosing an ensemble must clear the separates.");
-}
-const topAfterEnsemble = findByClass(wizard.root, "krea2-combobox")
-  .find((input) => input["aria-label"] === "Top");
-topAfterEnsemble.listeners.input({ target: { value: "flannel shirt" } });
-const afterTop = currentCastMember();
-if (afterTop.ensemble !== "" || afterTop.clothing_top !== "flannel shirt") {
-  throw new Error("Using separates must clear the ensemble.");
+/* --- Compact appearance fields edit the real state keys -------------- */
+const hairInput = findByClass(wizard.root, "krea2-combobox")
+  .find((input) => input["aria-label"] === "Hair");
+hairInput.listeners.input({ target: { value: "wavy" } });
+const afterHair = JSON.parse(stateWidget.value).characters.find((item) => item.id === "a");
+if (afterHair.hair_style !== "wavy") {
+  throw new Error("Typing in a compact appearance field must persist to its state key.");
 }
 
 const directedState = {
   schema_version: 1,
   base_prompt: "a rainy street",
+  wizard_expanded: true,
   rows: [],
   characters: [
     {
@@ -529,9 +568,9 @@ switchTab("cast");
 await new Promise((resolve) => setTimeout(resolve, 25));
 const quickChips = findByClass(wizard.root, "krea2-emotion-chip");
 if (quickChips.length < 30
-    || findByClass(wizard.root, "krea2-character-category").length < 6
+    || findByClass(wizard.root, "krea2-b2-character-card").length !== 2
     || quickChips.filter((chip) => (chip.className || "").split(/\s+/).includes("is-active")).length < 1) {
-  throw new Error("Cast direction must render quick-direction chips and scoped direction sections for every member.");
+  throw new Error("Cast cards must render quick-direction chips for every member, with active directions highlighted.");
 }
 
 /* --- Quick direction applies multiple concepts at once -------------- */
@@ -561,14 +600,9 @@ const resolvedProbe = JSON.parse(JSON.stringify(directedState));
 resolvedProbe.active_tab = "scene";
 resolvedProbe.characters[0].hair_color = "blonde";
 wizard.applyResolvedState(resolvedProbe);
-const activeTabs = findByClass(wizard.root, "krea2-wizard-tab")
-  .filter((tab) => (tab.className || "").split(/\s+/).includes("is-active"));
-if (activeTabs.length !== 1) {
-  throw new Error("Exactly one tab must be active after applying a resolved state.");
-}
-const activeTabText = textOf(activeTabs[0]);
-if (!activeTabText.includes("Cast")) {
-  throw new Error("Applying a resolved state must not yank the user off the Cast tab.");
+if (findByClass(wizard.root, "krea2-b2-expanded").length !== 1
+    || findByClass(wizard.root, "krea2-character-card").length !== 2) {
+  throw new Error("Applying a resolved state must keep the expanded B2 shell and the cast visible.");
 }
 const resolvedPersisted = JSON.parse(stateWidget.value);
 if (resolvedPersisted.characters[0].hair_color !== "blonde") {
@@ -578,85 +612,63 @@ if (resolvedPersisted.characters[0].hair_color !== "blonde") {
 /* --- Each-run field randomization contract ------------------------ */
 const eachRunState = JSON.parse(JSON.stringify(directedState));
 eachRunState.characters[0].randomize_fields = {
-  hair_color: ["red", "blonde", "black"],
-  age: ["young adult", "middle aged"],
+  hair_style: ["straight", "wavy"],
+  eyes: ["brown eyes", "green eyes"],
+  body_type: ["slim build", "athletic build"],
+  fitness: ["fit", "toned physique"],
 };
 if (!window.KREA2.helpers.compilePreview) throw new Error("compilePreview must exist");
 wizard.setState(eachRunState);
 switchTab("cast");
 await new Promise((resolve) => setTimeout(resolve, 25));
-const rollButtons = findByClass(wizard.root, "krea2-field-random");
-const eachJobButtons = findByClass(wizard.root, "krea2-field-each-job");
-if (rollButtons.length < 25 || eachJobButtons.length < 25) {
-  throw new Error("Each appearance field must expose separate roll-once and each-job controls.");
+const rollButtons = findByClass(wizard.root, "krea2-character-random-look");
+const eachJobButtons = findByClass(wizard.root, "krea2-character-random-each-job");
+if (rollButtons.length !== 2 || eachJobButtons.length !== 2) {
+  throw new Error("Each compact cast card must expose the header roll-once and each-job controls.");
 }
-if (eachJobButtons.filter((btn) => btn.className.includes("is-active")).length < 2) {
-  throw new Error("Fields flagged for each-run randomization must render as active each-job icons.");
+if (eachJobButtons.filter((btn) => btn.className.includes("is-active")).length !== 1) {
+  throw new Error("A compact card with every visible field flagged for each-run randomization must render its each-job toggle active.");
 }
-if (rollButtons.some((btn) => /Shift-click/i.test(btn.title || ""))
-    || eachJobButtons.some((btn) => /Shift-click/i.test(btn.title || ""))) {
-  throw new Error("Appearance randomization controls must not require Shift-click.");
+rollButtons[0].listeners.click({});
+const rolledState = JSON.parse(stateWidget.value);
+const rolledCharacter = rolledState.characters.find((item) => item.id === "d1");
+if (!rolledCharacter.hair_style || !rolledCharacter.eyes
+    || !rolledCharacter.body_type || !rolledCharacter.fitness) {
+  throw new Error("The compact card dice must randomize the four visible appearance fields.");
 }
+/* The dice re-rolls every field (including sex); pin it back so the
+ * later avatar identity assertions stay deterministic. */
+rolledCharacter.sex = "female";
+wizard.setState(rolledState);
 
-/* --- LoRA trigger words have one-shot and each-job controls ---------- */
-const loraEachJobButtons = findByClass(wizard.root, "krea2-lora-each-job");
-if (loraEachJobButtons.length !== 2) {
-  throw new Error("Every cast member's LoRA section must expose a trigger-word each-job control.");
+/* --- Compact LoRA select + strength stay functional ---------------- */
+const loraSelects = findByClass(wizard.root, "krea2-compact-select")
+  .filter((select) => String(select["aria-label"] || "").startsWith("LoRA for"));
+if (loraSelects.length !== 2) {
+  throw new Error("Every compact cast card must expose a LoRA select.");
 }
-const firstLoraEachJob = loraEachJobButtons[0];
-firstLoraEachJob.listeners.click({});
+loraSelects[0].listeners.change({ target: { value: "mecha-char v2.safetensors" } });
 const loraPersisted = JSON.parse(stateWidget.value).characters.find((item) => item.id === "d1");
-if (!loraPersisted.randomize_fields
-    || !Array.isArray(loraPersisted.randomize_fields.lora_triggers)
-    || !loraPersisted.randomize_fields.lora_triggers.length) {
-  throw new Error("Enabling LoRA each-job must snapshot the trigger-word pool into state.");
+if (loraPersisted.lora_name !== "mecha-char v2.safetensors") {
+  throw new Error("Choosing a LoRA in a compact card must persist the name.");
 }
-if (findByClass(wizard.root, "krea2-lora-each-job")
-  .filter((btn) => btn.className.includes("is-active")).length !== 1) {
-  throw new Error("Enabling LoRA each-job must render the toggle active.");
+const strengthSliders = findByClass(wizard.root, "krea2-lora-strength");
+if (strengthSliders.length !== 2) {
+  throw new Error("Every compact cast card must expose a LoRA strength slider.");
 }
-firstLoraEachJob.listeners.click({});
-if (JSON.parse(stateWidget.value).characters.find((item) => item.id === "d1").randomize_fields.lora_triggers) {
-  throw new Error("Disabling LoRA each-job must drop the snapshot pool.");
-}
-
-/* --- Direction sections collapse per character -------------------- */
-const collapseSections = findByClass(wizard.root, "krea2-character-category");
-const emotionSection = collapseSections.find((section) => {
-  const titles = findByClass(section, "krea2-wizard-category-title");
-  return titles.length && textOf(titles[0]) === "Emotion";
-});
-if (!emotionSection) {
-  throw new Error("Each cast member must render an Emotion direction section.");
-}
-const emotionHeader = findByClass(emotionSection, "krea2-wizard-category-header")[0];
-const emotionActions = findByClass(emotionSection, "krea2-wizard-category-actions")[0];
-const emotionContent = findByClass(emotionSection, "krea2-wizard-category-content")[0];
-if ((emotionSection.className || "").split(/\s+/).includes("is-collapsed")) {
-  throw new Error("Direction sections must start expanded on first render.");
-}
-emotionHeader.listeners.click({ target: {} });
-if (!(emotionSection.className || "").split(/\s+/).includes("is-collapsed")
-    || emotionActions.style.display !== "none"
-    || emotionContent.style.display !== "none") {
-  throw new Error("Clicking a direction header must collapse its content and actions.");
-}
-const collapsePersisted = JSON.parse(stateWidget.value).characters.find((item) => item.id === "d1");
-if (!collapsePersisted.collapsed_direction || collapsePersisted.collapsed_direction.emotion !== true) {
-  throw new Error("Direction collapse state must persist per character.");
-}
-emotionHeader.listeners.click({ target: {} });
-if ((emotionSection.className || "").split(/\s+/).includes("is-collapsed")) {
-  throw new Error("Clicking a collapsed header must expand it again.");
+strengthSliders[0].listeners.input({ target: { value: "1.25" } });
+const strengthPersisted = JSON.parse(stateWidget.value).characters.find((item) => item.id === "d1");
+if (strengthPersisted.lora_strength !== 1.25) {
+  throw new Error("Moving the compact LoRA strength slider must persist the value.");
 }
 
-/* --- The useless "or type a position" row is gone ------------------ */
+/* --- Position survives; no position select row on compact cards ----- */
 if (findByClass(wizard.root, "krea2-direction-position").length !== 0) {
-  throw new Error("The position select row must not render on cast members.");
+  throw new Error("The position select row must not render on compact cast cards.");
 }
 const positionPersisted = JSON.parse(stateWidget.value).characters.find((item) => item.id === "d1");
 if (positionPersisted.position !== "standing on the left side of the frame") {
-  throw new Error("Removing the position row must not clear the character's position field.");
+  throw new Error("Compact cards must not clear the character's position field.");
 }
 
 /* --- Avatar art carries identity modifier classes ------------------ */
@@ -720,31 +732,37 @@ if (characterPresets.length !== 1) {
 window.confirm = originalConfirm;
 window.fetch = originalFetch;
 
-/* --- v1.5 compact prompt-craft surface ---------------------------------- */
+/* --- Expanded B2 scene + shot card --------------------------------------- */
 switchTab("scene");
-const sceneEditors = findByClass(wizard.root, "krea2-scene-editor");
-if (sceneEditors.length !== 1) {
-  throw new Error("The Scene tab must render the scene editor card.");
+const sceneCards = findByClass(wizard.root, "krea2-b2-scene-card");
+if (sceneCards.length !== 1) {
+  throw new Error("Expanded B2 must render the Scene + Shot card.");
 }
-if (!(sceneEditors[0].className || "").split(/\s+/).includes("is-compact")) {
-  throw new Error("The scene editor must open as a one-line compact card by default.");
+const sceneFieldRows = findByClass(sceneCards[0], "krea2-b2-field-row");
+if (sceneFieldRows.length < 3) {
+  throw new Error("The Scene + Shot card must expose editable Type, Setting and Shot rows.");
 }
-const sceneExpandBtn = findByClass(wizard.root, "krea2-scene-expand")[0];
+const sceneExpandBtn = findByClass(sceneCards[0], "krea2-b2-scene-expand")[0];
 if (!sceneExpandBtn || sceneExpandBtn["aria-expanded"] !== "false") {
-  throw new Error("The compact scene card must expose an explicit expand control.");
+  throw new Error("The Scene + Shot card must expose a scene-detail expand control.");
 }
 sceneExpandBtn.listeners.click({});
+const expandedSceneCard = findByClass(wizard.root, "krea2-b2-scene-card")[0];
 if (JSON.parse(stateWidget.value).scene_collapsed !== false
-    || findByClass(wizard.root, "krea2-scene-description").length !== 1) {
-  throw new Error("Expanding the scene must reveal the full scene editor and persist the flag.");
+    || findByClass(expandedSceneCard, "krea2-b2-scene-detail")[0].className
+      .split(/\s+/).includes("is-hidden")
+    || findByClass(expandedSceneCard, "krea2-scene-description").length !== 1) {
+  throw new Error("Expanding the scene detail must reveal the description editor and persist the flag.");
 }
 
 switchTab("cast");
 if (findByClass(wizard.root, "krea2-cast-random-all").length !== 1) {
   throw new Error("The cast header must keep a cast-level randomization control.");
 }
-if (findByClass(wizard.root, "krea2-subcard").length < 6) {
-  throw new Error("Expanded cast members must render Identity, Appearance and Direction subcards.");
+if (findByClass(wizard.root, "krea2-subcard").length !== 0
+    || findByClass(wizard.root, "krea2-character-columns").length !== 0
+    || findByClass(wizard.root, "krea2-lora-section").length !== 0) {
+  throw new Error("Expanded cast members must stay compact: no legacy subcards, appearance columns or LoRA sections.");
 }
 
 const collapsedState = JSON.parse(JSON.stringify(eachRunState));
@@ -753,19 +771,22 @@ wizard.setState(collapsedState);
 switchTab("cast");
 const cardExpand = findByClass(wizard.root, "krea2-character-expand")[0];
 cardExpand.listeners.click({});
-const collapsedCards = findByClass(wizard.root, "krea2-character-card");
+const collapsedCards = findByClass(wizard.root, "krea2-b2-character-card");
 if ((collapsedCards[0].className || "").split(/\s+/).includes("is-expanded")
-    || findByClass(wizard.root, "krea2-character-chips").length !== 1) {
-  throw new Error("Collapsed cast members must stay identity-first and render direction chips.");
+    || findByClass(collapsedCards[0], "krea2-b2-appearance-grid").length !== 0
+    || findByClass(collapsedCards[0], "krea2-character-chips").length !== 1) {
+  throw new Error("Collapsed compact cards must hide the appearance grid and render direction chips.");
 }
-const chipsHost = findByClass(wizard.root, "krea2-character-chips")[0];
+const chipsHost = findByClass(collapsedCards[0], "krea2-character-chips")[0];
 if (findByClass(chipsHost, "krea2-character-chip").length < 2
     || !textOf(chipsHost).includes("LoRA")) {
   throw new Error("Collapsed chips must summarize direction groups and the LoRA without hovering.");
 }
 cardExpand.listeners.click({});
-if (findByClass(wizard.root, "krea2-character-chips").length !== 0) {
-  throw new Error("Expanding a cast member must reveal its subcards instead of the chips.");
+const expandedAgain = findByClass(wizard.root, "krea2-b2-character-card")[0];
+if (!(expandedAgain.className || "").split(/\s+/).includes("is-expanded")
+    || findByClass(expandedAgain, "krea2-b2-appearance-grid").length !== 1) {
+  throw new Error("Expanding a compact card must reveal the four-field appearance grid.");
 }
 
 wizard.recordExecution("first prompt");
@@ -775,4 +796,39 @@ if (wizard.getExecutionHistory().join("|") !== "first prompt|second prompt"
     || JSON.parse(wizard.root.dataset.krea2ExecutionHistory).length !== 2
     || wizard.root.dataset.krea2LastOutput !== "second prompt") {
   throw new Error("Live execution evidence must retain recent prompt outputs.");
+}
+
+/* --- Compact contraction timing: the node must shrink after collapse -------
+ * The first measurement runs while the host widget is still sized to the
+ * previous expanded height, so scrollHeight reports the stale content height.
+ * syncNodeHeight must re-measure after the layout settles and then call
+ * node.setSize with the compact shell's real ~296px content height. */
+const rafQueue = [];
+const originalRaf = window.requestAnimationFrame;
+window.requestAnimationFrame = (callback) => { rafQueue.push(callback); return rafQueue.length; };
+const flushRaf = () => { while (rafQueue.length) rafQueue.shift()(); };
+const contractSizes = [];
+let hostStillExpanded = true;
+wizard.root.isConnected = true;
+wizard.root.offsetWidth = 900;
+wizard.root.offsetHeight = 1854;
+wizard.root.scrollWidth = 900;
+wizard.root.scrollHeight = 1752;
+node.setSize = (size) => {
+  contractSizes.push([...size]);
+  node.size = size;
+  if (hostStillExpanded) {
+    hostStillExpanded = false;
+    wizard.root.scrollHeight = 296;
+  }
+};
+findByClass(wizard.root, "krea2-b2-collapse")[0].listeners.click({});
+flushRaf();
+const finalContractSize = node.size;
+window.requestAnimationFrame = originalRaf;
+if (!finalContractSize || finalContractSize[1] > 340 || finalContractSize[1] < 100) {
+  throw new Error("Collapsing the wizard must contract the node to the compact shell height (~320px), got " + JSON.stringify(finalContractSize) + ".");
+}
+if (contractSizes.length < 2) {
+  throw new Error("Contracting must re-measure after the layout settles instead of trusting the first stale frame.");
 }

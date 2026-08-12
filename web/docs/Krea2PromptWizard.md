@@ -16,7 +16,7 @@ The editor is organised into four tabs so the node stays calm:
 | Tab | Contents |
 |---|---|
 | 🎬 **Cast** | Saved characters, cast members, and per-character direction. |
-| 🎥 **Scene** | Main prompt, setting, shot presets, and the camera / lighting / environment / style concept groups. |
+| 🎥 **Scene** | Main prompt, setting, shot presets, and the Subject & Expression / camera / lighting / environment / style concept groups — each with 🎲 roll-once and 🔁 every-job controls. |
 | ✨ **Concepts** | The full concept grid (all groups), the add-concept picker, and per-group presets / randomize / Each job. |
 | 📜 **Prompt** | Live preview (Pretty / Code), video motion prompt, history, copy buttons, and Show Work. |
 
@@ -61,7 +61,9 @@ Each cast member owns:
 - **Body & movement** — per-character body-language rows.
 - **LoRA trigger words** — free-text lines compiled only inside this
   character's block, so a LoRA loaded on the model influences this
-  character alone.
+  character alone. The section's **🎲** adds one random trigger word from
+  the library; **🔁** randomizes the trigger-word block from a snapshot
+  pool on every queued job (backend-only, no browser state needed).
 - **Interaction** — relational direction such as *looking at Alex*.
 
 Characters therefore no longer share one emotion: a cast of two can
@@ -80,8 +82,9 @@ type anything. Fields are grouped into columns:
 - **Clothing & armour** — a full **Ensemble** look *or* separate
   **Top** / **Bottom** pieces. Choosing one disables the other.
 
-Every field has a dice button and an **each run** checkbox that
-randomizes that one field from its options on every queued job.
+Every field has two visible controls: **🎲** rolls that one field once now,
+and **🔁** toggles whether that field randomizes from its options on every
+queued job. No modifier key is required.
 
 **Save** on a character card stores the look as a reusable preset;
 saving with a name that already exists asks for confirmation and

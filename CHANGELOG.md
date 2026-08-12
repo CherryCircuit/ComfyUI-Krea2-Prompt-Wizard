@@ -1,5 +1,60 @@
 # CHANGELOG
 
+
+## 1.4.4 — subgraph blueprint fix, completed randomization, and variant-B2 prompt-craft UI
+
+### Subgraph blueprint fix (verified against the installed frontend 1.48.7)
+
+- Restored bundled subgraph blueprints to the installed ComfyUI frontend
+  workflow-envelope format: the file has one root node whose `type` matches
+  `definitions.subgraphs[0].id`. Bare subgraph JSON was rejected by
+  `SubgraphBlueprint.load()` and produced the `Failed to load subgraph
+  blueprints x4` toast.
+- Verified the contract directly in the installed
+  `comfyui_frontend_package` (SubgraphBlueprint.validateSubgraph, the
+  `global_subgraphs` loader, and `registerNodeDef` root-node lookup).
+- Updated `scripts/build_workflows.py`, `scripts/validate_workflows.py`, and
+  `tests/test_subgraphs.py` so future regenerated files are checked against
+  the served frontend contract, not only the nested subgraph schema.
+
+### Completed randomization contract (no Shift key anywhere)
+
+- Replaced every hidden Shift-click contract with two visible controls:
+  🎲 rolls the field/group once now, 🔁 toggles randomize-every-queued-job.
+  Tooltips and aria labels describe the action and state without modifier keys.
+- Every appearance field now carries its own 🎲 and 🔁 controls, plus a
+  per-character 🔁 header toggle that randomizes the full look on every
+  queued job (field controls disable when an ensemble intentionally
+  disables top/bottom separates).
+- Every direction group (Emotion, Face & gaze, Body & movement, Placement)
+  and every global prompt-craft group now exposes both controls; clicking the
+  each-job toggle persists state without Shift.
+- LoRA trigger words now have a visible 🔁 each-job control. Enabling it
+  snapshots the trigger-word pool into `character.randomize_fields.lora_triggers`;
+  the backend picks a fresh non-empty subset on every queued job before compile.
+- The global **Subject & Expression** group is now visible on the Scene tab
+  with count, dice, each-job, add, and save-preset controls; per-character
+  expression controls are untouched.
+- Random pools now cover every addable category: camera/film can sample
+  `perspective`, `aperture`, `camera_body`, `camera_movement`, `lens_family`;
+  style/finish can sample `custom`; subject/expression can sample `mouth`,
+  `position`, `emotion_trigger`, and `face_trigger`. Frontend and backend pools
+  are kept in sync, and stale rows from the full group category set are still
+  cleaned before new random rows are added.
+
+### Variant-B2 prompt-craft UI
+
+- Rebuilt the node as a compact dark Apple-style prompt-craft card: softer
+  surfaces, larger radii, hairline dividers, segmented controls, blurred
+  sticky prompt chip, and uppercase micro-labels.
+- Cast cards now lay out as avatar + identity + action grid with a readable
+  Mii-style avatar, and appearance fields run in three compact columns.
+- Prompt-craft groups render as inset concept rows with compact pill counts.
+- Lowered the default node height (480 px minimum widget, 640 px default
+  size) with collapsible sections and compact chips.
+- Bumped frontend cache imports to `?v=8` so ComfyUI reloads the updated
+  assets.
+
 ## 1.4.1 — v1.4.0 regression fixes
 
 ### Fixes

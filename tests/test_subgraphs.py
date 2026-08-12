@@ -1,11 +1,11 @@
-"""Validate bundled subgraph blueprints against the ComfyUI frontend's
-schema requirements and the current node contract.
+"""Validate bundled subgraph blueprints against the installed ComfyUI
+frontend contract and the current Krea2 node contract.
 
-The frontend (ComfyUI_frontend src/utils/blueprintUtils.ts +
-src/platform/workflow/validation/schemas/workflowSchema.ts) drops a
-blueprint when its ``inputs``/``outputs`` slot ids are not UUIDs, when
-the definition is missing ``version: 1`` / ``state``, or when node
-outputs reference slots that do not exist on the registered node.
+ComfyUI frontend 1.48.x loads each global blueprint as a SubgraphBlueprint
+workflow. The file must therefore be a workflow envelope whose root graph
+contains exactly one node whose ``type`` is the id of a subgraph in
+``definitions.subgraphs``. Files containing only the bare subgraph definition
+are rejected with ``Failed to load subgraph blueprints``.
 """
 from __future__ import annotations
 
@@ -13,7 +13,6 @@ import json
 import os
 import re
 import unittest
-import uuid
 
 from src.nodes import NODE_CLASS_MAPPINGS
 
@@ -23,34 +22,42 @@ SUBGRAPHS_DIR = os.path.join(ROOT, "subgraphs")
 UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 
 
-def _load_subgraphs():
-    """Read bundled subgraph blueprints.
-
-    ComfyUI loads each file in `subgraphs/` as a BARE subgraph definition
-    (the file itself is the blueprint, not a workflow envelope). Earlier
-    versions wrapped the blueprint inside a workflow skeleton, which the
-    ComfyUI frontend's `zSubgraphDefinition` schema rejected, and which
-    this test loader mirrored. Now the file IS the blueprint, so we
-    accept either shape for back-compat with older checkouts and
-    downstream forks.
-    """
-    blueprints = []
+def _load_blueprint_workflows():
+    workflows = []
     for name in sorted(os.listdir(SUBGRAPHS_DIR)):
         if not name.endswith(".json"):
             continue
         with open(os.path.join(SUBGRAPHS_DIR, name), "r", encoding="utf-8") as handle:
             data = json.load(handle)
-        # Bare format (v1.4.2+): file top-level is the blueprint itself.
-        if isinstance(data, dict) and "id" in data and "name" in data and "nodes" in data:
-            blueprints.append((name, data))
-            continue
-        # Wrapped format (legacy): extract from definitions.subgraphs.
-        for subgraph in (data.get("definitions") or {}).get("subgraphs") or []:
+        workflows.append((name, data))
+    return workflows
+
+
+def _load_subgraphs():
+    blueprints = []
+    for name, workflow in _load_blueprint_workflows():
+        for subgraph in (workflow.get("definitions") or {}).get("subgraphs") or []:
             blueprints.append((name, subgraph))
     return blueprints
 
 
 class SubgraphBlueprintTests(unittest.TestCase):
+    def test_files_are_frontend_blueprint_workflow_envelopes(self):
+        workflows = _load_blueprint_workflows()
+        self.assertGreaterEqual(len(workflows), 4)
+        for name, workflow in workflows:
+            self.assertEqual(workflow.get("version"), 0.4, name)
+            self.assertIn("definitions", workflow, name)
+            subgraphs = workflow["definitions"].get("subgraphs") or []
+            self.assertEqual(len(subgraphs), 1, name)
+            nodes = workflow.get("nodes") or []
+            self.assertEqual(len(nodes), 1, name)
+            self.assertEqual(nodes[0].get("type"), subgraphs[0].get("id"), name)
+            self.assertEqual(nodes[0].get("title"), subgraphs[0].get("name"), name)
+            self.assertEqual(workflow.get("links"), [], name)
+            self.assertIn("last_node_id", workflow, name)
+            self.assertIn("last_link_id", workflow, name)
+
     def test_all_blueprints_have_uuid_slot_ids(self):
         blueprints = _load_subgraphs()
         self.assertGreaterEqual(len(blueprints), 4)

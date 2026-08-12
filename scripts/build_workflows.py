@@ -429,6 +429,64 @@ def make_subgraph_basic() -> dict:
     }
 
 
+def make_subgraph_workflow(subgraph: dict) -> dict:
+    """Wrap a reusable subgraph in ComfyUI's global workflow envelope.
+
+    The /global_subgraphs frontend loader uses ComfyWorkflow and requires
+    one root node whose type is the subgraph UUID, plus the actual definition
+    under definitions.subgraphs. A bare definition leaves the loader with no
+    root node and causes the blueprints error toast.
+    """
+    root = {
+        "id": 1,
+        "type": subgraph["id"],
+        "pos": [60, 60],
+        "size": [420, 300],
+        "flags": {},
+        "order": 0,
+        "mode": 0,
+        "inputs": [
+            {
+                **({"label": slot["label"]} if "label" in slot else {}),
+                **({"localized_name": slot["localized_name"]} if "localized_name" in slot else {}),
+                "name": slot["name"],
+                "type": slot["type"],
+                "link": None,
+            }
+            for slot in subgraph.get("inputs", [])
+        ],
+        "outputs": [
+            {
+                **({"label": slot["label"]} if "label" in slot else {}),
+                **({"localized_name": slot["localized_name"]} if "localized_name" in slot else {}),
+                "name": slot["name"],
+                "type": slot["type"],
+                "links": [],
+            }
+            for slot in subgraph.get("outputs", [])
+        ],
+        "properties": {"proxyWidgets": []},
+        "widgets_values": [],
+        "title": subgraph["name"],
+    }
+    return {
+        "id": subgraph["id"],
+        "revision": 0,
+        "last_node_id": 1,
+        "last_link_id": 0,
+        "nodes": [root],
+        "links": [],
+        "groups": [],
+        "definitions": {"subgraphs": [subgraph]},
+        "config": {},
+        "extra": {
+            "frontendVersion": "1.48.7",
+            "workflowRendererVersion": "LG",
+        },
+        "version": 0.4,
+    }
+
+
 def make_subgraph_transparent() -> dict:
     """A transparent subgraph blueprint: every component is exposed."""
     return {
@@ -934,17 +992,15 @@ def main() -> None:
     _write(os.path.join(workflows_dir, "example_calibration.json"), make_calibration_workflow())
     _write(os.path.join(workflows_dir, "example_two_character_scene.json"), make_two_character_scene_workflow())
 
-    # ComfyUI loads blueprint files as BARE subgraph definitions, not as
-    # workflow envelopes. Earlier versions wrapped each subgraph inside a
-    # full workflow skeleton with `definitions.subgraphs: [<the actual>]`,
-    # which the ComfyUI frontend's `zSubgraphDefinition` schema rejects —
-    # triggering the `Failed to load subgraph blueprints x4` toast on every
-    # load. The fix is to write the bare blueprint object as the file
-    # content directly. See docs/AGENTS.md §4.1.
-    _write(os.path.join(subgraphs_dir, "Krea2_Prompt_Wizard_Basic.json"), make_subgraph_basic())
-    _write(os.path.join(subgraphs_dir, "Krea2_Prompt_Wizard_Transparent.json"), make_subgraph_transparent())
-    _write(os.path.join(subgraphs_dir, "Krea2_Prompt_Wizard_KJNodes.json"), make_subgraph_kj_nodes())
-    _write(os.path.join(subgraphs_dir, "Krea2_Prompt_Calibration.json"), make_subgraph_basic())
+    # ComfyUI frontend 1.48.x loads each subgraphs/*.json as a workflow
+    # envelope (SubgraphBlueprint): one root node whose type equals
+    # definitions.subgraphs[0].id. Bare subgraph objects leave the loader
+    # with no root node and trigger the `Failed to load subgraph
+    # blueprints x4` toast. See docs/AGENTS.md §4.1.
+    _write(os.path.join(subgraphs_dir, "Krea2_Prompt_Wizard_Basic.json"), make_subgraph_workflow(make_subgraph_basic()))
+    _write(os.path.join(subgraphs_dir, "Krea2_Prompt_Wizard_Transparent.json"), make_subgraph_workflow(make_subgraph_transparent()))
+    _write(os.path.join(subgraphs_dir, "Krea2_Prompt_Wizard_KJNodes.json"), make_subgraph_workflow(make_subgraph_kj_nodes()))
+    _write(os.path.join(subgraphs_dir, "Krea2_Prompt_Calibration.json"), make_subgraph_workflow(make_subgraph_basic()))
 
 
 if __name__ == "__main__":

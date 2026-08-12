@@ -10,15 +10,25 @@ from .wizard import add_row
 
 
 GROUP_CATEGORIES = {
-    "subject_expression": ("body", "subject_movement", "emotion", "face", "gaze", "mouth"),
-    "camera_film": ("framing", "angle", "lens", "composition", "film_color"),
+    "subject_expression": (
+        "body", "subject_movement", "emotion", "emotion_trigger",
+        "face", "face_trigger", "gaze", "mouth", "position",
+    ),
+    "camera_film": (
+        "framing", "angle", "perspective", "lens", "aperture",
+        "camera_body", "composition", "camera_movement", "lens_family",
+        "film_color",
+    ),
     "lighting": ("lighting_setup", "lighting_direction", "lighting_effect"),
     "environment": ("atmosphere", "environment_movement"),
-    "style_finish": ("style", "texture", "detail"),
+    "style_finish": ("style", "texture", "detail", "custom"),
 }
 
 ALL_GROUP_CATEGORIES = {
-    "subject_expression": {"body", "subject_movement", "emotion", "face", "gaze", "mouth"},
+    "subject_expression": {
+        "body", "subject_movement", "emotion", "emotion_trigger",
+        "face", "face_trigger", "gaze", "mouth", "position",
+    },
     "camera_film": {
         "framing", "angle", "perspective", "lens", "aperture",
         "camera_body", "composition", "camera_movement", "lens_family",
@@ -150,6 +160,10 @@ def randomize_character_fields(state: Dict[str, Any]) -> Dict[str, Any]:
     The candidate pool is snapshotted into ``character.randomize_fields``
     when the user enables the flag, so the backend never depends on
     frontend-only option lists.
+
+    ``lora_triggers`` is a special multi-line field: each job replaces the
+    trigger-word block with a random non-empty subset of the snapshot pool,
+    keeping LoRA steering phrases fresh between jobs.
     """
     characters = state.get("characters")
     if not isinstance(characters, list):
@@ -165,7 +179,15 @@ def randomize_character_fields(state: Dict[str, Any]) -> Dict[str, Any]:
             if not isinstance(options, list) or not options:
                 continue
             values = [str(option) for option in options if str(option).strip()]
-            if values:
+            if not values:
+                continue
+            if field == "lora_triggers":
+                maximum = min(3, len(values))
+                count = randomizer.randrange(1, maximum + 1)
+                chosen = randomizer.sample(values, count)
+                randomizer.shuffle(chosen)
+                character["lora_triggers"] = "\n".join(chosen)
+            else:
                 character[field] = randomizer.choice(values)
     return state
 
