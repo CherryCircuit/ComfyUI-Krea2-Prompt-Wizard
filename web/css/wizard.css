@@ -85,6 +85,13 @@ body.dark {
   min-width: 0;
 }
 
+.krea2-tab-host {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
 /* ---------------------------------------------------------------------------
  * Pinned structural block (packaging test): keep before .krea2-wizard-prompt-field
  * --------------------------------------------------------------------------- */
