@@ -3,7 +3,7 @@
   "use strict";
 
   const K = window.KREA2;
-  const { el, groupForCategory } = K.helpers;
+  const { el, icon, groupForCategory } = K.helpers;
   const {
     CATEGORIES,
     CATEGORY_LABELS,
@@ -68,7 +68,7 @@
           title: "Close",
           "aria-label": "Close",
           onClick: close,
-        }, "×"),
+        }, icon("close", { width: "12", height: "12" })),
       ]),
     ]);
 
@@ -144,35 +144,39 @@
     function showColorPicker(anchor, presetId, onPick) {
       const existing = document.querySelector(".krea2-color-picker-menu");
       if (existing) existing.remove();
-      const menu = el("div", { class: "krea2-color-picker-menu" }, [
-        makeColorOption("🔴 Red", "red"),
-        makeColorOption("🟠 Orange", "orange"),
-        makeColorOption("🟡 Yellow", "yellow"),
-        makeColorOption("🟢 Green", "green"),
-        makeColorOption("🔵 Blue", "blue"),
-        makeColorOption("🩷 Pink", "pink"),
-        makeColorOption("❌ Clear", ""),
-      ]);
-      function makeColorOption(label, val) {
-        return el("button", {
+      const tags = [
+        ["red", "#ff6b6b"],
+        ["orange", "#ffa94d"],
+        ["yellow", "#fab005"],
+        ["green", "#51cf66"],
+        ["blue", "#339af0"],
+        ["pink", "#f06595"],
+      ];
+      const menu = el("div", { class: "krea2-color-picker-menu" });
+      for (const entry of tags) {
+        menu.appendChild(el("button", {
           type: "button",
           class: "krea2-color-option",
-          style: {
-            background: "transparent",
-            border: "0",
-            color: "var(--krea2-text)",
-            textAlign: "left",
-            padding: "3px 6px",
-            borderRadius: "3px",
-            cursor: "pointer",
-          },
+          title: "Tag " + entry[0],
+          "aria-label": "Tag " + entry[0],
           onClick: function (e) {
             e.stopPropagation();
-            onPick(val);
+            onPick(entry[0]);
             menu.remove();
           },
-        }, label);
+        }, icon("dot", { color: entry[1], width: "14", height: "14" })));
       }
+      menu.appendChild(el("button", {
+        type: "button",
+        class: "krea2-color-option krea2-color-option-clear",
+        title: "Clear tag",
+        "aria-label": "Clear tag",
+        onClick: function (e) {
+          e.stopPropagation();
+          onPick("");
+          menu.remove();
+        },
+      }, "Clear"));
       const rect = anchor.getBoundingClientRect();
       Object.assign(menu.style, {
         position: "fixed",
@@ -201,11 +205,13 @@
     function renderResults() {
       listEl.innerHTML = "";
       const query = (search.value || "").trim().toLowerCase();
+      const appliedIds = Array.from(selected);
       currentResults = list.filter(function (preset) {
         if (preset.disabled || !allowedCategories.has(preset.category)) return false;
         if (activeGroup !== "__all__" && groupForCategory(preset.category) !== activeGroup) {
           return false;
         }
+        if (opts.filterPreset && !opts.filterPreset(preset, appliedIds)) return false;
         return !query || searchableText(preset).includes(query);
       }).slice(0, 240);
       if (highlighted < 0 && initialPresetId) {
@@ -275,7 +281,8 @@
           el("button", {
             type: "button",
             class: "krea2-star-btn" + (color ? " color-" + color + " is-starred" : ""),
-            title: "Star concept with macOS color tag",
+            title: "Star concept with a color tag",
+            "aria-label": "Tag concept with a color",
             onClick: function (e) {
               e.stopPropagation();
               showColorPicker(e.currentTarget, preset.id, function (newColor) {
@@ -283,8 +290,8 @@
                 renderResults();
               });
             },
-          }, "★"),
-          el("span", { class: "krea2-searchable-check" }, isSelected ? "✓" : ""),
+          }, icon("star", { width: "12", height: "12" })),
+          el("span", { class: "krea2-searchable-check" }, isSelected ? icon("check", { width: "10", height: "10" }) : ""),
           el("span", { class: "krea2-searchable-title" }, preset.label || preset.id),
           el("span", { class: "krea2-searchable-group" }, CATEGORY_LABELS[presetCat] || presetCat),
         ]);

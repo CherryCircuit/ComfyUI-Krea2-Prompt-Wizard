@@ -22,6 +22,24 @@ if (!state.collapsed || Object.keys(state.collapsed).length !== 0) {
   throw new Error("New wizard states must retain an empty collapse map.");
 }
 
+if (state.pretty_preview !== false) {
+  throw new Error("Pretty Prompt Preview must default to OFF.");
+}
+if (state.final_preview_open !== true) {
+  throw new Error("The Final Prompt Preview must default to open.");
+}
+const v2Probe = window.KREA2.helpers.coerceState({
+  rows: [],
+  pretty_preview: true,
+  final_preview_open: false,
+  scene_sections: { camera: false },
+});
+if (v2Probe.pretty_preview !== true
+    || v2Probe.final_preview_open !== false
+    || v2Probe.scene_sections.camera !== false) {
+  throw new Error("v2 UI flags must survive workflow restoration.");
+}
+
 const restored = window.KREA2.helpers.coerceState({
   rows: [],
   collapsed: { emotion: true },

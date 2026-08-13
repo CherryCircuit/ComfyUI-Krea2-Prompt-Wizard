@@ -1,51 +1,60 @@
-/* Compact concept card with live two-column board reordering. */
+/* Concept row: [label] [−] [value] [+] [×] with live two-column board
+ * reordering. The center value is a drag surrogate for a slider: mousedown
+ * on it, drag vertically (up = +0.5 per 10px), release. The − and + pills
+ * auto-repeat while held. Range is -3 to +3 in 0.5 steps. */
 (function () {
   "use strict";
 
   const K = window.KREA2;
-  const { el } = K.helpers;
+  const {
+    el,
+    icon,
+    displayStrength,
+    storedStrength,
+    formatStepValue,
+  } = K.helpers;
 
-  function displayStrength(row) {
-    if (Number.isFinite(Number(row.strength))) return Number(row.strength);
-    return Math.max(-3, Math.min(3, (Number(row.intensity) || 0) / 20));
-  }
+  const ROW_MIN = -3;
+  const ROW_MAX = 3;
+  const ROW_STEP = 0.5;
 
-  function storedStrength(value) {
-    return Math.round(Math.max(-3, Math.min(3, Number(value) || 0)) * 4) / 4;
-  }
+  const COLOR_TAGS = [
+    ["red", "#ff6b6b"],
+    ["orange", "#ffa94d"],
+    ["yellow", "#fab005"],
+    ["green", "#51cf66"],
+    ["blue", "#339af0"],
+    ["pink", "#f06595"],
+  ];
 
   function showColorPicker(anchor, presetId, onPick) {
     const existing = document.querySelector(".krea2-color-picker-menu");
     if (existing) existing.remove();
-    const menu = el("div", { class: "krea2-color-picker-menu" }, [
-      makeColorOption("🔴 Red", "red"),
-      makeColorOption("🟠 Orange", "orange"),
-      makeColorOption("🟡 Yellow", "yellow"),
-      makeColorOption("🟢 Green", "green"),
-      makeColorOption("🔵 Blue", "blue"),
-      makeColorOption("🩷 Pink", "pink"),
-      makeColorOption("❌ Clear", ""),
-    ]);
-    function makeColorOption(label, val) {
-      return el("button", {
+    const menu = el("div", { class: "krea2-color-picker-menu" });
+    for (const entry of COLOR_TAGS) {
+      menu.appendChild(el("button", {
         type: "button",
         class: "krea2-color-option",
-        style: {
-          background: "transparent",
-          border: "0",
-          color: "var(--krea2-text)",
-          textAlign: "left",
-          padding: "3px 6px",
-          borderRadius: "3px",
-          cursor: "pointer",
-        },
+        title: "Tag " + entry[0],
+        "aria-label": "Tag " + entry[0],
         onClick: function (e) {
           e.stopPropagation();
-          onPick(val);
+          onPick(entry[0]);
           menu.remove();
         },
-      }, label);
+      }, icon("dot", { color: entry[1], width: "14", height: "14" })));
     }
+    menu.appendChild(el("button", {
+      type: "button",
+      class: "krea2-color-option krea2-color-option-clear",
+      title: "Clear tag",
+      "aria-label": "Clear tag",
+      onClick: function (e) {
+        e.stopPropagation();
+        onPick("");
+        menu.remove();
+      },
+    }, "Clear"));
     const rect = anchor.getBoundingClientRect();
     Object.assign(menu.style, {
       position: "fixed",
@@ -54,10 +63,10 @@
       zIndex: "2147483500",
       background: "var(--krea2-panel, #202329)",
       border: "1px solid var(--krea2-border)",
-      borderRadius: "4px",
+      borderRadius: "6px",
       padding: "4px",
       display: "flex",
-      flexDirection: "column",
+      alignItems: "center",
       gap: "2px",
       boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
     });
@@ -69,6 +78,64 @@
       }
     }
     setTimeout(() => document.addEventListener("click", onDocClick, true), 0);
+  }
+
+  function stepRow(row, valueEl, delta, ctx) {
+    const next = storedStrength(Number(displayStrength(row)) + delta);
+    row.strength = Math.max(ROW_MIN, Math.min(ROW_MAX, next));
+    if (valueEl) valueEl.textContent = formatStepValue(row.strength);
+    ctx.markDirty();
+  }
+
+  /* Click-and-hold auto-repeat for the − / + pills. */
+  function attachRepeat(button, onStep) {
+    let timer = null;
+    function stop() {
+      if (timer !== null) {
+        clearInterval(timer);
+        timer = null;
+      }
+      document.removeEventListener("mouseup", stop);
+      document.removeEventListener("mouseleave", stop);
+      button.classList.remove("is-repeating");
+    }
+    button.addEventListener("mousedown", function (event) {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      onStep();
+      button.classList.add("is-repeating");
+      timer = setInterval(onStep, 130);
+      document.addEventListener("mouseup", stop);
+      document.addEventListener("mouseleave", stop);
+    });
+  }
+
+  /* Vertical drag surrogate for the center value: up = +0.5/10px,
+   * down = -0.5/10px, released on mouseup. */
+  function attachValueDrag(valueEl, row, ctx) {
+    valueEl.addEventListener("mousedown", function (event) {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      const startY = event.clientY;
+      const startValue = Number(displayStrength(row));
+      valueEl.classList.add("is-dragging");
+      document.body.classList.add("krea2-ns-resize");
+      function onMove(moveEvent) {
+        const deltaSteps = Math.round((startY - moveEvent.clientY) / 10);
+        const next = storedStrength(startValue + deltaSteps * ROW_STEP);
+        row.strength = Math.max(ROW_MIN, Math.min(ROW_MAX, next));
+        valueEl.textContent = formatStepValue(row.strength);
+        ctx.markDirty();
+      }
+      function onUp() {
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+        valueEl.classList.remove("is-dragging");
+        document.body.classList.remove("krea2-ns-resize");
+      }
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+    });
   }
 
   function renderRow(row, ctx) {
@@ -83,12 +150,13 @@
       class: "krea2-row-drag",
       title: "Drag concept to reorder",
       "aria-label": "Drag concept to reorder",
-    }, "⠿");
+    }, icon("grip", { width: "12", height: "12" }));
 
     const starBtn = el("button", {
       type: "button",
       class: "krea2-star-btn" + (color ? " color-" + color + " is-starred" : ""),
-      title: "Star concept with macOS color tag",
+      title: "Star concept with a color tag",
+      "aria-label": "Tag concept with a color",
       onClick: function (event) {
         event.stopPropagation();
         showColorPicker(event.currentTarget, row.preset_id, function (newColor) {
@@ -101,7 +169,7 @@
           if (ctx.refresh) ctx.refresh();
         });
       },
-    }, "★");
+    }, icon("star", { width: "12", height: "12" }));
 
     const label = el("button", {
       type: "button",
@@ -109,6 +177,33 @@
       title: "Replace this concept",
       onClick: function () { ctx.editRow(row); },
     }, row.label || row.preset_id || "Concept");
+
+    const initial = storedStrength(displayStrength(row));
+    row.strength = initial;
+
+    const valueEl = el("div", {
+      class: "krea2-row-value",
+      role: "slider",
+      tabIndex: "0",
+      "aria-label": "Concept strength",
+      "aria-valuemin": String(ROW_MIN),
+      "aria-valuemax": String(ROW_MAX),
+      "aria-valuenow": String(initial),
+      title: "Drag vertically to adjust strength from -3 to +3",
+    }, formatStepValue(initial));
+
+    const minus = el("button", {
+      type: "button",
+      class: "krea2-row-step-minus",
+      title: "Decrease strength by 0.5 (hold to repeat)",
+      "aria-label": "Decrease concept strength",
+    }, icon("close", { width: "10", height: "10" }));
+    const plus = el("button", {
+      type: "button",
+      class: "krea2-row-step-plus",
+      title: "Increase strength by 0.5 (hold to repeat)",
+      "aria-label": "Increase concept strength",
+    }, icon("plus", { width: "10", height: "10" }));
 
     const enabled = el("button", {
       type: "button",
@@ -130,7 +225,7 @@
         wrap.classList.toggle("is-disabled", row.enabled === false);
         ctx.markDirty();
       },
-    });
+    }, icon("eye", { width: "12", height: "12" }));
 
     const remove = el("button", {
       type: "button",
@@ -138,49 +233,15 @@
       title: "Delete concept",
       "aria-label": "Delete concept",
       onClick: function () { ctx.removeRow(row.id); },
-    }, "×");
-
-    const initial = displayStrength(row);
-    row.strength = storedStrength(initial);
-    const slider = el("input", {
-      type: "range",
-      class: "krea2-row-intensity",
-      min: "-3",
-      max: "3",
-      step: "0.25",
-      value: String(initial),
-      title: "Adjust concept strength from -3 to +3",
-      "aria-label": "Concept strength",
-      onInput: function (event) {
-        row.strength = storedStrength(event.target.value);
-        number.value = String(row.strength);
-        ctx.markDirty();
-      },
-    });
-
-    const number = el("input", {
-      type: "number",
-      class: "krea2-row-numeric",
-      min: "-3",
-      max: "3",
-      step: "0.25",
-      value: String(initial),
-      title: "Set concept strength from -3 to +3",
-      "aria-label": "Concept strength value",
-      onInput: function (event) {
-        row.strength = storedStrength(event.target.value);
-        slider.value = String(row.strength);
-        event.target.value = String(row.strength);
-        ctx.markDirty();
-      },
-    });
+    }, icon("close", { width: "10", height: "10" }));
 
     wrap.appendChild(el("div", { class: "krea2-row-head" }, [
       dragHandle,
       starBtn,
       label,
-      slider,
-      number,
+      minus,
+      valueEl,
+      plus,
       enabled,
       remove,
     ]));
@@ -193,6 +254,10 @@
       wrap.classList.remove("is-hovered");
       if (ctx.onHover) ctx.onHover(row.id, false);
     });
+
+    attachRepeat(minus, function () { stepRow(row, valueEl, -ROW_STEP, ctx); });
+    attachRepeat(plus, function () { stepRow(row, valueEl, ROW_STEP, ctx); });
+    attachValueDrag(valueEl, row, ctx);
 
     dragHandle.addEventListener("mousedown", function (event) {
       if (event.button !== 0) return;

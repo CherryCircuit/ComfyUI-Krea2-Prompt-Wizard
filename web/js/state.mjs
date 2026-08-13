@@ -104,11 +104,11 @@
   ]);
 
   const GROUP_LABELS = Object.freeze({
-    subject_expression: "👤 Subject & Expression",
-    camera_film: "📷 Camera & Film",
-    lighting: "💡 Lighting",
-    environment: "🌍 Environment",
-    style_finish: "✨ Style & Finish",
+    subject_expression: "Subject & Expression",
+    camera_film: "Camera & Film",
+    lighting: "Lighting",
+    environment: "Environment",
+    style_finish: "Style & Finish",
   });
 
   const GROUP_CATEGORIES = Object.freeze({
@@ -207,6 +207,10 @@
       // The flag is pure UI state and is preserved across workflow
       // saves/restores and job executions.
       wizard_expanded: false,
+      // v2 redesign: tabbed editor state.
+      pretty_preview: false,
+      final_preview_open: true,
+      scene_sections: {},
     };
   }
 
@@ -248,6 +252,9 @@
       "show_motion_prompt",
       "scene_collapsed",
       "wizard_expanded",
+      "pretty_preview",
+      "final_preview_open",
+      "scene_sections",
     ]) {
       if (key in raw) base[key] = raw[key];
     }
@@ -300,6 +307,15 @@
       if (!character.randomize_fields || typeof character.randomize_fields !== "object") {
         character.randomize_fields = {};
       }
+      // v2 redesign: header-click toggles and the per-character LoRA list.
+      if (character.expanded === undefined) character.expanded = true;
+      if (character.concepts_open === undefined) character.concepts_open = true;
+      if (character.loras_open === undefined) character.loras_open = true;
+      if (character.quick_open === undefined) character.quick_open = true;
+      if (!Array.isArray(character.loras)) character.loras = [];
+      character.loras = character.loras.filter(function (lora) {
+        return lora && typeof lora === "object" && String(lora.filename || "").trim();
+      });
     }
     if (!Array.isArray(base.character_presets)) base.character_presets = [];
     if (!base.setting || typeof base.setting !== "object" || Array.isArray(base.setting)) {
@@ -531,6 +547,156 @@
     };
   }
 
+  /* ------------------- SVG iconography ---------------------------------
+   * All wizard icons are inline SVG so their active/inactive colour is
+   * fully controllable via currentColor. No emojis anywhere in the UI. */
+  const ICON_SPECS = Object.freeze({
+    dice: [
+      ["rect", { x: "2.5", y: "2.5", width: "11", height: "11", rx: "2.2" }],
+      ["circle", { cx: "5.8", cy: "5.8", r: "0.9", fill: "currentColor", stroke: "none" }],
+      ["circle", { cx: "10.2", cy: "5.8", r: "0.9", fill: "currentColor", stroke: "none" }],
+      ["circle", { cx: "8", cy: "8", r: "0.9", fill: "currentColor", stroke: "none" }],
+      ["circle", { cx: "5.8", cy: "10.2", r: "0.9", fill: "currentColor", stroke: "none" }],
+      ["circle", { cx: "10.2", cy: "10.2", r: "0.9", fill: "currentColor", stroke: "none" }],
+    ],
+    shuffle: [
+      ["path", { d: "M2 4.5h2.6c1.9 0 2.9 1.5 4 3.5s2.1 3.5 4 3.5H14" }],
+      ["path", { d: "M11 3l3 1.5L11 6" }],
+      ["path", { d: "M14 11.5h-2.6c-1.9 0-2.9-1.5-4-3.5s-2.1-3.5-4-3.5H2" }],
+      ["path", { d: "M5 13L2 11.5L5 10" }],
+    ],
+    chevron_down: [["path", { d: "M3.5 6l4.5 4.5L12.5 6" }]],
+    chevron_right: [["path", { d: "M6 3.5l4.5 4.5L6 12.5" }]],
+    plus: [["path", { d: "M8 3v10M3 8h10" }]],
+    close: [["path", { d: "M4 4l8 8M12 4l-8 8" }]],
+    copy: [
+      ["rect", { x: "2.5", y: "5", width: "8.5", height: "8.5", rx: "1.3" }],
+      ["path", { d: "M5 2.5h6.5A2 2 0 0 1 13.5 4.5V11" }],
+    ],
+    sliders: [
+      ["path", { d: "M2 4.5h12M2 8h12M2 11.5h12" }],
+      ["circle", { cx: "5.5", cy: "4.5", r: "1.4" }],
+      ["circle", { cx: "10.5", cy: "8", r: "1.4" }],
+      ["circle", { cx: "6.5", cy: "11.5", r: "1.4" }],
+    ],
+    camera: [
+      ["path", { d: "M2.5 5.5h2l1-2h5l1 2h2A1.5 1.5 0 0 1 15 7v5.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 12.5V7a1.5 1.5 0 0 1 1.5-1.5z" }],
+      ["circle", { cx: "8", cy: "9", r: "2.3" }],
+    ],
+    clapper: [
+      ["path", { d: "M2 4.5h12v8.5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z" }],
+      ["path", { d: "M2.5 7h11" }],
+      ["path", { d: "M2.5 4.5L4 7M6 4.5L7.5 7M9.5 4.5L11 7M13 4.5L14 7" }],
+    ],
+    users: [
+      ["circle", { cx: "6", cy: "5.2", r: "2.2" }],
+      ["path", { d: "M2.6 13.2c0-2.1 1.5-3.4 3.4-3.4s3.4 1.3 3.4 3.4" }],
+      ["circle", { cx: "11.6", cy: "6.6", r: "1.7" }],
+      ["path", { d: "M10.4 10.2c1.5-.4 3 .7 3 3" }],
+    ],
+    sparkle: [
+      ["path", { d: "M8 2.2l1.4 3.1 3.1 1.4-3.1 1.4L8 11.2l-1.4-3.1-3.1-1.4 3.1-1.4z" }],
+      ["path", { d: "M12.6 10l.7 1.6 1.6.7-1.6.7-.7 1.6-.7-1.6-1.6-.7 1.6-.7z" }],
+    ],
+    star: [["path", { d: "M8 2.4l1.75 3.55 3.9.57-2.82 2.75.67 3.88L8 11.35l-3.5 1.84.67-3.88L2.35 6.56l3.9-.57z", fill: "currentColor", stroke: "none" }]],
+    eye: [
+      ["path", { d: "M1.7 8C3 5.1 5.3 3.6 8 3.6s5 1.5 6.3 4.4C13 10.9 10.7 12.4 8 12.4S3 10.9 1.7 8z" }],
+      ["circle", { cx: "8", cy: "8", r: "1.7" }],
+    ],
+    grip: [
+      ["circle", { cx: "5.2", cy: "4", r: "0.7", fill: "currentColor", stroke: "none" }],
+      ["circle", { cx: "8", cy: "4", r: "0.7", fill: "currentColor", stroke: "none" }],
+      ["circle", { cx: "10.8", cy: "4", r: "0.7", fill: "currentColor", stroke: "none" }],
+      ["circle", { cx: "5.2", cy: "8", r: "0.7", fill: "currentColor", stroke: "none" }],
+      ["circle", { cx: "8", cy: "8", r: "0.7", fill: "currentColor", stroke: "none" }],
+      ["circle", { cx: "10.8", cy: "8", r: "0.7", fill: "currentColor", stroke: "none" }],
+      ["circle", { cx: "5.2", cy: "12", r: "0.7", fill: "currentColor", stroke: "none" }],
+      ["circle", { cx: "8", cy: "12", r: "0.7", fill: "currentColor", stroke: "none" }],
+      ["circle", { cx: "10.8", cy: "12", r: "0.7", fill: "currentColor", stroke: "none" }],
+    ],
+    bolt: [["path", { d: "M9 1.6L3.6 9h3.2l-.9 5.4L10.9 7H7.6z" }]],
+    compass: [
+      ["circle", { cx: "8", cy: "8", r: "6" }],
+      ["path", { d: "M8 4.2l1.7 4.6-4.6 1.7z", fill: "currentColor", stroke: "none" }],
+    ],
+    bulb: [
+      ["path", { d: "M8 1.8a4.6 4.6 0 0 0-2.7 8.3c.8.6 1.2 1.2 1.2 1.9h3c0-.7.4-1.3 1.2-1.9A4.6 4.6 0 0 0 8 1.8z" }],
+      ["path", { d: "M6.4 13.4h3.2M7 15.2h2" }],
+    ],
+    globe: [
+      ["circle", { cx: "8", cy: "8", r: "6" }],
+      ["path", { d: "M2 8h12" }],
+      ["path", { d: "M8 2c2.4 2.2 2.4 9.8 0 12M8 2c-2.4 2.2-2.4 9.8 0 12" }],
+    ],
+    palette: [
+      ["path", { d: "M8 2a6 6 0 1 0 0 12c.9 0 1.2-.7.8-1.3-.4-.6-.1-1.2.8-1.2h1.3A3.1 3.1 0 0 0 14 8.4C14 4.4 11.3 2 8 2z" }],
+      ["circle", { cx: "5.2", cy: "6.4", r: "0.9", fill: "currentColor", stroke: "none" }],
+      ["circle", { cx: "8", cy: "5", r: "0.9", fill: "currentColor", stroke: "none" }],
+      ["circle", { cx: "10.8", cy: "6.4", r: "0.9", fill: "currentColor", stroke: "none" }],
+    ],
+    check: [["path", { d: "M3 8.5l3.5 3.5L13 4.5" }]],
+    dot: [["circle", { cx: "8", cy: "8", r: "5" }]],
+    trash: [
+      ["path", { d: "M3 4.5h10M6.5 4.5V3h3v1.5M5 4.5l.6 8.4a1 1 0 0 0 1 .9h2.8a1 1 0 0 0 1-.9l.6-8.4" }],
+      ["path", { d: "M6.8 7v4M9.2 7v4" }],
+    ],
+    download: [
+      ["path", { d: "M8 2.5V11M4.5 7.5L8 11l3.5-3.5" }],
+      ["path", { d: "M2.5 13.5h11" }],
+    ],
+    upload: [
+      ["path", { d: "M8 11V2.5M4.5 6L8 2.5L11.5 6" }],
+      ["path", { d: "M2.5 13.5h11" }],
+    ],
+  });
+
+  function icon(name, attrs) {
+    attrs = attrs || {};
+    const doc = typeof document !== "undefined" ? document : null;
+    if (!doc) return null;
+    const mk = typeof doc.createElementNS === "function"
+      ? function (tag) { return doc.createElementNS("http://www.w3.org/2000/svg", tag); }
+      : function (tag) { return doc.createElement(tag); };
+    const svg = mk("svg");
+    svg.setAttribute("viewBox", "0 0 16 16");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "1.4");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+    svg.setAttribute("aria-hidden", "true");
+    for (const key of Object.keys(attrs)) {
+      svg.setAttribute(key, attrs[key]);
+    }
+    const spec = ICON_SPECS[name];
+    if (spec) {
+      for (const entry of spec) {
+        const node = mk(entry[0]);
+        const a = entry[1];
+        for (const key of Object.keys(a)) node.setAttribute(key, a[key]);
+        svg.appendChild(node);
+      }
+    }
+    return svg;
+  }
+
+  /* Concept row strength helpers: default_strength is stored 0-100 in the
+   * library; the UI shows -3 to +3 (divide by 20). */
+  function displayStrength(row) {
+    if (Number.isFinite(Number(row.strength))) return Number(row.strength);
+    return Math.max(-3, Math.min(3, (Number(row.intensity) || 0) / 20));
+  }
+
+  function storedStrength(value) {
+    return Math.round(Math.max(-3, Math.min(3, Number(value) || 0)) * 2) / 2;
+  }
+
+  function formatStepValue(value) {
+    const number = Math.round(Number(value) * 10) / 10;
+    if (number === 0) return "0";
+    return (number > 0 ? "+" : "") + String(number);
+  }
+
   /* ------------------- Library client -------------------------------- */
   async function fetchLibrary() {
     if (KREA2._library) return KREA2._library;
@@ -616,6 +782,20 @@
       if (!resp.ok) throw new Error("loras HTTP " + resp.status);
       const data = await resp.json();
       return Array.isArray(data.loras) ? data.loras : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  async function fetchConflicts() {
+    try {
+      const api = (window.app && window.app.api) || null;
+      const url = (api && api.apiURL && api.apiURL("/krea2_prompt_wizard/conflicts"))
+        || "/krea2_prompt_wizard/conflicts";
+      const resp = await fetch(url, { cache: "no-store" });
+      if (!resp.ok) throw new Error("conflicts HTTP " + resp.status);
+      const data = await resp.json();
+      return Array.isArray(data.conflicts) ? data.conflicts : [];
     } catch (e) {
       return [];
     }
@@ -949,6 +1129,10 @@
     showToast,
     el,
     debounce,
+    icon,
+    displayStrength,
+    storedStrength,
+    formatStepValue,
     sliderToWeightScalar,
     sliderToWeightRaw,
     sliderToWeightBipolar,
@@ -963,6 +1147,7 @@
     fetchMasterPresets,
     fetchSavedPresets,
     fetchLoras,
+    fetchConflicts,
     saveSavedPresets,
     fetchConceptColors,
     saveConceptColors,

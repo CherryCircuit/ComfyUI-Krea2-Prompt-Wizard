@@ -13,6 +13,7 @@
   const {
     el,
     debounce,
+    icon,
     emptyState,
     coerceState,
     uniqueRowId,
@@ -22,6 +23,7 @@
     fetchMasterPresets,
     fetchSavedPresets,
     fetchLoras,
+    fetchConflicts,
     saveSavedPresets,
     showToast,
     groupForCategory,
@@ -183,33 +185,100 @@
   /* TV/movie-style multi-concept direction presets shown as chips on each
    * cast member. Each chip applies several related concepts at once. */
   const QUICK_DIRECTIONS = [
-    { label: "Acting Shady", presets: [["emotion.suspicion", 1.3], ["gaze.side_glance", 1.3], ["mouth.smirk", 1.2], ["body.tense_posture", 1.1]] },
-    { label: "Heartbroken", presets: [["emotion.grief", 1.5], ["face.tear_filled_eyes", 1.4], ["mouth.sobbing", 1.4], ["body.hunched_shoulders", 1.2]] },
-    { label: "Furious Outburst", presets: [["emotion.rage", 1.6], ["face.upper_lip_raiser", 1.4], ["mouth.shouting", 1.3], ["body.clenched_fists", 1.4]] },
-    { label: "Playful Flirt", presets: [["emotion.amusement", 1.3], ["mouth.smirk", 1.2], ["gaze.looking_toward_another_subject", 1.2], ["body.leaning_forward", 1.2]] },
-    { label: "Nervous First Date", presets: [["emotion.nervousness", 1.2], ["mouth.biting_lower_lip", 1.1], ["gaze.avoiding_eye_contact", 1.2], ["body.tense_posture", 1.1]] },
-    { label: "Triumphant", presets: [["emotion.elation", 1.5], ["mouth.broad_smile", 1.3], ["body.shoulders_pulled_back", 1.3], ["gaze.looking_upward", 1.1]] },
-    { label: "Terrified", presets: [["emotion.terror", 1.6], ["face.upper_eyelid_raiser", 1.4], ["mouth.gasping", 1.3], ["body.recoiling", 1.3]] },
-    { label: "Exhausted", presets: [["emotion.fatigue", 1.3], ["body.exhausted_posture", 1.3], ["gaze.eyes_half_closed", 1.2], ["mouth.parted_lips", 1.0]] },
-    { label: "Commanding", presets: [["emotion.determination", 1.4], ["body.confident_stance", 1.4], ["gaze.fixed_intense_stare", 1.3], ["body.shoulders_pulled_back", 1.2]] },
-    { label: "Shy Admission", presets: [["emotion.embarrassment", 1.3], ["gaze.avoiding_eye_contact", 1.2], ["mouth.biting_lower_lip", 1.1], ["body.tense_posture", 1.0]] },
-    { label: "Radiant Joy", presets: [["emotion.joy", 1.4], ["mouth.gentle_smile", 1.3], ["face.cheek_raiser", 1.2], ["body.open_posture", 1.1]] },
-    { label: "Guilty", presets: [["emotion.guilt", 1.3], ["gaze.avoiding_eye_contact", 1.3], ["mouth.pursed_lips", 1.1], ["body.tense_posture", 1.1]] },
-    { label: "Panic Attack", presets: [["emotion.panic", 1.5], ["face.upper_eyelid_raiser", 1.4], ["mouth.gasping", 1.3], ["body.recoiling", 1.3]] },
-    { label: "Wistful", presets: [["emotion.melancholy", 1.3], ["gaze.looking_into_the_distance", 1.2], ["face.inner_brow_raiser", 1.1], ["body.relaxed_posture", 1.0]] },
-    { label: "Curious", presets: [["emotion.curiosity", 1.2], ["gaze.squinting", 1.1], ["body.leaning_forward", 1.2], ["gaze.looking_toward_another_subject", 1.0]] },
-    { label: "Contemptuous", presets: [["emotion.contempt", 1.3], ["mouth.smirk", 1.2], ["gaze.side_glance", 1.2], ["body.closed_posture", 1.1]] },
-    { label: "Shocked", presets: [["emotion.shock", 1.5], ["face.upper_eyelid_raiser", 1.4], ["face.jaw_drop", 1.2], ["mouth.parted_lips", 1.1]] },
-    { label: "Determined Hero", presets: [["emotion.determination", 1.4], ["gaze.fixed_intense_stare", 1.3], ["body.confident_stance", 1.3], ["body.arms_crossed", 1.0]] },
-    { label: "Lonely", presets: [["emotion.loneliness", 1.3], ["gaze.looking_downward", 1.1], ["body.closed_posture", 1.1], ["gaze.avoiding_eye_contact", 1.0]] },
-    { label: "Excited Fan", presets: [["emotion.excitement", 1.4], ["mouth.open_mouth_laughter", 1.2], ["body.jumping", 1.2], ["gaze.wide_open_eyes", 1.2]] },
+    { label: "Triumphant", presets: [["emotion.elation", 1.5], ["mouth.broad_smile", 1.3], ["body.shoulders_pulled_back", 1.2], ["gaze.looking_upward", 1.1]] },
+    { label: "Playful", presets: [["emotion.amusement", 1.4], ["mouth.smirk", 1.2], ["gaze.side_glance", 1.1], ["body.leaning_forward", 1.1]] },
+    { label: "Flirtatious", presets: [["emotion.affection", 1.3], ["mouth.smirk", 1.3], ["gaze.looking_toward_another_subject", 1.2], ["body.leaning_forward", 1.2]] },
+    { label: "Calm", presets: [["emotion.serenity", 1.4], ["mouth.gentle_smile", 1.2], ["body.relaxed_posture", 1.2], ["gaze.looking_directly_into_the_camera", 1.0]] },
+    { label: "Focused", presets: [["emotion.determination", 1.4], ["gaze.fixed_intense_stare", 1.3], ["body.confident_stance", 1.2]] },
   ];
 
   const TABS = [
-    ["cast", "🎬 Cast"],
-    ["scene", "🎥 Scene"],
+    ["cast", "Cast", "users"],
+    ["scene", "Scene", "clapper"],
   ];
-  const CONCEPTS_TAB = ["concepts", "✨ Concepts"];
+  const CONCEPTS_TAB = ["concepts", "Concepts"];
+
+  /* Fresh-node seed: the first character on a brand-new node starts with
+   * three visible concept rows so the layout is obvious without clicking.
+   * All ids must exist in presets/default_library.json. */
+  const SEED_ROWS = [
+    ["emotion.joy", 1.5],
+    ["emotion_trigger.radiant_joy", 1.0],
+    ["style.natural_photographic_realism", 1.5],
+  ];
+
+  /* Fallback labels/phrases used before the library fetch resolves (the
+   * seed must render on the very first frame, not after a network round
+   * trip). Enriched from the library once it loads. */
+  const SEED_ROW_FALLBACKS = {
+    "emotion.joy": { category: "emotion", label: "Joy", phrase: "joy" },
+    "emotion_trigger.radiant_joy": { category: "emotion_trigger", label: "Radiant joy", phrase: "a radiant glow of joy" },
+    "style.natural_photographic_realism": { category: "style", label: "Natural photographic realism", phrase: "natural photographic realism" },
+  };
+
+  /* Conflict-aware cascading (v1 scope: emotion, framing, angle).
+   * Curated pairs are merged with pairs derived from presets/conflicts.json
+   * id tokens (e.g. "shot_size.extreme_close_up_vs_establishing"). */
+  const CONFLICT_CATEGORIES = ["emotion", "framing", "angle"];
+  const CURATED_CONFLICTS = [
+    ["framing.close_up", "framing.wide_establishing_shot"],
+    ["framing.extreme_close_up", "framing.wide_establishing_shot"],
+    ["framing.macro_close_up", "framing.wide_establishing_shot"],
+    ["framing.medium_close_up", "framing.wide_establishing_shot"],
+    ["framing.extreme_wide_shot", "framing.extreme_close_up"],
+    ["angle.low_angle", "angle.high_angle"],
+    ["angle.extreme_low_angle", "angle.extreme_high_angle"],
+    ["angle.top_down", "angle.low_angle"],
+    ["emotion.joy", "emotion.grief"],
+    ["emotion.happiness", "emotion.sadness"],
+    ["emotion.elation", "emotion.despair"],
+    ["emotion.anger", "emotion.serenity"],
+    ["emotion.rage", "emotion.contentment"],
+    ["emotion.terror", "emotion.relief"],
+    ["emotion.fear", "emotion.relief"],
+  ];
+
+  /* Scene chips: one pill per option, single-select per category row. */
+  const SCENE_CHIPS = {
+    framing: [
+      ["framing.close_up", "Close-up"],
+      ["framing.medium_shot", "Medium"],
+      ["framing.wide_shot", "Wide"],
+      ["framing.wide_establishing_shot", "Establishing"],
+    ],
+    angle: [
+      ["angle.eye_level", "Eye level"],
+      ["angle.low_angle", "Low"],
+      ["angle.high_angle", "High"],
+      ["angle.top_down", "Top-down"],
+    ],
+    aperture: [
+      ["aperture.f14", "f/1.4"],
+      ["aperture.f28", "f/2.8"],
+      ["aperture.f4", "f/4"],
+      ["aperture.f8", "f/8"],
+      ["aperture.f16", "f/16"],
+    ],
+    lighting_setup: [
+      ["lighting_setup.soft_diffused_lighting", "Soft"],
+      ["lighting_setup.hard_directional_lighting", "Hard"],
+      ["lighting_setup.three_point_lighting", "Three-point"],
+      ["lighting_setup.rembrandt_lighting", "Rembrandt"],
+    ],
+    atmosphere: [
+      ["atmosphere.clear_air", "Clear"],
+      ["atmosphere.light_haze", "Haze"],
+      ["atmosphere.fog", "Fog"],
+      ["atmosphere.mist", "Mist"],
+      ["atmosphere.smoke", "Smoke"],
+    ],
+    style: [
+      ["style.natural_photographic_realism", "Photorealistic"],
+      ["style.cinematic_film_still", "Cinematic"],
+      ["style.fashion_editorial", "Editorial"],
+      ["style.documentary_photography", "Documentary"],
+    ],
+  };
 
   const SETTING_PRESETS = [
     ["Game show", "a bright television game-show stage with contestant podiums, LED walls, studio cameras, and a cheering audience"],
@@ -307,13 +376,26 @@
     valueWidget.type = "hidden";
     valueWidget.computeSize = function () { return [0, -4]; };
     const stateString = valueWidget.value || "";
-    let state = coerceState(parseState(stateString));
+    const parsedInit = parseState(stateString);
+    const freshNode = !parsedInit || Object.keys(parsedInit).length === 0;
+    let state = coerceState(parsedInit);
     if (!Array.isArray(state.rows)) state.rows = [];
 
     const library = [];
+    if (freshNode && !state.characters.length) {      // v2: a brand-new node shows one expanded character card with the
+      // seeded concept rows so the layout is obvious without clicking.
+      // Seeding happens here, after `library` exists (seed rows are looked
+      // up from it).
+      const starter = newCharacter();
+      seedCharacterConcepts(starter);
+      state.characters.push(starter);
+      state.selected_character_id = starter.id;
+    }
     let savedPresets = [];
     let masterPresets = [];
     let loras = [];
+    let conflictList = [];
+    let conflictPairsCache = null;
     let dirty = false;
     let undoStack = [];
     let redoStack = [];
@@ -375,7 +457,7 @@
         markDirty();
         renderNodeSettings();
       },
-    }, "⚙");
+    }, icon("sliders", { width: "14", height: "14" }));
     const materializeBtn = el("button", { type: "button", class: "krea2-wizard-btn", onClick: materialize }, "Materialize");
     const subgraphBtn = el("button", { type: "button", class: "krea2-wizard-btn", onClick: createSubgraph }, "Create Subgraph");
     const undoBtn = el("button", { type: "button", class: "krea2-wizard-btn", onClick: undo, title: "Undo the last change" }, "Undo");
@@ -386,7 +468,6 @@
     const masterPresetSelect = buildMasterPresetControl();
 
     const topBar = el("div", { class: "krea2-wizard-top" }, [
-      creativeModeControl,
       savedPresetControl.root,
       el("span", { class: "krea2-structured-spacer" }),
       undoBtn,
@@ -415,22 +496,22 @@
       const menu = el("div", { class: "krea2-wizard-overflow-menu" }, [
         el("button", { type: "button", class: "krea2-wizard-btn", onClick: function () {
           menu.classList.remove("is-open"); openLibrary();
-        } }, "📚 Library"),
+        } }, "Library"),
         el("button", { type: "button", class: "krea2-wizard-btn", onClick: function () {
           menu.classList.remove("is-open"); randomizeAll();
-        } }, "🎲 Randomize all"),
+        } }, "Randomize all"),
         el("button", { type: "button", class: "krea2-wizard-btn", onClick: function () {
           menu.classList.remove("is-open");
           state.settings_open = !state.settings_open;
           markDirty();
           renderNodeSettings();
-        } }, "⚙ Node settings"),
+        } }, "Node settings"),
         el("button", { type: "button", class: "krea2-wizard-btn", onClick: function () {
           menu.classList.remove("is-open"); materialize();
-        } }, "🔗 Materialize"),
+        } }, "Materialize"),
         el("button", { type: "button", class: "krea2-wizard-btn", onClick: function () {
           menu.classList.remove("is-open"); createSubgraph();
-        } }, "📦 Create Subgraph"),
+        } }, "Create Subgraph"),
       ]);
       wrap.appendChild(moreBtn);
       wrap.appendChild(menu);
@@ -491,10 +572,6 @@
     function renderTabBar() {
       tabBar.innerHTML = "";
       const tabs = TABS.slice();
-      // v1.4.0: Concepts tab is retired. Global concepts live in Scene;
-      // per-character concepts/directions live in Cast. Keep the old
-      // renderConceptsTab function as a fallback for old workflows, but do
-      // not expose the tab in normal UI chrome.
       if (false && state.show_concepts_tab) tabs.push(CONCEPTS_TAB);
       if (!tabs.some(function (tab) { return tab[0] === (state.active_tab || "cast"); })) {
         state.active_tab = tabs[0][0];
@@ -503,7 +580,7 @@
         const active = (state.active_tab || "cast") === tab[0];
         tabBar.appendChild(el("button", {
           type: "button",
-          class: "krea2-wizard-tab" + (active ? " is-active" : ""),
+          class: "krea2-wizard-tab krea2-v2-tab" + (active ? " is-active" : ""),
           role: "tab",
           "aria-selected": active ? "true" : "false",
           onClick: function () {
@@ -512,7 +589,10 @@
             persist();
             render();
           },
-        }, tab[1]));
+        }, [
+          icon(tab[2], { width: "13", height: "13" }),
+          el("span", null, tab[1]),
+        ]));
       }
     }
 
@@ -520,15 +600,6 @@
     root.appendChild(stickyPromptChip);
     root.appendChild(editorBody);
     root.appendChild(footerHost);
-
-    /* v2.0 B2 shell: the compact overview card. It is the primary surface
-     * while wizard_expanded is false; the legacy editors render inside the
-     * shell's expanded mode instead. */
-    const b2Shell = el("div", {
-      class: "krea2-b2-shell",
-      "aria-label": "Krea2 Prompt Wizard overview",
-    });
-    root.appendChild(b2Shell);
 
     /* The backend supplies the built-in category presets together with the
      * user's saved presets. Keeping one source prevents stale browser-only
@@ -619,7 +690,7 @@
         title: label,
         "aria-label": label,
         onClick: onClick,
-      }, "🎲");
+      }, icon("dice", { width: "14", height: "14" }));
     }
 
     function randomStrengthValue() {
@@ -639,7 +710,7 @@
         title: "Close settings",
         "aria-label": "Close settings",
         onClick: function () { state.settings_open = false; markDirty(); renderNodeSettings(); },
-      }, "×");
+      }, icon("close", { width: "12", height: "12" }));
       panel.appendChild(el("div", { class: "krea2-structured-heading" }, [
         el("strong", null, "Randomization & output"),
         el("span", { class: "krea2-structured-spacer" }),
@@ -717,6 +788,18 @@
         }),
         el("span", null, "Write the prompt as the standard 'prompt' metadata chunk (Timesaver / A1111 compatible)"),
       ]));
+      panel.appendChild(el("label", { class: "krea2-inline-check", title: "Grouped concept cards instead of plain prompt code in the Final Prompt Preview" }, [
+        el("input", {
+          type: "checkbox",
+          checked: !!state.pretty_preview,
+          onChange: function (event) {
+            state.pretty_preview = !!event.target.checked;
+            markDirty();
+            render();
+          },
+        }),
+        el("span", null, "Pretty Prompt Preview (grouped concept cards)"),
+      ]));
       panel.appendChild(el("label", { class: "krea2-inline-check" }, [
         el("input", {
           type: "checkbox",
@@ -762,9 +845,9 @@
         id: id,
         name: "Character " + ((state.characters || []).length + 1),
         enabled: true,
-        // v2.0 B2 shell: new cast members start collapsed; the user opens
-        // them explicitly inside the expanded editor.
-        expanded: false,
+        // v2 redesign: cast cards start expanded so the four appearance
+        // dropdowns, identity chips and concept rows are visible at once.
+        expanded: true,
         identity: "",
         sex: "",
         age: "",
@@ -795,12 +878,64 @@
         lora_triggers: "",
         lora_name: "",
         lora_strength: 0.8,
+        loras: [],
         additional_info: "",
         additional_open: false,
         rows: [],
+        concepts_open: true,
+        quick_open: true,
+        loras_open: true,
         randomize_fields: {},
         randomize_direction_groups: {},
       };
+    }
+
+    /* Seed a fresh character with the three default concept rows. Rows are
+     * built from fallback data when the library has not loaded yet, then
+     * enriched once fetchLibrary resolves. */
+    function seedCharacterConcepts(character) {
+      if (!Array.isArray(character.rows)) character.rows = [];
+      for (const entry of SEED_ROWS) {
+        const preset = library.find(function (item) { return item.id === entry[0]; });
+        let row;
+        if (preset) {
+          row = presetToRow(preset, state);
+          row.id = uniqueCharacterRowId(character);
+        } else {
+          const fallback = SEED_ROW_FALLBACKS[entry[0]] || {};
+          row = {
+            id: uniqueCharacterRowId(character),
+            category: fallback.category || "custom",
+            preset_id: entry[0],
+            label: fallback.label || entry[0],
+            phrase: fallback.phrase || "",
+            control_mode: "scalar",
+            intensity: 0,
+            strength: entry[1],
+            enabled: true,
+            aliases: [],
+            verification: "general visual vocabulary",
+            source: "seed",
+          };
+        }
+        row.strength = entry[1];
+        character.rows.push(row);
+      }
+    }
+
+    function enrichSeedRows() {
+      for (const character of (state.characters || [])) {
+        for (const row of (character.rows || [])) {
+          if (row.source !== "seed") continue;
+          const preset = library.find(function (item) { return item.id === row.preset_id; });
+          if (!preset) continue;
+          row.category = preset.category || row.category;
+          row.label = preset.label || row.label;
+          row.phrase = preset.phrase || row.phrase;
+          row.intensity = parseInt(preset.default_strength, 10) || row.intensity;
+          row.source = "library";
+        }
+      }
     }
 
     function ensureStructuredState() {
@@ -1014,10 +1149,10 @@
     /* Direction groups: the same category structure as the Concepts tab,
      * scoped to one cast member. */
     const DIRECTION_GROUPS = [
-      { id: "emotion", icon: "💭", label: "Emotion", categories: EMOTION_CATEGORIES, emptyHint: "No emotion set." },
-      { id: "face", icon: "👁", label: "Face & gaze", categories: FACE_CATEGORIES, emptyHint: "No facial action set." },
-      { id: "body", icon: "🕺", label: "Body & movement", categories: BODY_CATEGORIES, emptyHint: "No body language set." },
-      { id: "placement", icon: "📍", label: "Placement", categories: POSITION_CATEGORIES, emptyHint: "No placement set." },
+      { id: "emotion", icon: "sparkle", label: "Emotion", categories: EMOTION_CATEGORIES, emptyHint: "No emotion set." },
+      { id: "face", icon: "eye", label: "Face & gaze", categories: FACE_CATEGORIES, emptyHint: "No facial action set." },
+      { id: "body", icon: "users", label: "Body & movement", categories: BODY_CATEGORIES, emptyHint: "No body language set." },
+      { id: "placement", icon: "compass", label: "Placement", categories: POSITION_CATEGORIES, emptyHint: "No placement set." },
     ];
 
     function directionGroupPresetId(groupKey) {
@@ -1839,152 +1974,6 @@
       return section;
     }
 
-    function renderCharacterCard(character, index) {
-      const expanded = character.expanded !== false;
-      const card = el("section", {
-        class: "krea2-character-card" + (expanded ? " is-expanded" : ""),
-        dataset: { characterId: character.id },
-      });
-      const header = el("div", { class: "krea2-character-card-header" });
-      const avatar = buildCharacterAvatar(character);
-      const name = el("input", {
-        type: "text",
-        class: "krea2-compact-input krea2-character-name",
-        value: character.name || "",
-        "aria-label": "Character name",
-        onInput: function (event) { character.name = event.target.value; markDirty(); },
-      });
-      const summary = el("span", { class: "krea2-character-summary" }, characterSummary(character) || "No appearance set yet");
-      const enabled = el("label", { class: "krea2-inline-check", title: "Include this character in the prompt" }, [
-        el("input", { type: "checkbox", checked: character.enabled !== false, onChange: function (event) { character.enabled = !!event.target.checked; markDirty(); render(); } }),
-        el("span", null, "Include"),
-      ]);
-      const randomAll = diceButton("Randomize this entire character's look once now", function () {
-        CHARACTER_APPEARANCE.forEach(function (field) {
-          randomizeAppearanceField(character, field);
-        });
-        markDirty(); render();
-      }, "krea2-character-random-look krea2-icon-btn");
-      const allFieldsEachJob = CHARACTER_APPEARANCE.every(function (field) {
-        return !!(character.randomize_fields || {})[field.key];
-      });
-      const randomAllEachJob = el("button", {
-        type: "button",
-        class: "krea2-wizard-btn krea2-icon-btn krea2-shuffle krea2-character-random-each-job" + (allFieldsEachJob ? " is-active" : ""),
-        title: allFieldsEachJob
-          ? "This character's full look changes for every queued job. Click to keep the look fixed."
-          : "Randomize every appearance field for this character on each queued job.",
-        "aria-label": "Randomize this character's full look every queued job",
-        "aria-pressed": allFieldsEachJob ? "true" : "false",
-        onClick: function () {
-          CHARACTER_APPEARANCE.forEach(function (field) {
-            setAppearanceFieldEachJob(character, field, !allFieldsEachJob);
-          });
-          markDirty(); render();
-        },
-      }, "🔁");
-      const save = el("button", {
-        type: "button",
-        class: "krea2-wizard-btn krea2-save-character",
-        title: "Save this character's look as a reusable preset",
-        onClick: function () { saveCharacterPreset(character, name.value || character.name); },
-      }, "Save");
-      const remove = el("button", { type: "button", class: "krea2-wizard-btn krea2-icon-btn krea2-danger", title: "Delete character", "aria-label": "Delete character", onClick: function () {
-        if (!window.confirm("Delete “" + (character.name || "this character") + "” from the cast?")) return;
-        state.characters = state.characters.filter(function (item) { return item.id !== character.id; });
-        if (state.selected_character_id === character.id) {
-          state.selected_character_id = state.characters.length ? state.characters[0].id : null;
-        }
-        markDirty(); render();
-      } }, "×");
-      const expandBtn = el("button", {
-        type: "button",
-        class: "krea2-character-expand krea2-icon-btn",
-        title: expanded ? "Collapse this character" : "Expand this character",
-        "aria-label": expanded ? "Collapse" : "Expand",
-        onClick: function () {
-          character.expanded = character.expanded === false;
-          persist(); render();
-        },
-      }, expanded ? "▾" : "▸");
-      const identity = el("div", { class: "krea2-character-card-identity" }, [name, summary]);
-      if (!expanded) {
-        identity.appendChild(characterChips(character));
-      }
-      const actions = el("div", { class: "krea2-character-card-actions" }, [
-        enabled,
-        el("div", { class: "krea2-wizard-random-controls" }, [randomAll, randomAllEachJob]),
-        save,
-        remove,
-        expandBtn,
-      ]);
-      header.append(avatar, identity, actions);
-
-      const body = el("div", { class: "krea2-character-card-body" });
-      if (expanded) {
-        const allPresets = availableCharacterPresets();
-        const presetSelect = el("select", { class: "krea2-compact-select", "aria-label": "Character presets" });
-        presetSelect.appendChild(el("option", { value: "" }, "Character presets..."));
-        allPresets.forEach(function (entry, presetIndex) {
-          const prefix = entry.source === "builtin" ? "Built in · " : entry.source === "saved" ? "My preset · " : "Workflow · ";
-          presetSelect.appendChild(el("option", { value: String(presetIndex) }, prefix + (entry.preset.label || "Character")));
-        });
-        const applyPreset = el("button", { type: "button", class: "krea2-wizard-btn", onClick: function () {
-          const entry = allPresets[Number(presetSelect.value)];
-          if (!entry || !entry.preset.character) return;
-          const stored = cloneJson(entry.preset.character);
-          const replacement = Object.assign(newCharacter(), stored, { id: character.id, expanded: character.expanded !== false });
-          if (!stored.name) replacement.name = character.name || entry.preset.label;
-          // Applying a look keeps the member's direction block.
-          replacement.position = character.position || "";
-          replacement.face_guidance = character.face_guidance || "";
-          replacement.interaction = character.interaction || "";
-          replacement.lora_triggers = character.lora_triggers || "";
-          replacement.rows = Array.isArray(character.rows) ? cloneJson(character.rows) : [];
-          const index = state.characters.indexOf(character); state.characters[index] = replacement;
-          markDirty(); render();
-        } }, "Apply");
-
-        /* v1.5.0: expanded members are structured subcards instead of one
-         * continuous mega-form. Identity, Appearance, Direction and LoRA
-         * each get their own labeled panel. */
-        const identitySubcard = el("div", { class: "krea2-subcard krea2-identity-subcard" });
-        identitySubcard.appendChild(el("div", { class: "krea2-subcard-head" }, [
-          el("span", { class: "krea2-subcard-title" }, "Identity"),
-          el("span", { class: "krea2-subcard-hint" }, "preset look · role, background, distinctive features"),
-        ]));
-        identitySubcard.appendChild(el("div", { class: "krea2-character-preset-row" }, [presetSelect, applyPreset]));
-        identitySubcard.appendChild(el("textarea", {
-          class: "krea2-compact-textarea krea2-character-identity",
-          rows: "1",
-          "aria-label": "Character identity",
-          placeholder: "Role, background, distinctive features...",
-          onInput: function (event) { character.identity = event.target.value; markDirty(); },
-        }, character.identity || ""));
-        body.appendChild(identitySubcard);
-
-        const appearanceSubcard = el("div", { class: "krea2-subcard krea2-appearance-subcard" });
-        appearanceSubcard.appendChild(el("div", { class: "krea2-subcard-head" }, [
-          el("span", { class: "krea2-subcard-title" }, "Appearance"),
-          el("span", { class: "krea2-subcard-hint" }, "pick or type · 🎲 rolls once · 🔁 randomizes every queued job"),
-        ]));
-        appearanceSubcard.appendChild(appearanceColumns(character));
-        body.appendChild(appearanceSubcard);
-
-        const directionSubcard = el("div", { class: "krea2-subcard krea2-direction-subcard" });
-        directionSubcard.appendChild(el("div", { class: "krea2-subcard-head" }, [
-          el("span", { class: "krea2-subcard-title" }, "Direction"),
-          el("span", { class: "krea2-subcard-hint" }, "quick directions + per-category concepts for this character only"),
-        ]));
-        directionSubcard.appendChild(renderCharacterDirection(character));
-        body.appendChild(directionSubcard);
-
-        body.appendChild(renderLoraSection(character));
-      }
-      card.appendChild(header);
-      card.appendChild(body);
-      return card;
-    }
 
     /* v1.5.0: compact identity chips shown on collapsed cast members.
      * One pill per populated direction group plus the LoRA, so the card
@@ -2000,7 +1989,10 @@
         chips.appendChild(el("span", {
           class: "krea2-chip krea2-character-chip",
           title: group.label + ": " + labels.join(", "),
-        }, (group.icon || "") + group.label + " · " + labels.length));
+        }, [
+          icon(group.icon, { width: "10", height: "10" }),
+          " " + group.label + " \u00b7 " + labels.length,
+        ]));
         hasContent = true;
       }
       const loraName = String(character.lora_name || "").trim();
@@ -2008,7 +2000,10 @@
         chips.appendChild(el("span", {
           class: "krea2-chip krea2-character-chip krea2-chip-lora",
           title: "LoRA: " + loraName,
-        }, "⚡ LoRA · " + loraName));
+        }, [
+          icon("bolt", { width: "10", height: "10" }),
+          " LoRA \u00b7 " + loraName,
+        ]));
         hasContent = true;
       }
       if (!hasContent) {
@@ -2813,7 +2808,7 @@ function buildGroupPresetPicker(group) {
         codeText,
         el("div", { class: "krea2-wizard-preview-buttons" }, [historySelect, copyGenerated, copyBtn]),
       ]);
-      return { root: root, previewBody: prettyBody, prettyBody: prettyBody, codeText: codeText, historySelect: historySelect };
+      return { root: root, previewBody: prettyBody, prettyBody: prettyBody, codeText: codeText, codeLabel: codeLabel, historySelect: historySelect };
     }
 
     function renderStickyPromptChip(compiled) {
@@ -2841,7 +2836,7 @@ function buildGroupPresetPicker(group) {
         title: "Copy compiled prompt",
         "aria-label": "Copy compiled prompt",
         onClick: function () { copy(prompt); },
-      }, "📋"));
+      }, icon("copy", { width: "12", height: "12" })));
     }
 
     function renderLivePreview(requestAuthoritativePreview) {
@@ -3188,29 +3183,932 @@ function buildGroupPresetPicker(group) {
      * a specific cast member (per-character direction stays in the Cast tab). */
     const SCENE_GROUPS = ["subject_expression", "camera_film", "lighting", "environment", "style_finish"];
 
+    /* ------------------------------------------------------------------
+     * v2 redesigned tabbed editor (CAST / SCENE).
+     * ------------------------------------------------------------------ */
+
+    /* The four appearance dropdowns on one row of a cast card. */
+    const V2_APPEARANCE_FIELDS = (function () {
+      const byKey = {};
+      CHARACTER_APPEARANCE.forEach(function (field) { byKey[field.key] = field; });
+      return [
+        { key: "hair_style", label: "Hair", options: byKey.hair_style.options },
+        { key: "eyes", label: "Eyes", options: byKey.eyes.options },
+        { key: "body_type", label: "Build", options: byKey.body_type.options },
+        { key: "fitness", label: "Physique", options: byKey.fitness.options },
+      ];
+    })();
+
+    const IDENTITY_GENDER_CYCLE = ["", "female", "male", "unspecified"];
+    const IDENTITY_AGE_CYCLE = ["", "child", "teenager", "young adult", "adult", "middle aged", "elderly"];
+    const IDENTITY_ETHNICITY_CYCLE = (function () {
+      const field = CHARACTER_APPEARANCE.find(function (f) { return f.key === "ethnicity"; });
+      return field ? field.options.slice() : [];
+    })();
+
+    function capitalizeFirst(value) {
+      const text = String(value || "");
+      return text ? text.charAt(0).toUpperCase() + text.slice(1) : "";
+    }
+
+    /* Identity chips: gender (purple), age (blue), ethnicity (teal).
+     * Clicking a chip cycles its value. */
+    function renderIdentityChips(character) {
+      const row = el("div", { class: "krea2-v2-identity-chips" });
+      const specs = [
+        { key: "sex", cycle: IDENTITY_GENDER_CYCLE, kind: "gender" },
+        { key: "age", cycle: IDENTITY_AGE_CYCLE, kind: "age" },
+        { key: "ethnicity", cycle: IDENTITY_ETHNICITY_CYCLE, kind: "ethnicity" },
+      ];
+      for (const spec of specs) {
+        const value = String(character[spec.key] || "");
+        const nextIndex = (spec.cycle.indexOf(value) + 1) % spec.cycle.length;
+        const next = spec.cycle[nextIndex];
+        row.appendChild(el("button", {
+          type: "button",
+          class: "krea2-v2-identity-chip is-" + spec.kind + (value ? " has-value" : ""),
+          title: value ? capitalizeFirst(value) + " — click to change " + spec.kind
+            : "Click to set " + spec.kind,
+          "aria-label": spec.kind + ": " + (value || "not set"),
+          onClick: function () {
+            character[spec.key] = next;
+            markDirty();
+            render();
+          },
+        }, value ? capitalizeFirst(value) : spec.kind));
+      }
+      return row;
+    }
+
+    /* Concepts Applied to <character>: header-click toggle + the [−] value
+     * [+] concept rows seeded from the library. */
+    function renderCharacterConceptsBlock(character) {
+      const open = character.concepts_open !== false;
+      const rows = Array.isArray(character.rows) ? character.rows : [];
+      const block = el("section", {
+        class: "krea2-v2-concepts-block" + (open ? " is-open" : ""),
+      });
+      const header = el("div", { class: "krea2-v2-block-head krea2-clickable-head" }, [
+        el("strong", null, "Concepts Applied to " + (character.name || "this character")),
+        el("span", { class: "krea2-v2-block-count" },
+          rows.length + (rows.length === 1 ? " concept" : " concepts")),
+        el("span", { class: "krea2-structured-spacer" }),
+        el("span", { class: "krea2-v2-chevron", "aria-hidden": "true" },
+          icon(open ? "chevron_down" : "chevron_right", { width: "12", height: "12" })),
+      ]);
+      header.addEventListener("click", function () {
+        character.concepts_open = character.concepts_open === false;
+        markDirty();
+        render();
+      });
+      const body = el("div", { class: "krea2-v2-block-body" });
+      if (open) {
+        for (const row of rows) {
+          body.appendChild(renderRow(row, characterRowCtx(character, rows)));
+        }
+        body.appendChild(el("button", {
+          type: "button",
+          class: "krea2-wizard-btn krea2-v2-add-concept",
+          onClick: function () {
+            showSearchableSelector({
+              presets: compatibleLibrary(),
+              title: "Add concepts for " + (character.name || "this character"),
+              multiSelect: true,
+              selectedIds: rows.map(function (row) { return row.preset_id; }),
+              filterPreset: characterConflictFilter(character),
+              onToggle: function (preset, shouldSelect) {
+                if (shouldSelect) {
+                  addCharacterRow(character, preset);
+                } else {
+                  const existing = (character.rows || []).find(function (row) {
+                    return row.preset_id === preset.id;
+                  });
+                  if (existing) removeCharacterRow(character, existing.id);
+                }
+              },
+              onClose: function () { render(); },
+              getConceptColor: function (presetId) { return (state.concept_colors || {})[presetId] || ""; },
+              onColorChange: function (presetId, newColor) {
+                state.concept_colors = state.concept_colors || {};
+                if (newColor) state.concept_colors[presetId] = newColor;
+                else delete state.concept_colors[presetId];
+                markDirty();
+              },
+            });
+          },
+        }, "+ Add Concept"));
+      }
+      block.appendChild(header);
+      block.appendChild(body);
+      return block;
+    }
+
+    function renderQuickDirectionsBlock(character) {
+      const open = character.quick_open !== false;
+      const block = el("section", {
+        class: "krea2-v2-quick-block" + (open ? " is-open" : ""),
+      });
+      const header = el("div", { class: "krea2-v2-block-head krea2-clickable-head" }, [
+        el("strong", null, "Quick Directions"),
+        el("span", { class: "krea2-v2-block-hint" }, "one tap applies emotion, face and body together"),
+        el("span", { class: "krea2-structured-spacer" }),
+        el("span", { class: "krea2-v2-chevron", "aria-hidden": "true" },
+          icon(open ? "chevron_down" : "chevron_right", { width: "12", height: "12" })),
+      ]);
+      header.addEventListener("click", function () {
+        character.quick_open = character.quick_open === false;
+        markDirty();
+        render();
+      });
+      const body = el("div", { class: "krea2-v2-block-body" });
+      if (open) {
+        body.appendChild(renderQuickDirectionChips(character));
+      }
+      block.appendChild(header);
+      block.appendChild(body);
+      return block;
+    }
+
+    /* Per-character LoRA list. Multiple LoRAs are supported; the first is
+     * the model-level LoRA (lora_name / lora_strength) while every trigger
+     * phrase compiles only inside this character's block. */
+    function syncLoraTextState(character) {
+      const loras = Array.isArray(character.loras) ? character.loras : [];
+      const primary = loras[0];
+      character.lora_name = primary ? String(primary.filename || "") : "";
+      character.lora_strength = primary ? Math.max(0, Math.min(2, Math.round(Number(primary.strength) * 20) / 20)) : 0.8;
+      const lines = loras.map(function (lora) {
+        return String(lora.trigger || "").trim();
+      }).filter(Boolean);
+      character.lora_triggers = lines.join("\n");
+    }
+
+    function pickLoraFile(character) {
+      const input = el("input", {
+        type: "file",
+        accept: ".safetensors,.ckpt,.pt,.bin",
+        "aria-label": "Pick a LoRA file",
+        style: { display: "none" },
+        onChange: function (event) {
+          const file = event.target.files && event.target.files[0];
+          if (!file) return;
+          const name = String(file.name || "").trim();
+          if (!name) return;
+          if (!Array.isArray(character.loras)) character.loras = [];
+          character.loras.push({
+            filename: name,
+            strength: 0.8,
+            trigger: loraFileNameStem(name),
+          });
+          syncLoraTextState(character);
+          markDirty();
+          render();
+          showToast("LoRA added: " + name, "info");
+        },
+      });
+      document.body.appendChild(input);
+      input.click();
+      setTimeout(function () {
+        if (input.parentNode) input.parentNode.removeChild(input);
+      }, 0);
+    }
+
+    function renderLoraRow(character, lora) {
+      const strength = Math.max(0, Math.min(2, Math.round(Number(lora.strength) * 20) / 20)) || 0.8;
+      const row = el("div", { class: "krea2-v2-lora-row" });
+      const filename = el("span", {
+        class: "krea2-v2-lora-filename",
+        title: lora.filename,
+      }, lora.filename);
+      const strengthInput = el("input", {
+        type: "range",
+        class: "krea2-lora-strength",
+        min: "0",
+        max: "2",
+        step: "0.05",
+        value: String(strength),
+        "aria-label": "LoRA strength",
+        onInput: function (event) {
+          lora.strength = Math.round(Number(event.target.value) * 20) / 20;
+          strengthValue.textContent = lora.strength.toFixed(2);
+          syncLoraTextState(character);
+          markDirty();
+          scheduleAppearanceRender();
+        },
+      });
+      const strengthValue = el("span", { class: "krea2-lora-strength-value" }, strength.toFixed(2));
+      const trigger = el("input", {
+        type: "text",
+        class: "krea2-compact-input krea2-v2-lora-trigger",
+        value: String(lora.trigger || ""),
+        placeholder: "trigger phrase (optional)",
+        "aria-label": "LoRA trigger phrase",
+        onInput: function (event) {
+          lora.trigger = event.target.value;
+          syncLoraTextState(character);
+          markDirty();
+        },
+      });
+      const remove = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-icon-btn krea2-danger",
+        title: "Remove this LoRA",
+        "aria-label": "Remove this LoRA",
+        onClick: function () {
+          character.loras = (character.loras || []).filter(function (item) { return item !== lora; });
+          syncLoraTextState(character);
+          markDirty();
+          render();
+        },
+      }, icon("trash", { width: "12", height: "12" }));
+      row.append(
+        filename,
+        el("span", { class: "krea2-direction-label" }, "strength"),
+        strengthInput,
+        strengthValue,
+        trigger,
+        remove,
+      );
+      return row;
+    }
+
+    function renderCharacterLoraBlock(character) {
+      const open = character.loras_open !== false;
+      const loras = Array.isArray(character.loras) ? character.loras : [];
+      const block = el("section", {
+        class: "krea2-v2-lora-block" + (open ? " is-open" : ""),
+      });
+      const header = el("div", { class: "krea2-v2-block-head krea2-clickable-head" }, [
+        el("strong", null, "LoRA"),
+        el("span", { class: "krea2-v2-block-hint" },
+          "applies to this character only — pick a .safetensors file from disk"),
+        el("span", { class: "krea2-structured-spacer" }),
+        el("span", { class: "krea2-v2-block-count" },
+          loras.length + (loras.length === 1 ? " LoRA" : " LoRAs")),
+        el("span", { class: "krea2-v2-chevron", "aria-hidden": "true" },
+          icon(open ? "chevron_down" : "chevron_right", { width: "12", height: "12" })),
+      ]);
+      header.addEventListener("click", function () {
+        character.loras_open = character.loras_open === false;
+        markDirty();
+        render();
+      });
+      const body = el("div", { class: "krea2-v2-block-body" });
+      if (open) {
+        for (const lora of loras) {
+          body.appendChild(renderLoraRow(character, lora));
+        }
+        body.appendChild(el("button", {
+          type: "button",
+          class: "krea2-wizard-btn krea2-v2-add-lora",
+          onClick: function () { pickLoraFile(character); },
+        }, "+ Add LoRA"));
+        body.appendChild(el("div", { class: "krea2-settings-copy" },
+          "The first LoRA is applied to the model with its strength; its trigger phrase compiles only inside " +
+          (character.name || "this character") + "\u2019s block, steering the LoRA's look toward this character. " +
+          "LoRAs without trigger words often respond to their file name \u2014 picking one fills it in automatically."));
+      }
+      block.appendChild(header);
+      block.appendChild(body);
+      return block;
+    }
+
+    /* v2 cast card: header (click = toggle) + four appearance dropdowns on
+     * one row, identity chips, concepts block, quick directions, LoRA. */
+    function renderCharacterCard(character, index) {
+      const expanded = character.expanded !== false;
+      const card = el("section", {
+        class: "krea2-character-card krea2-v2-character-card" + (expanded ? " is-expanded" : ""),
+        dataset: { characterId: character.id },
+      });
+      const header = el("div", { class: "krea2-character-card-header krea2-clickable-head" });
+      const avatar = buildCharacterAvatar(character);
+      const name = el("input", {
+        type: "text",
+        class: "krea2-compact-input krea2-character-name",
+        value: character.name || "",
+        "aria-label": "Character name",
+        onInput: function (event) { character.name = event.target.value; markDirty(); },
+      });
+      const summary = el("span", { class: "krea2-character-summary" },
+        characterSummary(character) || "No appearance set yet");
+      const enabled = el("label", { class: "krea2-inline-check", title: "Include this character in the prompt" }, [
+        el("input", {
+          type: "checkbox",
+          checked: character.enabled !== false,
+          onChange: function (event) { character.enabled = !!event.target.checked; markDirty(); render(); },
+        }),
+        el("span", null, "Include"),
+      ]);
+      const randomAll = diceButton("Randomize this entire character's look once now", function () {
+        CHARACTER_APPEARANCE.forEach(function (field) {
+          randomizeAppearanceField(character, field);
+        });
+        markDirty(); render();
+      }, "krea2-character-random-look krea2-icon-btn");
+      const allFieldsEachJob = V2_APPEARANCE_FIELDS.every(function (field) {
+        return !!(character.randomize_fields || {})[field.key];
+      });
+      const randomAllEachJob = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-icon-btn krea2-shuffle krea2-character-random-each-job" + (allFieldsEachJob ? " is-active" : ""),
+        title: allFieldsEachJob
+          ? "This character's appearance changes for every queued job. Click to keep it fixed."
+          : "Randomize this character's appearance for every queued job.",
+        "aria-label": "Randomize this character's appearance every queued job",
+        "aria-pressed": allFieldsEachJob ? "true" : "false",
+        onClick: function () {
+          V2_APPEARANCE_FIELDS.forEach(function (field) {
+            setAppearanceFieldEachJob(character, field, !allFieldsEachJob);
+          });
+          markDirty(); render();
+        },
+      }, icon("shuffle", { width: "13", height: "13" }));
+      const save = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-save-character",
+        title: "Save this character's look as a reusable preset",
+        onClick: function () { saveCharacterPreset(character, name.value || character.name); },
+      }, "Save");
+      const remove = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-icon-btn krea2-danger",
+        title: "Delete character",
+        "aria-label": "Delete character",
+        onClick: function () {
+          if (!window.confirm("Delete \u201c" + (character.name || "this character") + "\u201d from the cast?")) return;
+          state.characters = state.characters.filter(function (item) { return item.id !== character.id; });
+          if (state.selected_character_id === character.id) {
+            state.selected_character_id = state.characters.length ? state.characters[0].id : null;
+          }
+          markDirty(); render();
+        },
+      }, icon("close", { width: "12", height: "12" }));
+      const chevron = el("span", { class: "krea2-v2-chevron krea2-character-chevron", "aria-hidden": "true" },
+        icon(expanded ? "chevron_down" : "chevron_right", { width: "13", height: "13" }));
+      const identity = el("div", { class: "krea2-character-card-identity" }, [name, summary]);
+      const actions = el("div", { class: "krea2-character-card-actions" }, [
+        enabled,
+        el("div", { class: "krea2-wizard-random-controls" }, [randomAll, randomAllEachJob]),
+        save,
+        remove,
+      ]);
+      header.append(avatar, identity, actions, chevron);
+      header.addEventListener("click", function (event) {
+        const target = event && event.target;
+        if (target && typeof target.closest === "function"
+            && target.closest("input,button,select,textarea,label")) return;
+        character.expanded = character.expanded === false;
+        markDirty();
+        render();
+      });
+
+      const body = el("div", { class: "krea2-character-card-body" });
+      if (expanded) {
+        const grid = el("div", { class: "krea2-v2-appearance-grid" });
+        for (const field of V2_APPEARANCE_FIELDS) {
+          const combobox = comboboxForField(character, field);
+          grid.appendChild(el("label", { class: "krea2-v2-appearance-field" }, [
+            el("span", { class: "krea2-v2-field-label" }, field.label),
+            combobox.input,
+            combobox.datalist,
+          ]));
+        }
+        body.appendChild(grid);
+        body.appendChild(renderIdentityChips(character));
+        body.appendChild(renderCharacterConceptsBlock(character));
+        body.appendChild(renderQuickDirectionsBlock(character));
+        body.appendChild(renderCharacterLoraBlock(character));
+      }
+      card.appendChild(header);
+      card.appendChild(body);
+      return card;
+    }
+
+    /* Conflict-aware cascading (v1 scope: emotion, framing, angle). */
+    function getConflictPairs() {
+      if (conflictPairsCache) return conflictPairsCache;
+      const pairs = [];
+      const add = function (a, b) { if (a !== b) pairs.push([a, b]); };
+      for (const pair of CURATED_CONFLICTS) add(pair[0], pair[1]);
+      const tokens = new Map();
+      for (const preset of library) {
+        const slug = String(preset.id || "").split(".").pop();
+        if (!slug) continue;
+        if (!tokens.has(slug)) tokens.set(slug, []);
+        tokens.get(slug).push(preset.id);
+      }
+      for (const conflict of conflictList) {
+        const id = String(conflict && conflict.id || "");
+        const m = id.match(/([a-z0-9_]+)_vs_([a-z0-9_]+)$/);
+        if (!m) continue;
+        for (const x of tokens.get(m[1]) || []) {
+          for (const y of tokens.get(m[2]) || []) {
+            const cx = String(x).split(".")[0];
+            if (cx === String(y).split(".")[0] && CONFLICT_CATEGORIES.includes(cx)) add(x, y);
+          }
+        }
+      }
+      conflictPairsCache = pairs;
+      return pairs;
+    }
+
+    function conflictsWithAny(presetId, ids) {
+      const pairs = getConflictPairs();
+      const category = String(presetId).split(".")[0];
+      for (const id of ids) {
+        if (id === presetId) continue;
+        if (String(id).split(".")[0] !== category) continue;
+        for (const pair of pairs) {
+          if ((pair[0] === id && pair[1] === presetId) || (pair[0] === presetId && pair[1] === id)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    function characterConflictFilter(character) {
+      const applied = (character.rows || []).map(function (row) {
+        return row.preset_id;
+      }).filter(Boolean);
+      return function (preset, selectedIds) {
+        if (!CONFLICT_CATEGORIES.includes(preset.category)) return true;
+        return !conflictsWithAny(preset.id, applied.concat(selectedIds || []));
+      };
+    }
+
+    /* Scene chip rows: single-select per category, conflict-aware. */
+    function chipActive(presetId) {
+      return state.rows.some(function (row) { return row.preset_id === presetId; });
+    }
+
+    function toggleSceneChip(presetId) {
+      const preset = library.find(function (item) { return item.id === presetId; });
+      if (!preset) return;
+      if (chipActive(presetId)) {
+        state.rows = state.rows.filter(function (row) { return row.preset_id !== presetId; });
+      } else {
+        state.rows = state.rows.filter(function (row) { return row.category !== preset.category; });
+        const row = presetToRow(preset, state);
+        row.strength = 1.2;
+        state.rows.push(row);
+      }
+      markDirty();
+      render();
+    }
+
+    function renderChipRow(label, category, chips) {
+      const row = el("div", { class: "krea2-v2-chip-row" });
+      row.appendChild(el("span", { class: "krea2-v2-field-label" }, label));
+      const wrap = el("div", { class: "krea2-v2-chips" });
+      const activeIds = state.rows.filter(function (row) {
+        return row.category === category;
+      }).map(function (row) { return row.preset_id; });
+      for (const entry of chips) {
+        const active = chipActive(entry[0]);
+        const conflicted = conflictsWithAny(entry[0], activeIds);
+        wrap.appendChild(el("button", {
+          type: "button",
+          class: "krea2-v2-chip" + (active ? " is-active" : "") + (conflicted ? " is-conflicted" : ""),
+          title: conflicted
+            ? "Conflicts with an active concept in this row"
+            : (active ? "Click to remove" : "Click to apply"),
+          disabled: conflicted,
+          onClick: function () { toggleSceneChip(entry[0]); },
+        }, entry[1]));
+      }
+      row.appendChild(wrap);
+      return row;
+    }
+
+    /* Lens slider: snaps to a real library lens preset when close, else
+     * emits a custom "Nmm lens" phrase. */
+    function currentLensMm() {
+      const row = state.rows.find(function (r) { return r.category === "lens"; });
+      if (!row) return null;
+      const match = String(row.phrase || "").match(/(\d{2,3})\s*mm/);
+      return match ? Number(match[1]) : null;
+    }
+
+    function nearestLensPreset(mm) {
+      let best = null;
+      let bestDiff = Infinity;
+      for (const preset of library) {
+        if (preset.category !== "lens") continue;
+        const match = String(preset.id).match(/(\d{2,3})mm/);
+        if (!match) continue;
+        const diff = Math.abs(Number(match[1]) - mm);
+        if (diff < bestDiff) {
+          bestDiff = diff;
+          best = preset;
+        }
+      }
+      return bestDiff <= 1 ? best : null;
+    }
+
+    function setLensMm(mm) {
+      const clamped = Math.max(14, Math.min(200, Math.round(mm)));
+      const preset = nearestLensPreset(clamped);
+      state.rows = state.rows.filter(function (row) { return row.category !== "lens"; });
+      const row = preset
+        ? presetToRow(preset, state)
+        : {
+            id: uniqueRowId(state),
+            category: "lens",
+            preset_id: "custom.lens_" + clamped,
+            label: clamped + "mm lens",
+            phrase: clamped + "mm lens",
+            control_mode: "scalar",
+            intensity: 60,
+            strength: 1.2,
+            enabled: true,
+            aliases: [],
+            verification: "general visual vocabulary",
+            source: "custom",
+          };
+      state.rows.push(row);
+      markDirty();
+      render();
+    }
+
+    function renderLensRow() {
+      const mm = currentLensMm() || 85;
+      const slider = el("input", {
+        type: "range",
+        class: "krea2-v2-lens-slider",
+        min: "14",
+        max: "200",
+        step: "1",
+        value: String(mm),
+        "aria-label": "Focal length in millimetres",
+        onInput: function (event) {
+          value.textContent = Number(event.target.value) + "mm";
+          setLensMm(Number(event.target.value));
+        },
+      });
+      const value = el("span", { class: "krea2-v2-lens-value" }, mm + "mm");
+      const row = el("div", { class: "krea2-v2-chip-row krea2-v2-lens-row" });
+      row.append(
+        el("span", { class: "krea2-v2-field-label" }, "Lens"),
+        slider,
+        value,
+      );
+      return row;
+    }
+
+    /* Lighting-direction compass rose: drag the light handle around the
+     * center subject icon. The direction maps to a lighting_direction
+     * concept row (front / 3-4 front / side / rim / back). */
+    const LIGHT_DIRECTION_PRESETS = {
+      front_lighting: Math.PI / 2,
+      three_quarter_front_lighting: Math.PI / 4,
+      side_lighting: 0,
+      rim_lighting: -Math.PI / 4,
+      backlighting: -Math.PI / 2,
+    };
+
+    function normalizeAngle(rad) {
+      let a = rad % (2 * Math.PI);
+      if (a > Math.PI) a -= 2 * Math.PI;
+      if (a < -Math.PI) a += 2 * Math.PI;
+      return a;
+    }
+
+    function lightingDirectionForAngle(rad) {
+      const a = normalizeAngle(rad);
+      const span = Math.PI / 8;
+      if (Math.abs(a - Math.PI / 2) <= span) return "front_lighting";
+      if (Math.abs(a - Math.PI / 4) <= span || Math.abs(a - 3 * Math.PI / 4) <= span) {
+        return "three_quarter_front_lighting";
+      }
+      if (Math.abs(a) <= span || Math.abs(Math.abs(a) - Math.PI) <= span) return "side_lighting";
+      if (Math.abs(a + Math.PI / 4) <= span || Math.abs(a + 3 * Math.PI / 4) <= span) {
+        return "rim_lighting";
+      }
+      return "backlighting";
+    }
+
+    function currentLightAngle() {
+      const stored = (state.scene_sections || {}).light_angle;
+      if (Number.isFinite(stored)) return stored;
+      const row = state.rows.find(function (r) { return r.category === "lighting_direction"; });
+      if (row && LIGHT_DIRECTION_PRESETS[row.preset_id] !== undefined) {
+        return LIGHT_DIRECTION_PRESETS[row.preset_id];
+      }
+      return Math.PI / 2;
+    }
+
+    function lightDirectionLabel() {
+      const row = state.rows.find(function (r) { return r.category === "lighting_direction"; });
+      return row ? (row.label || row.preset_id) : "not set — drag the light";
+    }
+
+    function setLightDirection(rad) {
+      const presetId = lightingDirectionForAngle(rad);
+      state.scene_sections = state.scene_sections || {};
+      state.scene_sections.light_angle = normalizeAngle(rad);
+      const preset = library.find(function (item) { return item.id === presetId; });
+      if (preset) {
+        state.rows = state.rows.filter(function (row) { return row.category !== "lighting_direction"; });
+        const row = presetToRow(preset, state);
+        row.strength = 1.5;
+        state.rows.push(row);
+      }
+      markDirty();
+      render();
+    }
+
+    function svgEl(tag, attrs) {
+      const doc = typeof document !== "undefined" ? document : null;
+      const mk = doc && typeof doc.createElementNS === "function"
+        ? function (t) { return doc.createElementNS("http://www.w3.org/2000/svg", t); }
+        : function (t) { return doc.createElement(t); };
+      const node = mk(tag);
+      for (const key of Object.keys(attrs || {})) {
+        node.setAttribute(key, attrs[key]);
+      }
+      return node;
+    }
+
+    function renderCompassRose() {
+      const SIZE = 132;
+      const C = SIZE / 2;
+      const R = 50;
+      const angle = currentLightAngle();
+      const svg = svgEl("svg", {
+        viewBox: "0 0 " + SIZE + " " + SIZE,
+        width: String(SIZE),
+        height: String(SIZE),
+        class: "krea2-v2-compass",
+        "aria-label": "Lighting direction compass: drag the light around the subject",
+      });
+      svg.appendChild(svgEl("circle", { cx: C, cy: C, r: R, class: "krea2-v2-compass-ring" }));
+      for (let i = 0; i < 8; i += 1) {
+        const a = (i * Math.PI) / 4;
+        const x1 = C + Math.cos(a) * (R - 10);
+        const y1 = C + Math.sin(a) * (R - 10);
+        const x2 = C + Math.cos(a) * R;
+        const y2 = C + Math.sin(a) * R;
+        svg.appendChild(svgEl("line", {
+          x1: x1, y1: y1, x2: x2, y2: y2,
+          class: "krea2-v2-compass-tick",
+        }));
+      }
+      svg.appendChild(svgEl("circle", { cx: C, cy: C, r: 9, class: "krea2-v2-compass-subject" }));
+      const hx = C + Math.cos(angle) * (R - 12);
+      const hy = C + Math.sin(angle) * (R - 12);
+      svg.appendChild(svgEl("line", {
+        x1: C, y1: C, x2: hx, y2: hy,
+        class: "krea2-v2-compass-ray",
+      }));
+      svg.appendChild(svgEl("circle", { cx: hx, cy: hy, r: 7, class: "krea2-v2-compass-handle" }));
+      const onMove = function (event) {
+        const rect = svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
+        const cx = rect ? rect.left + rect.width / 2 : C;
+        const cy = rect ? rect.top + rect.height / 2 : C;
+        const dx = event.clientX - cx;
+        const dy = event.clientY - cy;
+        if (Math.sqrt(dx * dx + dy * dy) < 8) return;
+        setLightDirection(Math.atan2(dy, dx));
+      };
+      const onUp = function () {
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+      };
+      svg.addEventListener("mousedown", function (event) {
+        if (event.button !== 0) return;
+        event.preventDefault();
+        onMove(event);
+        document.addEventListener("mousemove", onMove);
+        document.addEventListener("mouseup", onUp);
+      });
+      return svg;
+    }
+
+    function renderCameraContent() {
+      const wrap = el("div", { class: "krea2-v2-subsection-content" });
+      wrap.appendChild(renderChipRow("Framing", "framing", SCENE_CHIPS.framing));
+      wrap.appendChild(renderChipRow("Angle", "angle", SCENE_CHIPS.angle));
+      wrap.appendChild(renderLensRow());
+      wrap.appendChild(renderChipRow("Aperture", "aperture", SCENE_CHIPS.aperture));
+      return wrap;
+    }
+
+    function renderLightingContent() {
+      const wrap = el("div", { class: "krea2-v2-subsection-content" });
+      wrap.appendChild(renderChipRow("Lighting Setup", "lighting_setup", SCENE_CHIPS.lighting_setup));
+      const dirRow = el("div", { class: "krea2-v2-chip-row krea2-v2-dir-row" });
+      dirRow.append(
+        el("span", { class: "krea2-v2-field-label" }, "Direction"),
+        el("div", { class: "krea2-v2-compass-wrap" }, [
+          renderCompassRose(),
+          el("span", { class: "krea2-v2-dir-label" }, lightDirectionLabel()),
+        ]),
+      );
+      wrap.appendChild(dirRow);
+      return wrap;
+    }
+
+    function renderEnvironmentContent() {
+      const wrap = el("div", { class: "krea2-v2-subsection-content" });
+      wrap.appendChild(renderChipRow("Atmosphere", "atmosphere", SCENE_CHIPS.atmosphere));
+      return wrap;
+    }
+
+    function renderStyleContent() {
+      const wrap = el("div", { class: "krea2-v2-subsection-content" });
+      wrap.appendChild(renderChipRow("Style", "style", SCENE_CHIPS.style));
+      return wrap;
+    }
+
+    /* Scene subsections: header IS the toggle, each with its own tint. */
+    function renderSceneSubsection(id, title, iconName, contentFn) {
+      const open = (state.scene_sections || {})[id] !== false;
+      const section = el("section", {
+        class: "krea2-v2-subsection krea2-v2-subsection-" + id + (open ? " is-open" : ""),
+      });
+      const header = el("div", { class: "krea2-v2-block-head krea2-clickable-head" }, [
+        icon(iconName, { width: "13", height: "13" }),
+        el("strong", null, title),
+        el("span", { class: "krea2-structured-spacer" }),
+        el("span", { class: "krea2-v2-chevron", "aria-hidden": "true" },
+          icon(open ? "chevron_down" : "chevron_right", { width: "12", height: "12" })),
+      ]);
+      header.addEventListener("click", function () {
+        state.scene_sections = state.scene_sections || {};
+        state.scene_sections[id] = state.scene_sections[id] === false ? true : false;
+        markDirty();
+        render();
+      });
+      const body = el("div", { class: "krea2-v2-block-body" });
+      if (open) {
+        const content = contentFn();
+        if (content) body.appendChild(content);
+      }
+      section.appendChild(header);
+      section.appendChild(body);
+      return section;
+    }
+
+    /* Type / Setting / Shot on ONE horizontal row. */
+    function renderSceneTypeRow() {
+      const row = el("div", { class: "krea2-v2-scene-top-row" });
+      row.append(
+        el("span", { class: "krea2-v2-field-label" }, "Type"),
+        creativeModeControl,
+        el("span", { class: "krea2-v2-field-label" }, "Setting"),
+        b2BuiltinSceneSelect(),
+        el("span", { class: "krea2-v2-field-label" }, "Shot"),
+        masterPresetSelect,
+      );
+      return row;
+    }
+
+    /* Description merges the old "Additional info" field into one editor. */
+    function renderSceneDescriptionBlock() {
+      const open = (state.scene_sections || {}).description !== false;
+      const block = el("section", {
+        class: "krea2-v2-description-block" + (open ? " is-open" : ""),
+      });
+      const header = el("div", { class: "krea2-v2-block-head krea2-clickable-head" }, [
+        el("strong", null, "Description"),
+        el("span", { class: "krea2-v2-block-hint" }, "scene, mood, camera or style notes"),
+        el("span", { class: "krea2-structured-spacer" }),
+        el("span", { class: "krea2-v2-chevron", "aria-hidden": "true" },
+          icon(open ? "chevron_down" : "chevron_right", { width: "12", height: "12" })),
+      ]);
+      header.addEventListener("click", function () {
+        state.scene_sections = state.scene_sections || {};
+        state.scene_sections.description = state.scene_sections.description === false ? true : false;
+        markDirty();
+        render();
+      });
+      const body = el("div", { class: "krea2-v2-block-body" });
+      if (open) {
+        const ta = el("textarea", {
+          class: "krea2-compact-textarea krea2-wizard-base",
+          rows: "2",
+          "aria-label": "Scene description",
+          placeholder: "Describe the scene, mood, lighting, camera, or style.",
+          onInput: function (event) {
+            state.base_prompt = event.target.value;
+            sizeBasePrompt();
+            markDirty();
+            syncNodeHeight();
+          },
+        }, state.base_prompt || "");
+        autoExpandTextarea({ target: ta });
+        body.appendChild(ta);
+      }
+      block.appendChild(header);
+      block.appendChild(body);
+      return block;
+    }
+
+    /* Final Prompt Preview: header bar (click = collapse) above a fully
+     * desaturated gray monospace code area. Shared by both tabs. */
+    function renderFinalPreview() {
+      const open = state.final_preview_open !== false;
+      const section = el("section", {
+        class: "krea2-v2-final-preview" + (open ? " is-open" : ""),
+      });
+      const header = el("div", { class: "krea2-v2-block-head krea2-clickable-head" }, [
+        el("strong", null, "Final Prompt Preview"),
+        el("span", { class: "krea2-v2-block-hint" },
+          state.pretty_preview ? "grouped concept cards (Pretty mode)" : "plain weighted prompt code"),
+        el("span", { class: "krea2-structured-spacer" }),
+        el("button", {
+          type: "button",
+          class: "krea2-wizard-btn krea2-icon-btn krea2-v2-preview-copy",
+          title: "Copy compiled prompt",
+          "aria-label": "Copy compiled prompt",
+          onClick: function (event) {
+            event.stopPropagation();
+            copy(livePreview.codeText.textContent);
+          },
+        }, icon("copy", { width: "12", height: "12" })),
+        el("span", { class: "krea2-v2-chevron", "aria-hidden": "true" },
+          icon(open ? "chevron_down" : "chevron_right", { width: "12", height: "12" })),
+      ]);
+      header.addEventListener("click", function (event) {
+        const target = event && event.target;
+        if (target && typeof target.closest === "function" && target.closest("button")) return;
+        state.final_preview_open = state.final_preview_open === false;
+        markDirty();
+        render();
+      });
+      const body = el("div", { class: "krea2-v2-final-preview-body" });
+      if (open) {
+        body.appendChild(livePreview.root);
+      }
+      section.appendChild(header);
+      section.appendChild(body);
+      return section;
+    }
+
     function renderCastTab() {
       structuredHost.innerHTML = "";
-      structuredHost.appendChild(renderCharacterEditor());
-      castHost.appendChild(structuredHost);
+      const section = el("section", { class: "krea2-structured-section krea2-character-section krea2-v2-cast" });
+      const add = el("button", { type: "button", class: "krea2-wizard-btn", onClick: function () {
+        const character = newCharacter();
+        state.characters.push(character);
+        state.selected_character_id = character.id;
+        markDirty();
+        renderStructuredEditors();
+      } }, "+ Character");
+      const exportBtn = el("button", { type: "button", class: "krea2-wizard-btn krea2-quiet-btn", onClick: exportStructuredPresets }, "Export");
+      const importInput = el("input", { type: "file", accept: "application/json", hidden: true, onChange: importStructuredPresets });
+      const importBtn = el("button", { type: "button", class: "krea2-wizard-btn krea2-quiet-btn", onClick: function () { importInput.click(); } }, "Import");
+      const castRandomAll = diceButton("Randomize every character's full look once now", function () {
+        (state.characters || []).forEach(function (character) {
+          CHARACTER_APPEARANCE.forEach(function (field) {
+            randomizeAppearanceField(character, field);
+          });
+        });
+        markDirty();
+        render();
+      }, "krea2-cast-random-all");
+      section.appendChild(el("div", { class: "krea2-structured-heading" }, [
+        el("strong", null, "Cast"),
+        el("span", { class: "krea2-v2-cast-count" },
+          (state.characters || []).length + ((state.characters || []).length === 1 ? " character" : " characters")),
+        el("span", { class: "krea2-structured-spacer" }),
+        castRandomAll, add, exportBtn, importBtn, importInput,
+      ]));
+      if (!state.characters.length) {
+        const starter = el("select", { class: "krea2-compact-select", "aria-label": "Add a preset character" });
+        starter.appendChild(el("option", { value: "" }, "Start with a preset character..."));
+        CHARACTER_PRESETS.forEach(function (preset, presetIndex) { starter.appendChild(el("option", { value: String(presetIndex) }, preset.label)); });
+        starter.addEventListener("change", function () {
+          const preset = CHARACTER_PRESETS[Number(starter.value)];
+          if (!preset) return;
+          const character = Object.assign(newCharacter(), cloneJson(preset.character), { name: preset.label });
+          state.characters.push(character); state.selected_character_id = character.id;
+          markDirty(); renderStructuredEditors();
+        });
+        section.appendChild(el("div", { class: "krea2-character-empty-row" }, [starter, el("span", { class: "krea2-structured-empty" }, "or create a blank character") ]));
+      } else {
+        state.characters.forEach(function (character, index) {
+          section.appendChild(renderCharacterCard(character, index));
+        });
+      }
+      castHost.appendChild(section);
+      castHost.appendChild(renderFinalPreview());
     }
 
     function renderSceneTab() {
-      sceneHost.appendChild(basePromptControl.root);
-      const shotRow = el("div", { class: "krea2-wizard-shot-row" }, [
-        el("strong", { class: "krea2-wizard-shot-label" }, "Shot preset"),
-        masterPresetSelect,
-        el("span", { class: "krea2-direction-hint" }, "sets camera, lighting, atmosphere and the scene together"),
-      ]);
-      sceneHost.appendChild(shotRow);
-      /* Main prompt (additional info) beside the Scene container. */
-      const topGrid = el("div", { class: "krea2-scene-top" }, [
-        basePromptControl.root,
-        renderSettingEditor(),
-      ]);
-      sceneHost.appendChild(topGrid);
-      categoryBody.innerHTML = "";
-      renderGroupSections(categoryBody, SCENE_GROUPS);
-      sceneHost.appendChild(categoryBody);
+      sceneHost.appendChild(renderSceneTypeRow());
+      sceneHost.appendChild(renderSceneDescriptionBlock());
+      sceneHost.appendChild(renderSceneSubsection("camera", "Camera", "camera",
+        renderCameraContent));
+      sceneHost.appendChild(renderSceneSubsection("lighting", "Lighting", "bulb",
+        renderLightingContent));
+      sceneHost.appendChild(renderSceneSubsection("environment", "Environment", "globe",
+        renderEnvironmentContent));
+      sceneHost.appendChild(renderSceneSubsection("style", "Style", "palette",
+        renderStyleContent));
+      sceneHost.appendChild(renderFinalPreview());
     }
 
     function renderConceptsTab() {
@@ -3474,7 +4372,7 @@ function buildGroupPresetPicker(group) {
           character.expanded = character.expanded === false;
           persist(); render();
         },
-      }, expanded ? "▾" : "▸");
+      }, expanded ? "Collapse" : "Expand");
       const identity = el("div", { class: "krea2-character-card-identity" }, [name, summary]);
       if (!expanded) {
         identity.appendChild(characterChips(character));
@@ -3686,7 +4584,7 @@ function buildGroupPresetPicker(group) {
           markDirty();
           render();
         },
-      }, "Collapse editor ▾"));
+      }, "Collapse editor"));
 
       /* 2. Compact prompt card at the top with copy. */
       const promptRow = b2PromptRow(promptText);
@@ -3880,7 +4778,7 @@ function buildGroupPresetPicker(group) {
             persist();
             render();
           },
-        }, (open ? "▾" : "▸") + " Prompt"),
+        }, (open ? "Collapse" : "Expand") + " Prompt"),
         el("span", { class: "krea2-structured-spacer" }),
       ]);
       footerHost.appendChild(header);
@@ -3914,8 +4812,6 @@ function buildGroupPresetPicker(group) {
           el("code", null, String(error && error.message ? error.message : error)),
         ]);
         castHost.appendChild(fatal);
-        b2Shell.innerHTML = "";
-        b2Shell.appendChild(fatal);
         renderFooter();
       }
     }
@@ -3923,11 +4819,8 @@ function buildGroupPresetPicker(group) {
     function renderUnsafe() {
       basePromptControl.input.value = state.base_prompt || "";
       sizeBasePrompt();
-      const expanded = state.wizard_expanded === true;
-      root.classList.toggle("krea2-wizard-compact", !expanded);
-      root.classList.toggle("krea2-wizard-expanded", expanded);
-      if (previousExpanded === true && !expanded) contractNextSync = true;
-      previousExpanded = expanded;
+      root.classList.remove("krea2-wizard-compact", "krea2-wizard-expanded");
+      root.classList.add("krea2-wizard-expanded");
       renderNodeSettings();
       castHost.innerHTML = "";
       sceneHost.innerHTML = "";
@@ -3936,17 +4829,26 @@ function buildGroupPresetPicker(group) {
       categoryBody.innerHTML = "";
       footerHost.innerHTML = "";
       tabBar.innerHTML = "";
-      b2Shell.innerHTML = "";
-      b2Shell.classList.toggle("krea2-b2-expanded", expanded);
-      if (expanded) {
-        renderB2ExpandedShell();
+      renderTabBar();
+      if ((state.active_tab || "cast") === "scene") {
+        renderSceneTab();
       } else {
-        renderB2Shell();
+        renderCastTab();
       }
       updateHistoryControls();
       renderLivePreview(true);
-      syncNodeHeight(contractNextSync);
-      contractNextSync = false;
+      applyPreviewMode();
+      syncNodeHeight(false);
+    }
+
+    /* Pretty Prompt Preview is default OFF: the Final Prompt Preview shows
+     * plain monospace code unless the settings toggle turns the grouped
+     * concept-card view back on. */
+    function applyPreviewMode() {
+      const pretty = !!state.pretty_preview;
+      if (livePreview.prettyBody) livePreview.prettyBody.style.display = pretty ? "" : "none";
+      if (livePreview.codeText) livePreview.codeText.style.display = pretty ? "none" : "";
+      if (livePreview.codeLabel) livePreview.codeLabel.style.display = pretty ? "none" : "";
     }
 
     function sizeBasePrompt() {
@@ -3956,61 +4858,24 @@ function buildGroupPresetPicker(group) {
       input.style.height = Math.max(52, input.scrollHeight || 0) + "px";
     }
 
-    /* Node sizing: grow to fit content in both modes, and contract the
-     * node after a collapse so the compact shell leaves no blank region.
-     * Manual enlargement is respected except that the compact surface is
-     * always pulled back to its content height. */
+    /* Node sizing: grow to fit content. The v2 tabbed editor is always the
+     * full surface, so the node height simply tracks root content. */
     const MIN_NODE_HEIGHT = 96;
-    const SETTLE_PASSES = 4;
-    function syncNodeHeight(allowContract) {
+    function syncNodeHeight() {
       const schedule = window.requestAnimationFrame || function (callback) {
         return window.setTimeout(callback, 0);
       };
       const measure = function () {
         if (!root.isConnected || !node.setSize) return;
         const current = node.size || [root.offsetWidth || 520, root.offsetHeight || 1];
-        const compact = state.wizard_expanded !== true;
-        const content = compact ? root.querySelector(".krea2-b2-shell") : root;
-        const desiredHeight = Math.ceil((content ? content.scrollHeight : root.scrollHeight) + 24);
+        const desiredHeight = Math.max(MIN_NODE_HEIGHT, Math.ceil(root.scrollHeight || 1) + 24);
         const desiredWidth = Math.ceil(root.scrollWidth || current[0] || 520);
-        const blankRegion = current[1] - desiredHeight;
         if (current[1] < desiredHeight || current[0] < desiredWidth) {
           node.setSize([Math.max(current[0] || 0, desiredWidth), Math.max(current[1] || 0, desiredHeight)]);
-        } else if (allowContract || (compact && blankRegion > 48)) {
-          const contracted = Math.max(desiredHeight, MIN_NODE_HEIGHT);
-          if (contracted < current[1] - 2) {
-            node.setSize([Math.max(current[0] || 0, desiredWidth), contracted]);
-          }
         }
         if (node.setDirtyCanvas) node.setDirtyCanvas(true);
       };
       schedule(measure);
-      if (allowContract) {
-        /* The host widget is still sized to the previous expanded height on
-         * the first frame, so root.scrollHeight reports the stale expanded
-         * content height there. Re-measure after the layout settles so the
-         * compact shell's real ~296px content height drives the node down
-         * to ~320px instead of leaving the old expanded height. The pass
-         * count is bounded so the retry can never loop forever. */
-        let passes = SETTLE_PASSES;
-        const settle = function () {
-          if (passes <= 0) return;
-          passes -= 1;
-          schedule(function () {
-            if (!root.isConnected || !node.setSize) return;
-            const current = node.size || [root.offsetWidth || 520, root.offsetHeight || 1];
-            const compact = state.wizard_expanded !== true;
-            const content = compact ? root.querySelector(".krea2-b2-shell") : root;
-            const desiredHeight = Math.ceil((content ? content.scrollHeight : root.scrollHeight) + 24);
-            const contracted = Math.max(desiredHeight, MIN_NODE_HEIGHT);
-            if (contracted >= current[1] - 2) return;
-            node.setSize([Math.max(current[0] || 0, Math.ceil(root.scrollWidth || current[0] || 520)), contracted]);
-            if (node.setDirtyCanvas) node.setDirtyCanvas(true);
-            settle();
-          });
-        };
-        settle();
-      }
     }
 
     function copy(text) {
@@ -4070,8 +4935,14 @@ function buildGroupPresetPicker(group) {
     render();
     fetchLibrary().then(function (presets) {
       library.splice(0, library.length, ...presets);
+      enrichSeedRows();
+      conflictPairsCache = null;
       render();
     }).catch(function () {});
+    fetchConflicts().then(function (list) {
+      conflictList = Array.isArray(list) ? list : [];
+      conflictPairsCache = null;
+    });
     fetchConceptColors().then(function (colors) {
       state.concept_colors = Object.assign({}, colors, state.concept_colors || {});
       markDirty();
@@ -4108,6 +4979,7 @@ function buildGroupPresetPicker(group) {
           "selected_character_id", "show_work",
           "show_motion_prompt", "show_face_guidance", "show_concepts_tab",
           "scene_collapsed", "wizard_expanded",
+          "scene_sections", "final_preview_open", "pretty_preview",
         ];
         for (const key of uiKeys) {
           if (key in state) merged[key] = state[key];
@@ -4119,6 +4991,10 @@ function buildGroupPresetPicker(group) {
             if (oldChar && newChar) {
               newChar.expanded = oldChar.expanded !== false;
               newChar.additional_open = oldChar.additional_open === true;
+              newChar.concepts_open = oldChar.concepts_open !== false;
+              newChar.quick_open = oldChar.quick_open !== false;
+              newChar.loras_open = oldChar.loras_open !== false;
+              if (Array.isArray(oldChar.loras)) newChar.loras = oldChar.loras;
             }
           }
         }
