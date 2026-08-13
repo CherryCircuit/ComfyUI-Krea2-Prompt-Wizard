@@ -28,8 +28,8 @@ class FrontendPackagingTests(unittest.TestCase):
     def test_entrypoint_loads_helpers_before_registration(self):
         source = (ROOT / "web" / "krea2_prompt_wizard_v3.js").read_text(encoding="utf-8")
         self.assertIn('import { app } from "../../scripts/app.js"', source)
-        self.assertIn('await import("./js/state.mjs?v=13")', source)
-        self.assertIn('await import("./js/wizard_widget.mjs?v=13")', source)
+        self.assertIn('await import("./js/state.mjs?v=14")', source)
+        self.assertIn('await import("./js/wizard_widget.mjs?v=14")', source)
         self.assertLess(source.index("await import"), source.index("app.registerExtension"))
 
     def test_all_entrypoint_helper_modules_exist(self):
