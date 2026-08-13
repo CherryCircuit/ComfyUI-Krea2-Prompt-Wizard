@@ -647,6 +647,15 @@
       ["path", { d: "M3 4.5h10M6.5 4.5V3h3v1.5M5 4.5l.6 8.4a1 1 0 0 0 1 .9h2.8a1 1 0 0 0 1-.9l.6-8.4" }],
       ["path", { d: "M6.8 7v4M9.2 7v4" }],
     ],
+    save: [
+      ["path", { d: "M3.5 2.5h8l1 1v9.5a0.5 0.5 0 0 1-0.5 0.5h-9a0.5 0.5 0 0 1-0.5-0.5v-9.5z" }],
+      ["path", { d: "M5.5 13.5v-4h5v4" }],
+      ["path", { d: "M5.5 2.5v3.5h5V2.5" }],
+    ],
+    refresh: [
+      ["path", { d: "M13.5 8a5.5 5.5 0 1 1-1.6-3.9" }],
+      ["path", { d: "M13.5 1.5V5h-3.5" }],
+    ],
     download: [
       ["path", { d: "M8 2.5V11M4.5 7.5L8 11l3.5-3.5" }],
       ["path", { d: "M2.5 13.5h11" }],
@@ -729,7 +738,23 @@
     ["pink", "#e07a9e"],
   ]);
 
-  function paletteNearestName(hex) {
+  /* Light colour palette: light tints only — no hair words like blonde. */
+  const LIGHT_PALETTE = Object.freeze([
+    ["white", "#ffffff"],
+    ["red", "#ff5b5b"],
+    ["orange", "#ff9d4d"],
+    ["yellow", "#ffe066"],
+    ["green", "#5dd07a"],
+    ["teal", "#4fd1c5"],
+    ["cyan", "#5fd6f0"],
+    ["blue", "#5b9dff"],
+    ["purple", "#a88bff"],
+    ["magenta", "#ff7ae0"],
+    ["pink", "#ff9ec7"],
+  ]);
+
+  function paletteNearestName(hex, palette) {
+    const colors = palette && palette.length ? palette : PALETTE_COLORS;
     const raw = String(hex || "").trim().replace(/^#/, "");
     if (!/^[0-9a-fA-F]{3}$|^[0-9a-fA-F]{6}$/.test(raw)) return "";
     const full = raw.length === 3
@@ -740,7 +765,7 @@
     const b = parseInt(full.slice(4, 6), 16);
     let best = "";
     let bestDistance = Infinity;
-    for (const entry of PALETTE_COLORS) {
+    for (const entry of colors) {
       const sr = parseInt(entry[1].slice(1, 3), 16);
       const sg = parseInt(entry[1].slice(3, 5), 16);
       const sb = parseInt(entry[1].slice(5, 7), 16);
@@ -1067,6 +1092,14 @@
     for (const line of loraLines) fragments.push(line);
     const loraTokens = compileLoraTokens(character);
     for (const token of loraTokens) fragments.push(token);
+    /* Krea2 follows natural-language descriptions (official prompting
+     * guide), so skin and ethnicity also get weighted visual phrases —
+     * "blue skin" reads far better to the Qwen3-VL encoder than
+     * "skin colour: blue". */
+    const skin = String(character.skin_color || "").trim();
+    if (skin && /^[a-z ]+$/i.test(skin)) fragments.push("(" + skin + " skin:1.5)");
+    const ethnicity = String(character.ethnicity || "").trim();
+    if (ethnicity && !/[:()]/.test(ethnicity)) fragments.push("(" + ethnicity + ":1.3)");
     const interaction = String(character.interaction || "").trim();
     if (interaction) fragments.push(interaction);
     const head = position ? name + " (" + position + ")" : name;
@@ -1218,6 +1251,7 @@
     CATEGORY_GROUPS,
     PROFILES,
     PALETTE_COLORS,
+    LIGHT_PALETTE,
   };
   KREA2.helpers = {
     newRowId,

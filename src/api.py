@@ -72,14 +72,25 @@ def register_routes() -> None:
     async def get_loras(_request: Any) -> web.Response:
         """List the LoRA files available to the user (for the Cast tab).
 
-        Names come from ComfyUI's loras folder, relative paths included, so
-        subfolder organisation (image models / character loras / ...) shows
-        up exactly like the built-in LoRA loader dropdowns.
+        Uses the same source as the built-in LoRA loader nodes
+        (``folder_paths.get_filename_list``), with a recursive fallback so
+        files inside subfolders are always found even when the ComfyUI
+        helper only reports top-level names.
         """
         try:
-            from comfy.utils import get_filename_list
+            import folder_paths  # lazy: ComfyUI runtime only
 
-            names = get_filename_list("loras")
+            names = list(folder_paths.get_filename_list("loras"))
+            if not names:
+                seen: set = set()
+                for folder in folder_paths.get_folder_paths("loras"):
+                    for root, _dirs, files in os.walk(folder):
+                        for filename in files:
+                            if not filename.lower().endswith((".safetensors", ".ckpt", ".pt", ".bin")):
+                                continue
+                            rel = os.path.relpath(os.path.join(root, filename), folder)
+                            names.append(rel.replace("\\", "/"))
+                names = sorted(set(names))
         except Exception:
             names = []
         return web.json_response({"loras": sorted(names)})

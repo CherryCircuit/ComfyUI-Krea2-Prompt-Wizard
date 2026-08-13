@@ -273,18 +273,44 @@ if (seededRows.length < 3
   throw new Error("Fresh characters must seed the three real library concept rows.");
 }
 
-/* --- Appearance: 10 dropdowns + 3 colour palettes ------------------------- */
+/* --- Appearance: 16 dropdowns, colour pop-up buttons, per-field dice ----- */
 const comboboxes = findByClass(wizard.root, "krea2-combobox");
-if (comboboxes.length !== 10) {
-  throw new Error("Each cast card must expose ten appearance dropdowns, got " + comboboxes.length);
+if (comboboxes.length !== 16) {
+  throw new Error("Each cast card must expose sixteen appearance dropdowns, got " + comboboxes.length);
 }
-for (const field of ["Hair", "Eyes", "Build", "Physique", "Height & Frame", "Age", "Ethnicity", "Top", "Bottom", "Ensemble (full costume)"]) {
+for (const field of ["Hair", "Hair length", "Eye Shape", "Build", "Physique", "Height & Frame", "Age", "Ethnicity", "Makeup", "Nose", "Mouth", "Chin", "Face shape", "Top", "Bottom", "Ensemble (full costume)"]) {
   if (comboboxes.filter((input) => input["aria-label"] === field).length !== 1) {
     throw new Error("Each cast card must expose exactly one " + field + " field.");
   }
 }
-if (findByClass(wizard.root, "krea2-v2-palette-field").length !== 3) {
-  throw new Error("Hair, eye and skin colour must render as palette pickers.");
+if (findByClass(wizard.root, "krea2-v2-color-btn").length !== 3) {
+  throw new Error("Hair, eye and skin colour must render as colour pop-up buttons.");
+}
+if (findByClass(wizard.root, "krea2-field-random").length < 16
+    || findByClass(wizard.root, "krea2-field-each-job").length < 16) {
+  throw new Error("Every appearance field must carry its own dice and each-job shuffle.");
+}
+/* Age keeps youngest-to-oldest ordering, not alphabetical. */
+const ageCombobox = comboboxes.find((input) => input["aria-label"] === "Age");
+const ageOptions = [];
+for (const input of comboboxes) {
+  if (input["aria-label"] === "Age") {
+    const listId = input["list"];
+    const datalists = [];
+    const collect = (node) => {
+      if (node.tagName === "datalist" && node.id === listId) datalists.push(node);
+      for (const child of node.children || []) collect(child);
+    };
+    collect(wizard.root);
+    for (const dl of datalists) {
+      for (const child of dl.children || []) {
+        if (child.tagName === "option" && child.value) ageOptions.push(child.value);
+      }
+    }
+  }
+}
+if (ageOptions.join("|") !== "child|teenager|young adult|adult|middle aged|elderly") {
+  throw new Error("Age must run youngest to oldest, got " + ageOptions.join("|"));
 }
 
 /* --- Gender pills: three single-select buttons ---------------------------- */
@@ -605,8 +631,8 @@ const lightAngles = findByClass(lightRow, "krea2-row-value");
 if (lightAngles.length !== 2 || textOf(lightAngles[0]) !== "45°") {
   throw new Error("Each light must expose an angle stepper in degrees and an intensity stepper, got " + lightAngles.map((v) => textOf(v)).join(","));
 }
-if (!findByClass(lightRow, "krea2-v2-palette-swatch").length) {
-  throw new Error("Each light must expose a colour palette.");
+if (!findByClass(lightRow, "krea2-v2-color-btn").length) {
+  throw new Error("Each light must expose a colour pop-up button.");
 }
 const softChip = findByClass(wizard.root, "krea2-v2-chip")
   .find((chip) => textOf(chip) === "Soft");

@@ -507,6 +507,15 @@ def _compile_character(
     # side application happens in the node (Model input -> Model output).
     for token in _lora_tokens(character):
         emitted.append(token)
+    # Krea2 follows natural-language descriptions (official prompting guide),
+    # so skin and ethnicity also get weighted visual phrases — "blue skin"
+    # reads far better to the Qwen3-VL encoder than "skin colour: blue".
+    skin = str(character.get("skin_color") or "").strip()
+    if skin and re.fullmatch(r"[a-z ]+", skin, re.IGNORECASE):
+        emitted.append(f"({skin} skin:1.5)")
+    ethnicity = str(character.get("ethnicity") or "").strip()
+    if ethnicity and not re.search(r"[:()]", ethnicity):
+        emitted.append(f"({ethnicity}:1.3)")
     if interaction:
         emitted.append(interaction)
         plain_emitted.append(interaction)

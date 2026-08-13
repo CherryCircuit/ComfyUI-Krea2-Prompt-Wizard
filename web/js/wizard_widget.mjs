@@ -40,6 +40,7 @@
     CATEGORIES,
     CATEGORY_LABELS,
     PALETTE_COLORS,
+    LIGHT_PALETTE,
   } = K.constants;
   const { render: renderRow } = K.presetRow;
   const { show: showSearchableSelector } = K.searchableSelector;
@@ -210,7 +211,7 @@
 
   /* Build indicator shown in the top bar so it is obvious which wizard
    * build is running. Bump when you ship a new build. */
-  const WIZARD_VERSION = "v2.0.0";
+  const WIZARD_VERSION = "v2.1.0";
 
   const TABS = [
     ["cast", "Cast", "users"],
@@ -1045,13 +1046,19 @@
     }
 
     function editCharacterRow(character, row) {
+      // Replace picker is scoped to the concept group the row belongs to,
+      // so clicking "Arms Crossed" never offers emotion concepts.
+      const group = CHARACTER_CONCEPT_GROUPS.find(function (item) {
+        return item.categories.includes(row.category);
+      }) || null;
       showSearchableSelector({
         presets: characterRowPresets(),
         title: "Replace " + (row.label || "concept"),
-        categories: DIRECTION_CATEGORIES,
+        categories: group ? group.categories : CHARACTER_PICKER_CATEGORIES,
         multiSelect: false,
         selectedIds: [row.preset_id],
         initialPresetId: row.preset_id,
+        filterPreset: characterConflictFilter(character),
         onClose: function () { render(); },
         getConceptColor: function (presetId) { return (state.concept_colors || {})[presetId] || ""; },
         onColorChange: function (presetId, newColor) {
@@ -1318,7 +1325,7 @@
           if (presetId) loadCharacterDirectionPreset(character, groupKey, presetId);
         },
       });
-      select.appendChild(el("option", { value: "" }, "Load preset..."));
+      select.appendChild(el("option", { value: "" }, "Presets..."));
       const groupPresets = savedPresets.filter(function (item) {
         return item.scope === "group" && item.group === directionGroupPresetId(groupKey)
           && Array.isArray(item.rows);
@@ -1335,10 +1342,12 @@
 
     /* Direction sections styled like the Concepts tab: header with the
      * count on the right, and the full action set (Add, presets, save,
-     * randomize, shuffle each job). */
-    function renderCharacterDirectionBlock(character, groupKey) {
+     * randomize, shuffle each job). In the three-column layout the group
+     * headers are NOT collapsible — only the parent container toggles. */
+    function renderCharacterDirectionBlock(character, groupKey, opts) {
       const group = CHARACTER_CONCEPT_GROUPS.find(function (item) { return item.id === groupKey; })
         || DIRECTION_GROUPS.find(function (item) { return item.id === groupKey; });
+      const collapsible = !opts || opts.collapsible !== false;
       const rows = (character.rows || []).filter(function (row) {
         return group.categories.includes(row.category);
       });
@@ -1387,19 +1396,20 @@
             },
           });
         },
-      }, "+ Add");
+      }, icon("plus", { width: "12", height: "12" }));
       const presetSelect = buildCharacterDirectionPresetPicker(character, groupKey);
       const saveBtn = el("button", {
         type: "button",
-        class: "krea2-wizard-category-save",
+        class: "krea2-wizard-category-save krea2-icon-btn",
         title: "Save these direction concepts as a reusable preset",
+        "aria-label": "Save " + group.label + " preset",
         onClick: function (event) {
           event.stopPropagation();
           const label = window.prompt("Name this " + group.label + " preset", "");
           if (!label || !label.trim()) return;
           saveCharacterDirectionPreset(character, groupKey, label.trim());
         },
-      }, "Save preset");
+      }, icon("save", { width: "12", height: "12" }));
       const randomBtn = diceButton(
         "Replace this direction with a random combination",
         function (event) {
@@ -1442,18 +1452,20 @@
         actions.style.display = "none";
         content.style.display = "none";
       }
-      header.addEventListener("click", function (event) {
-        const target = event && event.target;
-        if (target && typeof target.closest === "function"
-            && target.closest("button,select,input,label,.krea2-wizard-category-actions")) return;
-        character.collapsed_direction = character.collapsed_direction || {};
-        const next = !character.collapsed_direction[groupKey];
-        character.collapsed_direction[groupKey] = next;
-        actions.style.display = next ? "none" : "";
-        content.style.display = next ? "none" : "";
-        section.classList.toggle("is-collapsed", next);
-        markDirty();
-      });
+      if (collapsible) {
+        header.addEventListener("click", function (event) {
+          const target = event && event.target;
+          if (target && typeof target.closest === "function"
+              && target.closest("button,select,input,label,.krea2-wizard-category-actions")) return;
+          character.collapsed_direction = character.collapsed_direction || {};
+          const next = !character.collapsed_direction[groupKey];
+          character.collapsed_direction[groupKey] = next;
+          actions.style.display = next ? "none" : "";
+          content.style.display = next ? "none" : "";
+          section.classList.toggle("is-collapsed", next);
+          markDirty();
+        });
+      }
       section.appendChild(header);
       section.appendChild(actions);
       section.appendChild(content);
@@ -1534,8 +1546,21 @@
         pink: "#d85b9f", green: "#3e8e54", rainbow: "#c45a8a", ombre: "#8c5a4a",
         balayage: "#a86a4a", highlights: "#c9a25e", lowlights: "#5a4030",
         "two-tone": "#8a4a9a",
+        orange: "#d97a3d", amber: "#d9a441", yellow: "#dfc24d",
+        cyan: "#37b7cc", navy: "#2b3a66", magenta: "#b84a9e",
       };
       return colors[value] || fallback;
+    }
+
+    function skinColorTone(value) {
+      const map = {
+        white: "#f2dcc8", blonde: "#f0ddc4", silver: "#e6d6c4", grey: "#b8a898",
+        black: "#3a2a22", "dark brown": "#5c3b26", brown: "#8a5a3b", auburn: "#a86a4a",
+        red: "#c96a5a", orange: "#d99a6c", amber: "#d9a97a", yellow: "#e6c890",
+        green: "#7d9e7a", teal: "#6d9e96", cyan: "#a8ccd6", blue: "#7d9ec8",
+        navy: "#5a6a8a", purple: "#9a86b8", magenta: "#b88aa8", pink: "#e8a8b8",
+      };
+      return map[String(value || "").toLowerCase()] || "#d9ad8b";
     }
 
     function irisColors(eyeColor) {
@@ -1547,6 +1572,16 @@
         "black eyes": ["#26262c", "#26262c"], "grey eyes": ["#9aa3ab", "#9aa3ab"],
         "amber eyes": ["#c98a2e", "#c98a2e"], "violet eyes": ["#7a5fb8", "#7a5fb8"],
         "heterochromatic eyes": ["#3b78d6", "#3e8e54"],
+        black: ["#1f1f24", "#1f1f24"], white: ["#f4f2ee", "#f4f2ee"],
+        grey: ["#9aa3ab", "#9aa3ab"], silver: ["#c8ccd2", "#c8ccd2"],
+        brown: ["#5b3a24", "#5b3a24"], "dark brown": ["#43301f", "#43301f"],
+        blonde: ["#d9b65e", "#d9b65e"], auburn: ["#8c4a2e", "#8c4a2e"],
+        red: ["#c74735", "#c74735"], orange: ["#d97a3d", "#d97a3d"],
+        amber: ["#c98a2e", "#c98a2e"], yellow: ["#d9c44d", "#d9c44d"],
+        green: ["#3e8e54", "#3e8e54"], teal: ["#1f8f8f", "#1f8f8f"],
+        cyan: ["#37b7cc", "#37b7cc"], blue: ["#3b78d6", "#3b78d6"],
+        navy: ["#2b3a66", "#2b3a66"], purple: ["#7a5fb8", "#7a5fb8"],
+        magenta: ["#b84a9e", "#b84a9e"], pink: ["#e07a9e", "#e07a9e"],
       };
       return map[value] || ["#5b3a24", "#5b3a24"];
     }
@@ -1600,6 +1635,7 @@
           "--krea2-avatar-outfit": outfitColor,
           "--krea2-avatar-iris": iris[0],
           "--krea2-avatar-iris-r": iris[1],
+          "--krea2-avatar-skin": skinColorTone(character.skin_color),
         },
       });
       const art = el("div", { class: "krea2-avatar-art" });
@@ -1715,9 +1751,10 @@
       });
       const datalist = el("datalist", { id: listId });
       // Blank first entry: picking it clears the field. Options are sorted
-      // alphabetically so every dropdown is easy to scan.
+      // alphabetically (Age keeps its youngest-to-oldest order).
       datalist.appendChild(el("option", { value: "" }));
-      for (const option of sortedOptions(field.options)) {
+      const ordered = field.natural ? (field.options || []) : sortedOptions(field.options);
+      for (const option of ordered) {
         datalist.appendChild(el("option", { value: option }));
       }
       return { input: input, datalist: datalist };
@@ -3231,30 +3268,35 @@ function buildGroupPresetPicker(group) {
      * v2 redesigned tabbed editor (CAST / SCENE).
      * ------------------------------------------------------------------ */
 
-    /* The appearance controls on a cast card. Anything with more than a few
-     * choices is a dropdown (sex stays three click-to-cycle pills).
-     * Colours are palette pickers (swatch grid + hex). Options render in
-     * alphabetical order, label and dropdown side by side on one line. */
+    /* The appearance controls on a cast card. Every field keeps its own
+     * dice (randomize once) and shuffle (every job). Fields with a colour
+     * (hair / eyes / skin) carry a colour pop-up button on the same row.
+     * Dropdown options are alphabetical, except Age which runs youngest to
+     * oldest. */
     const V2_APPEARANCE_FIELDS = (function () {
       const byKey = {};
       CHARACTER_APPEARANCE.forEach(function (field) { byKey[field.key] = field; });
       const eyesShapes = byKey.eyes.options.filter(function (option) {
         return !/(blue|green|hazel|brown|black|grey|amber|violet|heterochromatic)/.test(option);
       });
+      const paletteNames = PALETTE_COLORS.map(function (entry) { return entry[0]; });
       return [
-        { key: "hair_style", label: "Hair", kind: "dropdown", options: byKey.hair_style.options },
-        { key: "hair_color", label: "Hair colour", kind: "palette" },
-        { key: "eyes", label: "Eyes", kind: "dropdown", options: eyesShapes },
-        { key: "eye_color", label: "Eye colour", kind: "palette" },
-        { key: "body_type", label: "Build", kind: "dropdown", options: byKey.body_type.options },
-        { key: "fitness", label: "Physique", kind: "dropdown", options: byKey.fitness.options },
-        { key: "proportions", label: "Height & Frame", kind: "dropdown", options: byKey.proportions.options },
-        { key: "skin_color", label: "Skin colour", kind: "palette" },
-        { key: "age", label: "Age", kind: "dropdown", options: byKey.age.options },
-        { key: "ethnicity", label: "Ethnicity", kind: "dropdown", options: byKey.ethnicity.options },
-        { key: "clothing_top", label: "Top", kind: "dropdown", options: byKey.clothing_top.options },
-        { key: "clothing_bottom", label: "Bottom", kind: "dropdown", options: byKey.clothing_bottom.options },
-        { key: "ensemble", label: "Ensemble (full costume)", kind: "dropdown", options: byKey.ensemble.options },
+        { key: "hair_style", label: "Hair", options: byKey.hair_style.options, colorKey: "hair_color", colorPalette: "character" },
+        { key: "hair_length", label: "Hair length", options: byKey.hair_length.options },
+        { key: "eyes", label: "Eye Shape", options: eyesShapes, colorKey: "eye_color", colorPalette: "character" },
+        { key: "body_type", label: "Build", options: byKey.body_type.options },
+        { key: "fitness", label: "Physique", options: byKey.fitness.options },
+        { key: "proportions", label: "Height & Frame", options: byKey.proportions.options },
+        { key: "age", label: "Age", options: byKey.age.options, natural: true },
+        { key: "ethnicity", label: "Ethnicity", options: byKey.ethnicity.options, colorKey: "skin_color", colorPalette: "character" },
+        { key: "makeup", label: "Makeup", options: byKey.makeup.options },
+        { key: "nose", label: "Nose", options: byKey.nose.options },
+        { key: "mouth", label: "Mouth", options: byKey.mouth.options },
+        { key: "chin", label: "Chin", options: byKey.chin.options },
+        { key: "face_shape", label: "Face shape", options: byKey.face_shape.options },
+        { key: "clothing_top", label: "Top", options: byKey.clothing_top.options },
+        { key: "clothing_bottom", label: "Bottom", options: byKey.clothing_bottom.options },
+        { key: "ensemble", label: "Ensemble (full costume)", options: byKey.ensemble.options, wide: true },
       ];
     })();
 
@@ -3270,7 +3312,7 @@ function buildGroupPresetPicker(group) {
       return text ? text.charAt(0).toUpperCase() + text.slice(1) : "";
     }
 
-    /* Gender pills: three small buttons beside the character name.
+    /* Gender pills: three small buttons directly under the character name.
      * Single-select; only one choice at a time. */
     function renderGenderPills(character) {
       const row = el("div", { class: "krea2-v2-gender-pills", role: "radiogroup", "aria-label": "Gender" });
@@ -3282,7 +3324,8 @@ function buildGroupPresetPicker(group) {
           "aria-checked": active ? "true" : "false",
           class: "krea2-v2-gender-pill" + (active ? " is-active" : ""),
           title: "Set gender to " + option,
-          onClick: function () {
+          onClick: function (event) {
+            if (event && typeof event.stopPropagation === "function") event.stopPropagation();
             character.sex = character.sex === option ? "" : option;
             markDirty();
             render();
@@ -3292,57 +3335,122 @@ function buildGroupPresetPicker(group) {
       return row;
     }
 
-    /* Palette picker: swatch grid + hex input. Picking a swatch or entering
-     * a hex code writes a model-friendly colour word into the field. */
-    function renderPaletteField(character, field) {
-      const current = String(character[field.key] || "");
-      const wrap = el("div", { class: "krea2-v2-palette-field" });
+    /* Per-field dice (randomize once) + shuffle (randomize every job). */
+    function fieldRandomControls(character, field) {
+      const randomBtn = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-icon-btn krea2-field-random",
+        title: "Roll " + field.label + " once now",
+        "aria-label": "Randomize " + field.label + " once",
+        onClick: function (event) {
+          if (event && typeof event.stopPropagation === "function") event.stopPropagation();
+          randomizeAppearanceField(character, field);
+          markDirty();
+          render();
+        },
+      }, icon("dice", { width: "12", height: "12" }));
+      const eachJobOn = !!(character.randomize_fields || {})[field.key];
+      const eachJobBtn = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-icon-btn krea2-field-each-job krea2-shuffle" + (eachJobOn ? " is-active" : ""),
+        title: eachJobOn
+          ? field.label + " randomizes for every queued job. Click to keep it fixed."
+          : "Randomize " + field.label + " for every queued job.",
+        "aria-label": "Randomize " + field.label + " every queued job",
+        "aria-pressed": eachJobOn ? "true" : "false",
+        onClick: function (event) {
+          if (event && typeof event.stopPropagation === "function") event.stopPropagation();
+          setAppearanceFieldEachJob(character, field, !eachJobOn);
+          markDirty();
+          render();
+        },
+      }, icon("shuffle", { width: "12", height: "12" }));
+      return el("div", { class: "krea2-v2-field-random-controls" }, [randomBtn, eachJobBtn]);
+    }
+
+    /* Colour pop-up button: shows the chosen colour, click to open a small
+     * palette pop-up with a hex input inside. Used for hair / eye / skin
+     * colour and for light colour. */
+    function colourHexFor(name, palette) {
+      const entry = palette.find(function (item) { return item[0] === name; });
+      return entry ? entry[1] : "";
+    }
+
+    function openColorPopup(anchor, palette, current, label, onPick) {
+      const existing = document.querySelector(".krea2-color-popup");
+      if (existing) existing.remove();
+      const popup = el("div", { class: "krea2-color-popup" });
+      popup.appendChild(el("div", { class: "krea2-color-popup-label" }, label));
       const swatches = el("div", { class: "krea2-v2-palette-swatches" });
-      for (const entry of PALETTE_COLORS) {
+      swatches.appendChild(el("button", {
+        type: "button",
+        class: "krea2-v2-palette-swatch krea2-v2-palette-swatch-none" + (current ? "" : " is-active"),
+        title: "No colour",
+        "aria-label": "No colour",
+        onClick: function () { onPick(""); popup.remove(); },
+      }));
+      for (const entry of palette) {
         const active = current === entry[0];
         swatches.appendChild(el("button", {
           type: "button",
           class: "krea2-v2-palette-swatch" + (active ? " is-active" : ""),
           style: { background: entry[1] },
           title: entry[0],
-          "aria-label": field.label + ": " + entry[0],
-          onClick: function () {
-            character[field.key] = entry[0];
-            markDirty();
-            scheduleAppearanceRender();
-          },
+          "aria-label": entry[0],
+          onClick: function () { onPick(entry[0]); popup.remove(); },
         }));
       }
+      popup.appendChild(swatches);
       const hex = el("input", {
         type: "text",
         class: "krea2-compact-input krea2-v2-palette-hex",
         value: current,
         placeholder: "#rrggbb",
-        "aria-label": field.label + " (hex code)",
+        "aria-label": label + " (hex code)",
         onKeyDown: function (event) {
           if (event.key === "Enter") {
-            const name = paletteNearestName(hex.value);
-            if (name) {
-              character[field.key] = name;
-              hex.value = name;
-              markDirty();
-              scheduleAppearanceRender();
-            }
+            const name = paletteNearestName(hex.value, palette);
+            if (name) { onPick(name); popup.remove(); }
           }
           if (typeof event.stopPropagation === "function") event.stopPropagation();
         },
       });
-      hex.addEventListener("blur", function () {
-        const name = paletteNearestName(hex.value);
-        if (name && name !== character[field.key]) {
-          character[field.key] = name;
-          hex.value = name;
-          markDirty();
-        }
+      popup.appendChild(hex);
+      const rect = anchor.getBoundingClientRect();
+      Object.assign(popup.style, {
+        position: "fixed",
+        left: rect.left + "px",
+        top: (rect.bottom + 4) + "px",
+        zIndex: "2147483500",
       });
-      const label = el("span", { class: "krea2-v2-field-label" }, field.label);
-      wrap.append(label, swatches, hex);
-      return wrap;
+      document.body.appendChild(popup);
+      function onDocClick(e) {
+        if (!popup.contains(e.target)) {
+          popup.remove();
+          document.removeEventListener("click", onDocClick, true);
+        }
+      }
+      setTimeout(() => document.addEventListener("click", onDocClick, true), 0);
+    }
+
+    function renderColorPopupButton(character, key, palette, label) {
+      const current = String(character[key] || "");
+      const btn = el("button", {
+        type: "button",
+        class: "krea2-v2-color-btn" + (current ? " has-color" : ""),
+        style: current ? { background: colourHexFor(current, palette) } : {},
+        title: (current || "no colour") + " — click to pick " + label,
+        "aria-label": label + ": " + (current || "none"),
+        onClick: function (event) {
+          event.stopPropagation();
+          openColorPopup(btn, palette, current, label, function (name) {
+            character[key] = name;
+            markDirty();
+            scheduleAppearanceRender();
+          });
+        },
+      }, current ? "" : icon("dot", { width: "11", height: "11", color: "#8a8f98" }));
+      return btn;
     }
 
     /* Concepts Applied to <character>: header-click toggle, then three
@@ -3371,7 +3479,7 @@ function buildGroupPresetPicker(group) {
       if (open) {
         const grid = el("div", { class: "krea2-v2-concept-columns" });
         for (const group of CHARACTER_CONCEPT_GROUPS) {
-          grid.appendChild(renderCharacterDirectionBlock(character, group.id));
+          grid.appendChild(renderCharacterDirectionBlock(character, group.id, { collapsible: false }));
         }
         body.appendChild(grid);
         body.appendChild(el("button", {
@@ -3758,7 +3866,11 @@ function buildGroupPresetPicker(group) {
       }, icon("close", { width: "12", height: "12" }));
       const chevron = el("span", { class: "krea2-v2-chevron krea2-character-chevron", "aria-hidden": "true" },
         icon(expanded ? "chevron_down" : "chevron_right", { width: "13", height: "13" }));
-      const identity = el("div", { class: "krea2-character-card-identity" }, [name, summary]);
+      const identity = el("div", { class: "krea2-character-card-identity" }, [
+        name,
+        summary,
+        renderGenderPills(character),
+      ]);
       const actions = el("div", { class: "krea2-character-card-actions" }, [
         enabled,
         el("div", { class: "krea2-wizard-random-controls" }, [randomAll, randomAllEachJob]),
@@ -3779,21 +3891,23 @@ function buildGroupPresetPicker(group) {
       if (expanded) {
         const grid = el("div", { class: "krea2-v2-appearance-grid" });
         V2_APPEARANCE_FIELDS.forEach(function (field) {
-          const fieldEl = el("label", { class: "krea2-v2-appearance-field" }, [
+          const fieldEl = el("div", { class: "krea2-v2-appearance-field" }, [
             el("span", { class: "krea2-v2-field-label" }, field.label),
           ]);
-          if (field.kind === "palette") {
-            fieldEl.appendChild(renderPaletteField(character, field));
-          } else {
-            const combobox = comboboxForField(character, field);
-            fieldEl.appendChild(combobox.input);
-            fieldEl.appendChild(combobox.datalist);
+          const combobox = comboboxForField(character, field);
+          fieldEl.appendChild(combobox.input);
+          fieldEl.appendChild(combobox.datalist);
+          fieldEl.appendChild(fieldRandomControls(character, field));
+          if (field.colorKey) {
+            const palette = field.colorPalette === "light" ? LIGHT_PALETTE : PALETTE_COLORS;
+            fieldEl.appendChild(renderColorPopupButton(character, field.colorKey, palette, field.label + " colour"));
+            const colorField = { key: field.colorKey, options: palette.map(function (entry) { return entry[0]; }) };
+            fieldEl.appendChild(fieldRandomControls(character, colorField));
           }
-          if (field.key === "ensemble") fieldEl.classList.add("krea2-v2-appearance-ensemble");
+          if (field.wide) fieldEl.classList.add("krea2-v2-appearance-ensemble");
           grid.appendChild(fieldEl);
         });
         body.appendChild(grid);
-        body.appendChild(renderGenderPills(character));
         body.appendChild(renderQuickDirectionsBlock(character));
         body.appendChild(renderCharacterConceptsBlock(character));
         body.appendChild(renderCharacterLoraBlock(character));
@@ -4050,14 +4164,17 @@ function buildGroupPresetPicker(group) {
       return Math.round((0.5 + ((d - 0.25) / 0.75) * 1.5) * 2) / 2;
     }
 
+    function lightSideLabel(deg) {
+      const a = ((Math.round(Number(deg) || 0) % 360) + 360) % 360;
+      const sides = ["front", "front right", "right", "back right", "back", "back left", "left", "front left"];
+      return sides[Math.round(a / 45) % 8];
+    }
+
     function lightPhrase(light) {
-      const angleDeg = Number(light.angleDeg);
-      const label = Number.isFinite(angleDeg)
-        ? (LIGHT_DIRECTION_LABELS[lightingDirectionForAngle(degreesToRad(angleDeg))] || "lighting")
-        : "lighting";
+      const side = lightSideLabel(light.angleDeg);
       const metres = lightDistanceMetres(light.distance);
       const colour = String(light.color || "").trim();
-      return label + " from " + metres + "m" + (colour ? " in " + colour : "");
+      return "light from the " + side + " at " + metres + "m" + (colour ? " in " + colour : "");
     }
 
     function sceneLights() {
@@ -4201,15 +4318,18 @@ function buildGroupPresetPicker(group) {
         const dx = Math.cos(rad) * radius;
         const dy = Math.sin(rad) * radius;
         const group = svgEl("g", { class: "krea2-v2-compass-light" });
+        const colourHex = colourHexFor(String(light.color || ""), LIGHT_PALETTE);
         group.appendChild(svgEl("line", {
           x1: C, y1: C, x2: C + dx, y2: C + dy,
           class: "krea2-v2-compass-ray",
+          style: colourHex ? "stroke: " + colourHex + ";" : "",
         }));
         const dot = svgEl("circle", {
           cx: C + dx,
           cy: C + dy,
           r: 7,
           class: "krea2-v2-compass-handle",
+          style: colourHex ? "fill: " + colourHex + ";" : "",
         });
         group.appendChild(dot);
         const num = svgEl("text", {
@@ -4308,7 +4428,7 @@ function buildGroupPresetPicker(group) {
             setLightState(light, { strength: Math.round(value * 100) / 100 });
           },
         });
-        const colour = renderLightColourPicker(light);
+        const colour = renderLightColorButton(light, index);
         const remove = el("button", {
           type: "button",
           class: "krea2-wizard-btn krea2-icon-btn krea2-danger",
@@ -4335,54 +4455,24 @@ function buildGroupPresetPicker(group) {
       return rows;
     }
 
-    function renderLightColourPicker(light) {
-      const wrap = el("div", { class: "krea2-v2-light-colour" });
+    /* Light colour: a pop-up palette button (shows the current colour).
+     * The palette is light tints only — no hair words like blonde. */
+    function renderLightColorButton(light, index) {
       const current = String(light.color || "");
-      const swatches = el("div", { class: "krea2-v2-palette-swatches krea2-v2-palette-swatches-small" });
-      swatches.appendChild(el("button", {
+      const btn = el("button", {
         type: "button",
-        class: "krea2-v2-palette-swatch krea2-v2-palette-swatch-none" + (current ? "" : " is-active"),
-        title: "No colour (white light)",
-        "aria-label": "White light",
-        onClick: function () { setLightState(light, { color: "" }); },
-      }));
-      for (const entry of PALETTE_COLORS) {
-        const active = current === entry[0];
-        swatches.appendChild(el("button", {
-          type: "button",
-          class: "krea2-v2-palette-swatch" + (active ? " is-active" : ""),
-          style: { background: entry[1] },
-          title: entry[0] + " light",
-          "aria-label": entry[0] + " light",
-          onClick: function () { setLightState(light, { color: entry[0] }); },
-        }));
-      }
-      const hex = el("input", {
-        type: "text",
-        class: "krea2-compact-input krea2-v2-palette-hex",
-        value: current,
-        placeholder: "#hex",
-        "aria-label": "Light colour (hex)",
-        onKeyDown: function (event) {
-          if (event.key === "Enter") {
-            const name = paletteNearestName(hex.value);
-            if (name) {
-              hex.value = name;
-              setLightState(light, { color: name });
-            }
-          }
-          if (typeof event.stopPropagation === "function") event.stopPropagation();
+        class: "krea2-v2-color-btn" + (current ? " has-color" : ""),
+        style: current ? { background: colourHexFor(current, LIGHT_PALETTE) } : {},
+        title: (current || "white") + " light — click to pick a colour",
+        "aria-label": "Light " + (index + 1) + " colour: " + (current || "white"),
+        onClick: function (event) {
+          event.stopPropagation();
+          openColorPopup(btn, LIGHT_PALETTE, current, "Light " + (index + 1) + " colour", function (name) {
+            setLightState(light, { color: name });
+          });
         },
-      });
-      hex.addEventListener("blur", function () {
-        const name = paletteNearestName(hex.value);
-        if (name) {
-          hex.value = name;
-          setLightState(light, { color: name });
-        }
-      });
-      wrap.append(swatches, hex);
-      return wrap;
+      }, current ? "" : icon("dot", { width: "11", height: "11", color: "#8a8f98" }));
+      return btn;
     }
 
     function renderCameraContent() {
@@ -4396,10 +4486,9 @@ function buildGroupPresetPicker(group) {
 
     function renderLightingContent() {
       const wrap = el("div", { class: "krea2-v2-subsection-content" });
-      wrap.appendChild(renderChipRow("Lighting Setup", "lighting_setup", SCENE_CHIPS.lighting_setup));
+      wrap.appendChild(renderChipRow("PRESETS", "lighting_setup", SCENE_CHIPS.lighting_setup));
       const dirRow = el("div", { class: "krea2-v2-chip-row krea2-v2-dir-row" });
       dirRow.append(
-        el("span", { class: "krea2-v2-field-label" }, "Lights"),
         el("div", { class: "krea2-v2-compass-wrap" }, [
           renderCompassRose(),
           renderLightRows(),
