@@ -155,6 +155,8 @@ def coerce_state(raw: Any) -> Dict[str, Any]:
         character.setdefault("lora_name", "")
         character.setdefault("additional_info", "")
         character.setdefault("ethnicity", "")
+        character.setdefault("eye_color", "")
+        character.setdefault("skin_color", "")
         if not isinstance(character.get("randomize_direction_groups"), dict):
             character["randomize_direction_groups"] = {}
         for group_key, enabled in list(character["randomize_direction_groups"].items()):

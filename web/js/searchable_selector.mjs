@@ -230,11 +230,13 @@
         return;
       }
 
-      // Sort by category then group results with subcategory headers
+      // Sort by category, then alphabetically by label within each category.
       currentResults.sort(function (a, b) {
         var catA = a.category || "";
         var catB = b.category || "";
-        return catA.localeCompare(catB);
+        var byCategory = catA.localeCompare(catB);
+        if (byCategory !== 0) return byCategory;
+        return String(a.label || "").toLowerCase().localeCompare(String(b.label || "").toLowerCase());
       });
 
       var lastCategory = "";

@@ -148,6 +148,8 @@ _CHARACTER_FIELDS = (
     ("hair_color", "hair colour"),
     ("makeup", "makeup"),
     ("eyes", "eyes"),
+    ("eye_color", "eye colour"),
+    ("skin_color", "skin colour"),
     ("nose", "nose"),
     ("mouth", "mouth"),
     ("chin", "chin"),

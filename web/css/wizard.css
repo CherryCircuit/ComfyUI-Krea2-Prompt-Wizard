@@ -494,7 +494,7 @@ body.dark {
 
 .krea2-character-card-header {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) auto auto;
+  grid-template-columns: 68px minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
@@ -548,11 +548,110 @@ body.dark {
 .krea2-v2-appearance-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+  gap: 6px 8px;
   min-width: 0;
 }
 
 .krea2-v2-appearance-ensemble { grid-column: 1 / -1; }
+
+/* Label and control on the same line, label left-aligned. */
+.krea2-v2-appearance-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.krea2-v2-appearance-field .krea2-v2-field-label {
+  flex: 0 0 auto;
+  min-width: 44px;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.krea2-v2-appearance-field .krea2-combobox,
+.krea2-v2-appearance-field .krea2-v2-palette-field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Palette pickers: swatch grid + hex input. */
+.krea2-v2-palette-field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.krea2-v2-palette-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  min-width: 0;
+}
+
+.krea2-v2-palette-swatch {
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.krea2-v2-palette-swatch:hover { transform: scale(1.2); }
+.krea2-v2-palette-swatch.is-active {
+  box-shadow: 0 0 0 2px var(--krea2-accent-strong);
+  border-color: #fff;
+}
+
+.krea2-v2-palette-swatch-none {
+  background: repeating-conic-gradient(#555 0 25%, #2a2a2a 0 50%) 0 0 / 6px 6px;
+}
+
+.krea2-v2-palette-hex {
+  width: 62px;
+  flex: 0 0 auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+}
+
+.krea2-v2-palette-swatches-small .krea2-v2-palette-swatch {
+  width: 13px;
+  height: 13px;
+}
+
+/* Gender pills beside the character name. */
+.krea2-v2-gender-pills {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.krea2-v2-gender-pill {
+  border: 1px solid var(--krea2-border);
+  border-radius: 999px;
+  background: #23262d;
+  color: var(--krea2-text-dim);
+  padding: 2px 9px;
+  font-size: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.krea2-v2-gender-pill:hover {
+  border-color: var(--krea2-accent);
+  color: var(--krea2-text);
+}
+
+.krea2-v2-gender-pill.is-active {
+  background: color-mix(in srgb, var(--krea2-accent) 30%, #17191d);
+  border-color: color-mix(in srgb, var(--krea2-accent-strong) 65%, transparent);
+  color: #fff;
+}
 
 .krea2-v2-appearance-field {
   display: flex;
@@ -665,6 +764,45 @@ body.dark {
   min-width: 0;
 }
 
+/* Concepts Applied: three side-by-side groups with their own controls. */
+.krea2-v2-concept-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.krea2-v2-concept-columns .krea2-wizard-category {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid color-mix(in srgb, var(--krea2-border) 70%, transparent);
+  border-radius: 8px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 320px;
+  overflow: hidden;
+}
+
+.krea2-v2-concept-columns .krea2-wizard-category-content {
+  overflow-y: auto;
+  max-height: 240px;
+}
+
+.krea2-v2-concept-columns .krea2-wizard-category-actions {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+
+.krea2-v2-concept-columns .krea2-wizard-category-header {
+  cursor: pointer;
+}
+
+.krea2-v2-concept-columns .krea2-row-head {
+  grid-template-columns: 16px 16px minmax(0, 1fr) 26px 46px 26px 24px;
+}
+
+.krea2-v2-concept-columns .krea2-row-visibility { display: none; }
+
 .krea2-v2-quick-block {
   background: color-mix(in srgb, #191c23 88%, transparent);
   border-radius: 8px;
@@ -680,6 +818,30 @@ body.dark {
 .krea2-v2-add-concept,
 .krea2-v2-add-lora {
   align-self: flex-start;
+}
+
+/* LoRA row: name + trigger flex, stepper cluster + trash right-aligned. */
+.krea2-v2-lora-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
+/* ---------------------------------------------------------------------------
+ * Scene tab layout: Camera and Lighting share a row at 50/50.
+ * --------------------------------------------------------------------------- */
+.krea2-v2-scene-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .krea2-v2-scene-grid { grid-template-columns: 1fr; }
+  .krea2-v2-concept-columns { grid-template-columns: 1fr; }
 }
 
 /* ---------------------------------------------------------------------------
@@ -957,8 +1119,9 @@ body.krea2-ns-resize * { cursor: ns-resize !important; }
   display: flex;
   flex-direction: column;
   gap: 4px;
-  flex: 1 1 260px;
-  min-width: 200px;
+  flex: 1 1 300px;
+  min-width: 220px;
+  max-width: 380px;
 }
 
 .krea2-v2-light-rows {
@@ -966,26 +1129,51 @@ body.krea2-ns-resize * { cursor: ns-resize !important; }
   flex-direction: column;
   gap: 4px;
   min-width: 0;
+  max-height: 230px;
+  overflow-y: auto;
 }
 
 .krea2-v2-light-row {
   display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 5px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 5px 6px;
   background: rgba(0, 0, 0, 0.22);
   border-radius: 6px;
   min-width: 0;
 }
 
 .krea2-v2-light-label {
-  flex: 1 1 auto;
-  min-width: 0;
   font-size: 10.5px;
   color: var(--krea2-text-dim);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.krea2-v2-light-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.krea2-v2-light-tag {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--krea2-text-faint);
+  margin-left: 2px;
+}
+
+.krea2-v2-light-colour {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  margin-left: 2px;
 }
 
 .krea2-v2-add-light { align-self: flex-start; }
@@ -1009,6 +1197,55 @@ body.krea2-ns-resize * { cursor: ns-resize !important; }
   gap: 12px;
   flex-wrap: wrap;
   flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Environment: stepper rows per atmosphere concept + add dropdown. */
+.krea2-v2-env-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.krea2-v2-env-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  background: rgba(0, 0, 0, 0.22);
+  border-radius: 6px;
+  min-width: 0;
+}
+
+.krea2-v2-env-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 10.5px;
+  color: var(--krea2-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.krea2-v2-env-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.krea2-v2-env-add {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.krea2-v2-env-select {
+  flex: 1 1 220px;
   min-width: 0;
 }
 
@@ -1058,12 +1295,6 @@ body.krea2-ns-resize * { cursor: ns-resize !important; }
   flex: 0 0 auto;
 }
 
-.krea2-character-card-header .krea2-avatar {
-  width: 48px;
-  height: 66px;
-  border-radius: 8px;
-}
-
 .krea2-avatar-art {
   position: absolute;
   left: 0;
@@ -1072,7 +1303,13 @@ body.krea2-ns-resize * { cursor: ns-resize !important; }
   height: 126px;
 }
 
-.krea2-character-card-header .krea2-avatar-art { transform: scale(0.52); transform-origin: top left; }
+.krea2-character-card-header .krea2-avatar {
+  width: 68px;
+  height: 94px;
+  border-radius: 10px;
+}
+
+.krea2-character-card-header .krea2-avatar-art { transform: scale(0.74); transform-origin: top left; }
 
 .krea2-avatar.is-male { box-shadow: inset 0 0 0 2px rgba(122, 95, 184, 0.5); }
 .krea2-avatar.is-female { box-shadow: inset 0 0 0 2px rgba(240, 101, 149, 0.5); }

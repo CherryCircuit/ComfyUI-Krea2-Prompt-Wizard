@@ -285,6 +285,8 @@
       if (character.lora_name === undefined) character.lora_name = "";
       if (character.additional_info === undefined) character.additional_info = "";
       if (character.ethnicity === undefined) character.ethnicity = "";
+      if (character.eye_color === undefined) character.eye_color = "";
+      if (character.skin_color === undefined) character.skin_color = "";
       // Legacy characters (pre-1.2.0) carry their look in `clothing`, which
       // is no longer editable in the UI. Migrate it into the ensemble field
       // so users can see and clear it; it then compiles as "costume: …".
@@ -702,6 +704,61 @@
     return (number > 0 ? "+" : "") + String(number);
   }
 
+  /* Colour palettes for hair / eye / skin / light colour pickers. Each
+   * swatch maps to a model-friendly colour word. */
+  const PALETTE_COLORS = Object.freeze([
+    ["black", "#1a1a1e"],
+    ["white", "#f5f5f5"],
+    ["grey", "#9aa0a6"],
+    ["silver", "#c8ccd2"],
+    ["brown", "#6b4423"],
+    ["dark brown", "#3d2b1f"],
+    ["blonde", "#e3c98a"],
+    ["auburn", "#a0522d"],
+    ["red", "#d64545"],
+    ["orange", "#e8803a"],
+    ["amber", "#d9a441"],
+    ["yellow", "#e8cf4d"],
+    ["green", "#4c9e5a"],
+    ["teal", "#2a9d8f"],
+    ["cyan", "#4cc9d6"],
+    ["blue", "#3b6fd6"],
+    ["navy", "#26386b"],
+    ["purple", "#7a5fb8"],
+    ["magenta", "#b84a9e"],
+    ["pink", "#e07a9e"],
+  ]);
+
+  function paletteNearestName(hex) {
+    const raw = String(hex || "").trim().replace(/^#/, "");
+    if (!/^[0-9a-fA-F]{3}$|^[0-9a-fA-F]{6}$/.test(raw)) return "";
+    const full = raw.length === 3
+      ? raw.split("").map(function (c) { return c + c; }).join("")
+      : raw;
+    const r = parseInt(full.slice(0, 2), 16);
+    const g = parseInt(full.slice(2, 4), 16);
+    const b = parseInt(full.slice(4, 6), 16);
+    let best = "";
+    let bestDistance = Infinity;
+    for (const entry of PALETTE_COLORS) {
+      const sr = parseInt(entry[1].slice(1, 3), 16);
+      const sg = parseInt(entry[1].slice(3, 5), 16);
+      const sb = parseInt(entry[1].slice(5, 7), 16);
+      const distance = Math.pow(r - sr, 2) + Math.pow(g - sg, 2) + Math.pow(b - sb, 2);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = entry[0];
+      }
+    }
+    return best;
+  }
+
+  function sortedOptions(options) {
+    return (options || []).slice().sort(function (a, b) {
+      return String(a).toLowerCase().localeCompare(String(b).toLowerCase());
+    });
+  }
+
   /* ------------------- Library client -------------------------------- */
   async function fetchLibrary() {
     if (KREA2._library) return KREA2._library;
@@ -879,7 +936,8 @@
     ["ensemble", "costume"], ["clothing_top", "top"], ["clothing_bottom", "bottom"],
     ["hair_style", "hair style"],
     ["hair_length", "hair length"], ["hair_color", "hair colour"], ["makeup", "makeup"],
-    ["eyes", "eyes"], ["nose", "nose"], ["mouth", "mouth"], ["chin", "chin"],
+    ["eyes", "eyes"], ["eye_color", "eye colour"], ["skin_color", "skin colour"],
+    ["nose", "nose"], ["mouth", "mouth"], ["chin", "chin"],
     ["face_shape", "face shape"],     ["body_type", "body type"], ["fitness", "fitness"],
     ["proportions", "proportions"], ["additional_info", "additional characteristics"],
     ["adult_description", "adult body description"],
@@ -1175,6 +1233,7 @@
     RANDOM_GROUP_CATEGORIES,
     CATEGORY_GROUPS,
     PROFILES,
+    PALETTE_COLORS,
   };
   KREA2.helpers = {
     newRowId,
@@ -1191,6 +1250,8 @@
     displayStrength,
     storedStrength,
     formatStepValue,
+    paletteNearestName,
+    sortedOptions,
     sliderToWeightScalar,
     sliderToWeightRaw,
     sliderToWeightBipolar,

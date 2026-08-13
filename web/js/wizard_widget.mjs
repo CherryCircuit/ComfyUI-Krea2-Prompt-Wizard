@@ -28,6 +28,8 @@
     saveSavedPresets,
     showToast,
     groupForCategory,
+    paletteNearestName,
+    sortedOptions,
   } = K.helpers;
   const fetchConceptColors = K.helpers.fetchConceptColors || function () { return Promise.resolve({}); };
   const saveConceptColors = K.helpers.saveConceptColors || function () { return Promise.resolve(); };
@@ -38,6 +40,7 @@
     RANDOM_GROUP_CATEGORIES,
     CATEGORIES,
     CATEGORY_LABELS,
+    PALETTE_COLORS,
   } = K.constants;
   const { render: renderRow } = K.presetRow;
   const { show: showSearchableSelector } = K.searchableSelector;
@@ -182,6 +185,19 @@
   const DIRECTION_CATEGORIES = EMOTION_CATEGORIES.concat(
     FACE_CATEGORIES, BODY_CATEGORIES, POSITION_CATEGORIES, LORA_CATEGORIES,
   );
+  /* Character concept picker excludes LoRA trigger words (handled by the
+   * per-character LoRA rows instead). */
+  const CHARACTER_PICKER_CATEGORIES = DIRECTION_CATEGORIES.filter(function (category) {
+    return category !== "lora_trigger";
+  });
+
+  /* The Concepts Applied block splits subject & expression into three
+   * side-by-side groups, each with its own dice and each-job shuffle. */
+  const CHARACTER_CONCEPT_GROUPS = [
+    { id: "pose", icon: "users", label: "Pose & Placement", categories: ["body", "position"], emptyHint: "No pose or placement set." },
+    { id: "emotion", icon: "sparkle", label: "Emotion & Triggers", categories: ["emotion", "emotion_trigger"], emptyHint: "No emotion set." },
+    { id: "face", icon: "eye", label: "Face, Gaze & Mouth", categories: ["face", "face_trigger", "gaze", "mouth"], emptyHint: "No facial action set." },
+  ];
 
   /* TV/movie-style multi-concept direction presets shown as chips on each
    * cast member. Each chip applies several related concepts at once. */
@@ -205,11 +221,12 @@
 
   /* Fresh-node seed: the first character on a brand-new node starts with
    * three visible concept rows so the layout is obvious without clicking.
-   * All ids must exist in presets/default_library.json. */
+   * All ids must exist in presets/default_library.json and belong to the
+   * three character concept groups (pose / emotion / face). */
   const SEED_ROWS = [
     ["emotion.joy", 1.5],
     ["emotion_trigger.radiant_joy", 1.0],
-    ["style.natural_photographic_realism", 1.5],
+    ["body.open_posture", 1.5],
   ];
 
   /* Fallback labels/phrases used before the library fetch resolves (the
@@ -218,7 +235,7 @@
   const SEED_ROW_FALLBACKS = {
     "emotion.joy": { category: "emotion", label: "Joy", phrase: "joy" },
     "emotion_trigger.radiant_joy": { category: "emotion_trigger", label: "Radiant joy", phrase: "a radiant glow of joy" },
-    "style.natural_photographic_realism": { category: "style", label: "Natural photographic realism", phrase: "natural photographic realism" },
+    "body.open_posture": { category: "body", label: "Open posture", phrase: "open posture" },
   };
 
   /* Conflict-aware cascading (v1 scope: emotion, framing, angle).
@@ -1321,7 +1338,8 @@
      * count on the right, and the full action set (Add, presets, save,
      * randomize, shuffle each job). */
     function renderCharacterDirectionBlock(character, groupKey) {
-      const group = DIRECTION_GROUPS.find(function (item) { return item.id === groupKey; });
+      const group = CHARACTER_CONCEPT_GROUPS.find(function (item) { return item.id === groupKey; })
+        || DIRECTION_GROUPS.find(function (item) { return item.id === groupKey; });
       const rows = (character.rows || []).filter(function (row) {
         return group.categories.includes(row.category);
       });
@@ -1406,7 +1424,7 @@
           markDirty();
           render();
         },
-      }, "🔁");
+      }, icon("shuffle", { width: "13", height: "13" }));
       const actions = el("div", { class: "krea2-wizard-category-actions" }, [
         addBtn,
         presetSelect,
@@ -1697,7 +1715,10 @@
         delete input.dataset.holdValue;
       });
       const datalist = el("datalist", { id: listId });
-      for (const option of field.options) {
+      // Blank first entry: picking it clears the field. Options are sorted
+      // alphabetically so every dropdown is easy to scan.
+      datalist.appendChild(el("option", { value: "" }));
+      for (const option of sortedOptions(field.options)) {
         datalist.appendChild(el("option", { value: option }));
       }
       return { input: input, datalist: datalist };
@@ -1786,7 +1807,7 @@
           markDirty();
           render();
         },
-      }, "🔁");
+      }, icon("shuffle", { width: "13", height: "13" }));
       const row = el("label", { class: "krea2-character-field" + (disabledByEnsemble ? " is-disabled" : "") }, [
         el("span", null, field.label),
         el("div", { class: "krea2-field-row" }, [
@@ -1982,7 +2003,7 @@
           markDirty();
           render();
         },
-      }, "🔁");
+      }, icon("shuffle", { width: "13", height: "13" }));
       section.appendChild(el("div", { class: "krea2-direction-block-head" }, [
         el("strong", null, "LoRA"),
         el("span", { class: "krea2-direction-hint" }, "applies to THIS character — connect a model to the node's Model input"),
@@ -2766,19 +2787,21 @@ function buildGroupPresetPicker(group) {
     function buildMasterPresetControl() {
       const select = el("select", {
         class: "krea2-wizard-master-select",
-        "aria-label": "Shot presets",
+        "aria-label": "Style presets",
       });
-      select.appendChild(el("option", { value: "" }, "Shot presets..."));
+      select.appendChild(el("option", { value: "" }, "Style presets..."));
       return select;
     }
 
     function refreshMasterPresetSelect() {
       const current = masterPresetSelect.value;
       masterPresetSelect.innerHTML = "";
-      masterPresetSelect.appendChild(el("option", { value: "" }, "Shot presets..."));
-      for (const preset of masterPresets) {
+      masterPresetSelect.appendChild(el("option", { value: "" }, "Style presets..."));
+      masterPresets.slice().sort(function (a, b) {
+        return String(a.label || "").toLowerCase().localeCompare(String(b.label || "").toLowerCase());
+      }).forEach(function (preset) {
         masterPresetSelect.appendChild(el("option", { value: preset.id }, preset.label));
-      }
+      });
       masterPresetSelect.value = masterPresets.some(function (p) {
         return p.id === current;
       }) ? current : "";
@@ -2791,6 +2814,16 @@ function buildGroupPresetPicker(group) {
       if (!presetId) return;
       const preset = masterPresets.find(function (p) { return p.id === presetId; });
       if (!preset) return;
+      // A style/shot preset replaces the camera, lighting and environment
+      // sections; warn first when those sections already have content.
+      const replaced = state.rows.some(function (row) {
+        return ["framing", "angle", "lens", "aperture", "lighting_setup", "lighting_direction",
+          "lighting_effect", "atmosphere", "environment_movement"].includes(row.category);
+      });
+      if (replaced && typeof window.confirm === "function"
+          && !window.confirm("This style replaces your camera, lighting and environment setups. Continue?")) {
+        return;
+      }
       const newRows = [];
       for (const mpRow of (preset.rows || [])) {
         const libPreset = library.find(function (p) { return p.id === mpRow.preset_id; });
@@ -3126,7 +3159,7 @@ function buildGroupPresetPicker(group) {
             markDirty();
             render();
           },
-        }, "🔁");
+        }, icon("shuffle", { width: "13", height: "13" }));
         const randomControls = el("div", { class: "krea2-wizard-random-controls" }, [
           randomBtn,
           randomEachJob,
@@ -3199,21 +3232,30 @@ function buildGroupPresetPicker(group) {
      * v2 redesigned tabbed editor (CAST / SCENE).
      * ------------------------------------------------------------------ */
 
-    /* The appearance dropdowns on a cast card. Anything with more than a
-     * few choices is a dropdown (sex stays a click-to-cycle chip). */
+    /* The appearance controls on a cast card. Anything with more than a few
+     * choices is a dropdown (sex stays three click-to-cycle pills).
+     * Colours are palette pickers (swatch grid + hex). Options render in
+     * alphabetical order, label and dropdown side by side on one line. */
     const V2_APPEARANCE_FIELDS = (function () {
       const byKey = {};
       CHARACTER_APPEARANCE.forEach(function (field) { byKey[field.key] = field; });
+      const eyesShapes = byKey.eyes.options.filter(function (option) {
+        return !/(blue|green|hazel|brown|black|grey|amber|violet|heterochromatic)/.test(option);
+      });
       return [
-        { key: "hair_style", label: "Hair", options: byKey.hair_style.options },
-        { key: "eyes", label: "Eyes", options: byKey.eyes.options },
-        { key: "body_type", label: "Build", options: byKey.body_type.options },
-        { key: "fitness", label: "Physique", options: byKey.fitness.options },
-        { key: "age", label: "Age", options: byKey.age.options },
-        { key: "ethnicity", label: "Ethnicity", options: byKey.ethnicity.options },
-        { key: "clothing_top", label: "Top", options: byKey.clothing_top.options },
-        { key: "clothing_bottom", label: "Bottom", options: byKey.clothing_bottom.options },
-        { key: "ensemble", label: "Ensemble (full costume)", options: byKey.ensemble.options },
+        { key: "hair_style", label: "Hair", kind: "dropdown", options: byKey.hair_style.options },
+        { key: "hair_color", label: "Hair colour", kind: "palette" },
+        { key: "eyes", label: "Eyes", kind: "dropdown", options: eyesShapes },
+        { key: "eye_color", label: "Eye colour", kind: "palette" },
+        { key: "body_type", label: "Build", kind: "dropdown", options: byKey.body_type.options },
+        { key: "fitness", label: "Physique", kind: "dropdown", options: byKey.fitness.options },
+        { key: "proportions", label: "Height & Frame", kind: "dropdown", options: byKey.proportions.options },
+        { key: "skin_color", label: "Skin colour", kind: "palette" },
+        { key: "age", label: "Age", kind: "dropdown", options: byKey.age.options },
+        { key: "ethnicity", label: "Ethnicity", kind: "dropdown", options: byKey.ethnicity.options },
+        { key: "clothing_top", label: "Top", kind: "dropdown", options: byKey.clothing_top.options },
+        { key: "clothing_bottom", label: "Bottom", kind: "dropdown", options: byKey.clothing_bottom.options },
+        { key: "ensemble", label: "Ensemble (full costume)", kind: "dropdown", options: byKey.ensemble.options },
       ];
     })();
 
@@ -3229,30 +3271,84 @@ function buildGroupPresetPicker(group) {
       return text ? text.charAt(0).toUpperCase() + text.slice(1) : "";
     }
 
-    /* Identity chip: sex only (three choices — click to cycle). Age and
-     * ethnicity are dropdowns because they have many options. */
-    function renderIdentityChips(character) {
-      const row = el("div", { class: "krea2-v2-identity-chips" });
-      const value = String(character.sex || "");
-      const nextIndex = (IDENTITY_GENDER_CYCLE.indexOf(value) + 1) % IDENTITY_GENDER_CYCLE.length;
-      const next = IDENTITY_GENDER_CYCLE[nextIndex];
-      row.appendChild(el("button", {
-        type: "button",
-        class: "krea2-v2-identity-chip is-gender" + (value ? " has-value" : ""),
-        title: value ? capitalizeFirst(value) + " — click to change gender"
-          : "Click to set gender",
-        "aria-label": "gender: " + (value || "not set"),
-        onClick: function () {
-          character.sex = next;
-          markDirty();
-          render();
-        },
-      }, value ? capitalizeFirst(value) : "Gender"));
+    /* Gender pills: three small buttons beside the character name.
+     * Single-select; only one choice at a time. */
+    function renderGenderPills(character) {
+      const row = el("div", { class: "krea2-v2-gender-pills", role: "radiogroup", "aria-label": "Gender" });
+      for (const option of ["female", "male", "unspecified"]) {
+        const active = String(character.sex || "") === option;
+        row.appendChild(el("button", {
+          type: "button",
+          role: "radio",
+          "aria-checked": active ? "true" : "false",
+          class: "krea2-v2-gender-pill" + (active ? " is-active" : ""),
+          title: "Set gender to " + option,
+          onClick: function () {
+            character.sex = character.sex === option ? "" : option;
+            markDirty();
+            render();
+          },
+        }, capitalizeFirst(option)));
+      }
       return row;
     }
 
-    /* Concepts Applied to <character>: header-click toggle + the [−] value
-     * [+] concept rows seeded from the library. */
+    /* Palette picker: swatch grid + hex input. Picking a swatch or entering
+     * a hex code writes a model-friendly colour word into the field. */
+    function renderPaletteField(character, field) {
+      const current = String(character[field.key] || "");
+      const wrap = el("div", { class: "krea2-v2-palette-field" });
+      const swatches = el("div", { class: "krea2-v2-palette-swatches" });
+      for (const entry of PALETTE_COLORS) {
+        const active = current === entry[0];
+        swatches.appendChild(el("button", {
+          type: "button",
+          class: "krea2-v2-palette-swatch" + (active ? " is-active" : ""),
+          style: { background: entry[1] },
+          title: entry[0],
+          "aria-label": field.label + ": " + entry[0],
+          onClick: function () {
+            character[field.key] = entry[0];
+            markDirty();
+            scheduleAppearanceRender();
+          },
+        }));
+      }
+      const hex = el("input", {
+        type: "text",
+        class: "krea2-compact-input krea2-v2-palette-hex",
+        value: current,
+        placeholder: "#rrggbb",
+        "aria-label": field.label + " (hex code)",
+        onKeyDown: function (event) {
+          if (event.key === "Enter") {
+            const name = paletteNearestName(hex.value);
+            if (name) {
+              character[field.key] = name;
+              hex.value = name;
+              markDirty();
+              scheduleAppearanceRender();
+            }
+          }
+          if (typeof event.stopPropagation === "function") event.stopPropagation();
+        },
+      });
+      hex.addEventListener("blur", function () {
+        const name = paletteNearestName(hex.value);
+        if (name && name !== character[field.key]) {
+          character[field.key] = name;
+          hex.value = name;
+          markDirty();
+        }
+      });
+      const label = el("span", { class: "krea2-v2-field-label" }, field.label);
+      wrap.append(label, swatches, hex);
+      return wrap;
+    }
+
+    /* Concepts Applied to <character>: header-click toggle, then three
+     * side-by-side groups (Pose / Emotion / Face) each with its own dice
+     * and each-job shuffle, plus the full picker for more. */
     function renderCharacterConceptsBlock(character) {
       const open = character.concepts_open !== false;
       const rows = Array.isArray(character.rows) ? character.rows : [];
@@ -3274,9 +3370,11 @@ function buildGroupPresetPicker(group) {
       });
       const body = el("div", { class: "krea2-v2-block-body" });
       if (open) {
-        for (const row of rows) {
-          body.appendChild(renderRow(row, characterRowCtx(character, rows)));
+        const grid = el("div", { class: "krea2-v2-concept-columns" });
+        for (const group of CHARACTER_CONCEPT_GROUPS) {
+          grid.appendChild(renderCharacterDirectionBlock(character, group.id));
         }
+        body.appendChild(grid);
         body.appendChild(el("button", {
           type: "button",
           class: "krea2-wizard-btn krea2-v2-add-concept",
@@ -3287,7 +3385,7 @@ function buildGroupPresetPicker(group) {
               // Character concepts are subject & expression only: emotion,
               // face, body, placement. Camera / lighting / environment /
               // style live on the SCENE tab.
-              categories: DIRECTION_CATEGORIES,
+              categories: CHARACTER_PICKER_CATEGORIES,
               multiSelect: true,
               selectedIds: rows.map(function (row) { return row.preset_id; }),
               filterPreset: characterConflictFilter(character),
@@ -3423,6 +3521,18 @@ function buildGroupPresetPicker(group) {
       }, icon("file", { width: "13", height: "13" }));
       fileBtn.addEventListener("click", function () { pickLoraFile(character, lora); });
       const name = el("span", { class: "krea2-v2-lora-name" }, K.helpers.loraFileName(lora.filename));
+      const trigger = el("input", {
+        type: "text",
+        class: "krea2-compact-input krea2-v2-lora-trigger",
+        value: String(lora.trigger || ""),
+        placeholder: "trigger phrase (optional)",
+        "aria-label": "LoRA trigger phrase",
+        onInput: function (event) {
+          lora.trigger = event.target.value;
+          syncLoraTextState(character);
+          markDirty();
+        },
+      });
       const stepper = K.presetRow.makeStepper({
         value: Number(lora.strength) || 0.8,
         step: 0.05,
@@ -3439,18 +3549,6 @@ function buildGroupPresetPicker(group) {
           scheduleAppearanceRender();
         },
       });
-      const trigger = el("input", {
-        type: "text",
-        class: "krea2-compact-input krea2-v2-lora-trigger",
-        value: String(lora.trigger || ""),
-        placeholder: "trigger phrase (optional)",
-        "aria-label": "LoRA trigger phrase",
-        onInput: function (event) {
-          lora.trigger = event.target.value;
-          syncLoraTextState(character);
-          markDirty();
-        },
-      });
       const remove = el("button", {
         type: "button",
         class: "krea2-wizard-btn krea2-icon-btn krea2-danger",
@@ -3463,7 +3561,15 @@ function buildGroupPresetPicker(group) {
           render();
         },
       }, icon("trash", { width: "12", height: "12" }));
-      row.append(fileBtn, name, stepper.minus, stepper.valueEl, stepper.plus, trigger, remove);
+      /* Name + trigger phrase take whatever width is available; the
+       * stepper cluster and trash stay right-aligned so every row lines up. */
+      const cluster = el("div", { class: "krea2-v2-lora-controls" }, [
+        stepper.minus,
+        stepper.valueEl,
+        stepper.plus,
+        remove,
+      ]);
+      row.append(fileBtn, name, trigger, cluster);
       return row;
     }
 
@@ -3602,34 +3708,24 @@ function buildGroupPresetPicker(group) {
       const body = el("div", { class: "krea2-character-card-body" });
       if (expanded) {
         const grid = el("div", { class: "krea2-v2-appearance-grid" });
-        const useEnsemble = Boolean(String(character.ensemble || "").trim());
-        const useSeparates = Boolean(
-          String(character.clothing_top || "").trim()
-          || String(character.clothing_bottom || "").trim(),
-        );
         V2_APPEARANCE_FIELDS.forEach(function (field) {
-          const combobox = comboboxForField(character, field);
-          const isSeparate = field.key === "clothing_top" || field.key === "clothing_bottom";
-          if (isSeparate && useEnsemble) {
-            combobox.input.disabled = true;
-            combobox.input.title = "disabled — an ensemble is chosen";
-          }
-          if (field.key === "ensemble" && useSeparates) {
-            combobox.input.disabled = true;
-            combobox.input.title = "disabled — a top and bottom are chosen";
-          }
           const fieldEl = el("label", { class: "krea2-v2-appearance-field" }, [
             el("span", { class: "krea2-v2-field-label" }, field.label),
-            combobox.input,
-            combobox.datalist,
           ]);
+          if (field.kind === "palette") {
+            fieldEl.appendChild(renderPaletteField(character, field));
+          } else {
+            const combobox = comboboxForField(character, field);
+            fieldEl.appendChild(combobox.input);
+            fieldEl.appendChild(combobox.datalist);
+          }
           if (field.key === "ensemble") fieldEl.classList.add("krea2-v2-appearance-ensemble");
           grid.appendChild(fieldEl);
         });
         body.appendChild(grid);
-        body.appendChild(renderIdentityChips(character));
-        body.appendChild(renderCharacterConceptsBlock(character));
+        body.appendChild(renderGenderPills(character));
         body.appendChild(renderQuickDirectionsBlock(character));
+        body.appendChild(renderCharacterConceptsBlock(character));
         body.appendChild(renderCharacterLoraBlock(character));
       }
       card.appendChild(header);
@@ -3836,8 +3932,10 @@ function buildGroupPresetPicker(group) {
     }
 
     /* Multi-light direction plane: every light is a draggable dot whose
-     * angle and distance from the subject are set by dragging; each light
-     * becomes a lighting_direction concept row in the scene. */
+     * angle (0° = front, 90° = the subject's right, 180° = back, 270° =
+     * left) and distance from the subject are set by dragging. Each light
+     * becomes a lighting_direction concept row with its own intensity and
+     * colour. */
     const LIGHT_DIRECTION_LABELS = {
       front_lighting: "front lighting",
       three_quarter_front_lighting: "three-quarter front lighting",
@@ -3851,6 +3949,16 @@ function buildGroupPresetPicker(group) {
       if (a > Math.PI) a -= 2 * Math.PI;
       if (a < -Math.PI) a += 2 * Math.PI;
       return a;
+    }
+
+    /* User-facing degrees: 0 = front, 90 = right, 180 = back, 270 = left. */
+    function degreesToRad(degrees) {
+      return ((90 - degrees) * Math.PI) / 180;
+    }
+
+    function radToDegrees(rad) {
+      const degrees = 90 - (normalizeAngle(rad) * 180) / Math.PI;
+      return ((degrees % 360) + 360) % 360;
     }
 
     function lightingDirectionForAngle(rad) {
@@ -3873,9 +3981,13 @@ function buildGroupPresetPicker(group) {
     }
 
     function lightPhrase(light) {
-      const label = LIGHT_DIRECTION_LABELS[lightingDirectionForAngle(light.angle)] || "lighting";
+      const angleDeg = Number(light.angleDeg);
+      const label = Number.isFinite(angleDeg)
+        ? (LIGHT_DIRECTION_LABELS[lightingDirectionForAngle(degreesToRad(angleDeg))] || "lighting")
+        : "lighting";
       const metres = lightDistanceMetres(light.distance);
-      return label + " from " + metres + "m";
+      const colour = String(light.color || "").trim();
+      return label + " from " + metres + "m" + (colour ? " in " + colour : "");
     }
 
     function sceneLights() {
@@ -3885,9 +3997,20 @@ function buildGroupPresetPicker(group) {
         const stored = state.scene_sections.light_angle;
         state.scene_sections.lights.push({
           id: "light_1",
-          angle: Number.isFinite(stored) ? normalizeAngle(stored) : Math.PI / 2,
+          angleDeg: Number.isFinite(stored) ? Math.round(radToDegrees(stored)) : 0,
           distance: 0.85,
+          strength: 1.5,
+          color: "",
         });
+      }
+      // Migrate legacy radian-angle lights to degrees.
+      for (const light of state.scene_sections.lights) {
+        if (!Number.isFinite(Number(light.angleDeg)) && Number.isFinite(Number(light.angle))) {
+          light.angleDeg = Math.round(radToDegrees(Number(light.angle)));
+        }
+        if (!Number.isFinite(Number(light.angleDeg))) light.angleDeg = 0;
+        if (!Number.isFinite(Number(light.strength))) light.strength = 1.5;
+        if (!light.color) light.color = "";
       }
       return state.scene_sections.lights;
     }
@@ -3906,7 +4029,7 @@ function buildGroupPresetPicker(group) {
           phrase: lightPhrase(light),
           control_mode: "scalar",
           intensity: 0,
-          strength: Number.isFinite(Number(light.strength)) ? Number(light.strength) : 1.5,
+          strength: Number(light.strength) || 1.5,
           enabled: true,
           aliases: [],
           verification: "general visual vocabulary",
@@ -3915,10 +4038,11 @@ function buildGroupPresetPicker(group) {
       });
     }
 
-    function setLightState(light, angle, distance, strength) {
-      if (Number.isFinite(angle)) light.angle = normalizeAngle(angle);
-      if (Number.isFinite(distance)) light.distance = Math.max(0.25, Math.min(1, distance));
-      if (Number.isFinite(strength)) light.strength = strength;
+    function setLightState(light, changes) {
+      if (Number.isFinite(Number(changes.angleDeg))) light.angleDeg = ((Math.round(Number(changes.angleDeg)) % 360) + 360) % 360;
+      if (Number.isFinite(Number(changes.distance))) light.distance = Math.max(0.25, Math.min(1, Number(changes.distance)));
+      if (Number.isFinite(Number(changes.strength))) light.strength = Number(changes.strength);
+      if (changes.color !== undefined) light.color = String(changes.color || "");
       syncLightRows();
       markDirty();
       render();
@@ -3928,9 +4052,10 @@ function buildGroupPresetPicker(group) {
       const lights = sceneLights();
       lights.push({
         id: "light_" + Date.now().toString(36),
-        angle: Math.PI / 2,
+        angleDeg: 0,
         distance: 0.85,
         strength: 1.5,
+        color: "",
       });
       syncLightRows();
       markDirty();
@@ -3952,9 +4077,10 @@ function buildGroupPresetPicker(group) {
       state.scene_sections.lights = layout.map(function (entry, index) {
         return {
           id: "light_" + (index + 1) + "_" + Date.now().toString(36),
-          angle: entry.angle,
+          angleDeg: Math.round(radToDegrees(entry.angle)),
           distance: entry.distance,
           strength: 1.5,
+          color: "",
         };
       });
       syncLightRows();
@@ -3998,14 +4124,12 @@ function buildGroupPresetPicker(group) {
       }
       svg.appendChild(svgEl("circle", { cx: C, cy: C, r: 9, class: "krea2-v2-compass-subject" }));
 
-      const rect = svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
-      const centerX = rect ? rect.left + rect.width / 2 : C;
-      const centerY = rect ? rect.top + rect.height / 2 : C;
-
       const lightDots = [];
       lights.forEach(function (light, index) {
-        const dx = Math.cos(light.angle) * (R - 8) * light.distance;
-        const dy = Math.sin(light.angle) * (R - 8) * light.distance;
+        const rad = degreesToRad(Number(light.angleDeg) || 0);
+        const radius = (R - 8) * (Number(light.distance) || 0.85);
+        const dx = Math.cos(rad) * radius;
+        const dy = Math.sin(rad) * radius;
         const group = svgEl("g", { class: "krea2-v2-compass-light" });
         group.appendChild(svgEl("line", {
           x1: C, y1: C, x2: C + dx, y2: C + dy,
@@ -4030,31 +4154,35 @@ function buildGroupPresetPicker(group) {
       });
 
       const drag = function (light, event) {
-        const cx = rect ? rect.left + rect.width / 2 : centerX;
-        const cy = rect ? rect.top + rect.height / 2 : centerY;
+        // The SVG rect is resolved on demand: it is only valid once the
+        // element is laid out in the document.
+        const bounds = svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
+        const cx = bounds ? bounds.left + bounds.width / 2 : C;
+        const cy = bounds ? bounds.top + bounds.height / 2 : C;
         const dx = event.clientX - cx;
         const dy = event.clientY - cy;
-        const radius = R - 8;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < 6) return;
-        light.angle = normalizeAngle(Math.atan2(dy, dx));
+        const rad = normalizeAngle(Math.atan2(dy, dx));
+        const radius = R - 8;
+        light.angleDeg = Math.round(radToDegrees(rad));
         light.distance = Math.max(0.25, Math.min(1, dist / radius));
-        // Live-update the dot without a full re-render so the drag never
-        // loses focus; state commits on mouseup.
         const group = event.target && event.target.parentNode;
         const line = group && group.children && group.children[0];
         const label = group && group.children && group.children[2];
+        const moveX = C + Math.cos(rad) * radius * light.distance;
+        const moveY = C + Math.sin(rad) * radius * light.distance;
         if (line) {
-          line.setAttribute("x2", String(C + Math.cos(light.angle) * radius * light.distance));
-          line.setAttribute("y2", String(C + Math.sin(light.angle) * radius * light.distance));
+          line.setAttribute("x2", String(moveX));
+          line.setAttribute("y2", String(moveY));
         }
         if (label) {
-          label.setAttribute("x", String(C + Math.cos(light.angle) * radius * light.distance + 9));
-          label.setAttribute("y", String(C + Math.sin(light.angle) * radius * light.distance + 3));
+          label.setAttribute("x", String(moveX + 9));
+          label.setAttribute("y", String(moveY + 3));
         }
         if (event.target) {
-          event.target.setAttribute("cx", String(C + Math.cos(light.angle) * radius * light.distance));
-          event.target.setAttribute("cy", String(C + Math.sin(light.angle) * radius * light.distance));
+          event.target.setAttribute("cx", String(moveX));
+          event.target.setAttribute("cy", String(moveY));
         }
       };
 
@@ -4077,45 +4205,7 @@ function buildGroupPresetPicker(group) {
         };
         entry.dot.addEventListener("mousedown", start);
       }
-
-      /* Clicking empty compass space adds a light there. */
-      svg.addEventListener("mousedown", function (event) {
-        if (event.button !== 0) return;
-        event.preventDefault();
-        const cx = rect ? rect.left + rect.width / 2 : centerX;
-        const cy = rect ? rect.top + rect.height / 2 : centerY;
-        const dx = event.clientX - cx;
-        const dy = event.clientY - cy;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 10) return;
-        state.scene_sections = state.scene_sections || {};
-        if (!Array.isArray(state.scene_sections.lights)) state.scene_sections.lights = [];
-        state.scene_sections.lights.push({
-          id: "light_" + Date.now().toString(36),
-          angle: normalizeAngle(Math.atan2(dy, dx)),
-          distance: Math.max(0.25, Math.min(1, dist / (R - 8))),
-          strength: 1.5,
-        });
-        syncLightRows();
-        markDirty();
-        render();
-      });
       return svg;
-    }
-
-    function renderLightingContent() {
-      const wrap = el("div", { class: "krea2-v2-subsection-content" });
-      wrap.appendChild(renderChipRow("Lighting Setup", "lighting_setup", SCENE_CHIPS.lighting_setup));
-      const dirRow = el("div", { class: "krea2-v2-chip-row krea2-v2-dir-row" });
-      dirRow.append(
-        el("span", { class: "krea2-v2-field-label" }, "Lights"),
-        el("div", { class: "krea2-v2-compass-wrap" }, [
-          renderCompassRose(),
-          el("div", { class: "krea2-v2-lights" }, renderLightRows()),
-        ]),
-      );
-      wrap.appendChild(dirRow);
-      return wrap;
     }
 
     function renderLightRows() {
@@ -4126,20 +4216,29 @@ function buildGroupPresetPicker(group) {
           class: "krea2-v2-light-label",
           title: lightPhrase(light),
         }, "Light " + (index + 1) + " \u00b7 " + lightPhrase(light));
-        const stepper = K.presetRow.makeStepper({
+        const angleStepper = K.presetRow.makeStepper({
+          value: Number(light.angleDeg) || 0,
+          step: 5,
+          min: 0,
+          max: 360,
+          format: function (v) { return Math.round(v) % 360 + "\u00b0"; },
+          label: "Light " + (index + 1) + " angle",
+          onCommit: function (value) {
+            setLightState(light, { angleDeg: value });
+          },
+        });
+        const intensityStepper = K.presetRow.makeStepper({
           value: Number(light.strength) || 1.5,
           step: 0.25,
           min: -3,
           max: 3,
           format: formatLoraValue,
-          label: "Light " + (index + 1) + " strength",
+          label: "Light " + (index + 1) + " intensity",
           onCommit: function (value) {
-            light.strength = Math.round(value * 100) / 100;
-            syncLightRows();
-            markDirty();
-            render();
+            setLightState(light, { strength: Math.round(value * 100) / 100 });
           },
         });
+        const colour = renderLightColourPicker(light);
         const remove = el("button", {
           type: "button",
           class: "krea2-wizard-btn krea2-icon-btn krea2-danger",
@@ -4147,7 +4246,15 @@ function buildGroupPresetPicker(group) {
           "aria-label": "Remove light " + (index + 1),
           onClick: function () { removeLight(light); },
         }, icon("close", { width: "10", height: "10" }));
-        row.append(label, stepper.minus, stepper.valueEl, stepper.plus, remove);
+        const controls = el("div", { class: "krea2-v2-light-controls" }, [
+          el("span", { class: "krea2-v2-light-tag" }, "angle"),
+          angleStepper.minus, angleStepper.valueEl, angleStepper.plus,
+          el("span", { class: "krea2-v2-light-tag" }, "intensity"),
+          intensityStepper.minus, intensityStepper.valueEl, intensityStepper.plus,
+          colour,
+          remove,
+        ]);
+        row.append(label, controls);
         rows.appendChild(row);
       });
       rows.appendChild(el("button", {
@@ -4156,6 +4263,56 @@ function buildGroupPresetPicker(group) {
         onClick: addLight,
       }, "+ Add Light"));
       return rows;
+    }
+
+    function renderLightColourPicker(light) {
+      const wrap = el("div", { class: "krea2-v2-light-colour" });
+      const current = String(light.color || "");
+      const swatches = el("div", { class: "krea2-v2-palette-swatches krea2-v2-palette-swatches-small" });
+      swatches.appendChild(el("button", {
+        type: "button",
+        class: "krea2-v2-palette-swatch krea2-v2-palette-swatch-none" + (current ? "" : " is-active"),
+        title: "No colour (white light)",
+        "aria-label": "White light",
+        onClick: function () { setLightState(light, { color: "" }); },
+      }));
+      for (const entry of PALETTE_COLORS) {
+        const active = current === entry[0];
+        swatches.appendChild(el("button", {
+          type: "button",
+          class: "krea2-v2-palette-swatch" + (active ? " is-active" : ""),
+          style: { background: entry[1] },
+          title: entry[0] + " light",
+          "aria-label": entry[0] + " light",
+          onClick: function () { setLightState(light, { color: entry[0] }); },
+        }));
+      }
+      const hex = el("input", {
+        type: "text",
+        class: "krea2-compact-input krea2-v2-palette-hex",
+        value: current,
+        placeholder: "#hex",
+        "aria-label": "Light colour (hex)",
+        onKeyDown: function (event) {
+          if (event.key === "Enter") {
+            const name = paletteNearestName(hex.value);
+            if (name) {
+              hex.value = name;
+              setLightState(light, { color: name });
+            }
+          }
+          if (typeof event.stopPropagation === "function") event.stopPropagation();
+        },
+      });
+      hex.addEventListener("blur", function () {
+        const name = paletteNearestName(hex.value);
+        if (name) {
+          hex.value = name;
+          setLightState(light, { color: name });
+        }
+      });
+      wrap.append(swatches, hex);
+      return wrap;
     }
 
     function renderCameraContent() {
@@ -4167,15 +4324,98 @@ function buildGroupPresetPicker(group) {
       return wrap;
     }
 
-    function renderEnvironmentContent() {
+    function renderLightingContent() {
       const wrap = el("div", { class: "krea2-v2-subsection-content" });
-      wrap.appendChild(renderChipRow("Atmosphere", "atmosphere", SCENE_CHIPS.atmosphere, true));
+      wrap.appendChild(renderChipRow("Lighting Setup", "lighting_setup", SCENE_CHIPS.lighting_setup));
+      const dirRow = el("div", { class: "krea2-v2-chip-row krea2-v2-dir-row" });
+      dirRow.append(
+        el("span", { class: "krea2-v2-field-label" }, "Lights"),
+        el("div", { class: "krea2-v2-compass-wrap" }, [
+          renderCompassRose(),
+          renderLightRows(),
+        ]),
+      );
+      wrap.appendChild(dirRow);
       return wrap;
     }
 
-    function renderStyleContent() {
+    /* Environment: each atmosphere concept becomes a compact stepper row
+     * (pill label + [−] value [+] ×), added from a dropdown so fog, smoke,
+     * dust and rain can stack with their own strengths. */
+    function renderEnvironmentContent() {
       const wrap = el("div", { class: "krea2-v2-subsection-content" });
-      wrap.appendChild(renderChipRow("Style", "style", SCENE_CHIPS.style));
+      const rowsHost = el("div", { class: "krea2-v2-env-rows" });
+      const atmosphereRows = state.rows.filter(function (row) { return row.category === "atmosphere"; });
+      for (const row of atmosphereRows) {
+        rowsHost.appendChild(renderAtmosphereRow(row));
+      }
+      const addRow = el("div", { class: "krea2-v2-env-add" });
+      const select = el("select", {
+        class: "krea2-compact-select krea2-v2-env-select",
+        "aria-label": "Add an atmosphere concept",
+      });
+      select.appendChild(el("option", { value: "" }, "Add an atmosphere concept..."));
+      const options = library.filter(function (preset) {
+        return preset.category === "atmosphere" && !preset.disabled;
+      }).slice().sort(function (a, b) {
+        return String(a.label).toLowerCase().localeCompare(String(b.label).toLowerCase());
+      });
+      for (const preset of options) {
+        select.appendChild(el("option", { value: preset.id }, preset.label));
+      }
+      const addBtn = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn",
+        onClick: function () {
+          const preset = library.find(function (item) { return item.id === select.value; });
+          if (!preset) return;
+          if (state.rows.some(function (row) { return row.preset_id === preset.id; })) return;
+          const row = presetToRow(preset, state);
+          row.strength = 1.2;
+          state.rows.push(row);
+          markDirty();
+          render();
+        },
+      }, "Add");
+      addRow.append(select, addBtn);
+      wrap.appendChild(rowsHost);
+      wrap.appendChild(addRow);
+      return wrap;
+    }
+
+    function renderAtmosphereRow(row) {
+      const wrap = el("div", { class: "krea2-v2-env-row" });
+      const label = el("span", {
+        class: "krea2-v2-env-label",
+        title: row.phrase || row.label,
+      }, row.label || row.preset_id);
+      const stepper = K.presetRow.makeStepper({
+        value: Number(row.strength) || 1.2,
+        step: 0.5,
+        min: -3,
+        max: 3,
+        format: formatLoraValue,
+        label: "Strength for " + (row.label || row.preset_id),
+        onCommit: function (value) {
+          row.strength = value;
+          markDirty();
+        },
+      });
+      const remove = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-icon-btn krea2-danger",
+        title: "Remove this atmosphere concept",
+        "aria-label": "Remove " + (row.label || row.preset_id),
+        onClick: function () {
+          state.rows = state.rows.filter(function (item) { return item.id !== row.id; });
+          markDirty();
+          render();
+        },
+      }, icon("close", { width: "10", height: "10" }));
+      const cluster = el("div", { class: "krea2-v2-env-controls" }, [
+        stepper.minus, stepper.valueEl, stepper.plus, remove,
+      ]);
+      wrap.append(label, cluster);
       return wrap;
     }
 
@@ -4208,7 +4448,9 @@ function buildGroupPresetPicker(group) {
       return section;
     }
 
-    /* Type / Setting / Shot on ONE horizontal row. */
+    /* Type / Setting / Style on ONE horizontal row. "Style" is the shot
+     * preset: it replaces camera, lighting and environment together, so
+     * picking one warns first when those sections have content. */
     function renderSceneTypeRow() {
       const row = el("div", { class: "krea2-v2-scene-top-row" });
       row.append(
@@ -4216,7 +4458,7 @@ function buildGroupPresetPicker(group) {
         creativeModeControl,
         el("span", { class: "krea2-v2-field-label" }, "Setting"),
         b2BuiltinSceneSelect(),
-        el("span", { class: "krea2-v2-field-label" }, "Shot"),
+        el("span", { class: "krea2-v2-field-label" }, "Style"),
         masterPresetSelect,
       );
       return row;
@@ -4357,14 +4599,14 @@ function buildGroupPresetPicker(group) {
     function renderSceneTab() {
       sceneHost.appendChild(renderSceneTypeRow());
       sceneHost.appendChild(renderSceneDescriptionBlock());
-      sceneHost.appendChild(renderSceneSubsection("camera", "Camera", "camera",
+      const grid = el("div", { class: "krea2-v2-scene-grid" });
+      grid.appendChild(renderSceneSubsection("camera", "Camera", "camera",
         renderCameraContent));
-      sceneHost.appendChild(renderSceneSubsection("lighting", "Lighting", "bulb",
+      grid.appendChild(renderSceneSubsection("lighting", "Lighting", "bulb",
         renderLightingContent));
+      sceneHost.appendChild(grid);
       sceneHost.appendChild(renderSceneSubsection("environment", "Environment", "globe",
         renderEnvironmentContent));
-      sceneHost.appendChild(renderSceneSubsection("style", "Style", "palette",
-        renderStyleContent));
       sceneHost.appendChild(renderFinalPreview());
     }
 
@@ -4605,7 +4847,7 @@ function buildGroupPresetPicker(group) {
           });
           markDirty(); render();
         },
-      }, "🔁");
+      }, icon("shuffle", { width: "13", height: "13" }));
       const save = el("button", {
         type: "button",
         class: "krea2-wizard-btn krea2-save-character",
@@ -4718,7 +4960,7 @@ function buildGroupPresetPicker(group) {
             : "Shuffle off: the scene stays fixed. Click to pick a fresh scene every queued job.",
           "aria-label": "Randomize the scene every queued job",
           onClick: function () { toggleSceneShuffle(sceneShuffleOn); },
-        }, "🔁"),
+        }, icon("shuffle", { width: "13", height: "13" })),
         el("button", {
           type: "button",
           class: "krea2-wizard-btn krea2-b2-scene-expand",
@@ -4809,8 +5051,10 @@ function buildGroupPresetPicker(group) {
       const setting = state.setting || {};
       select.appendChild(el("option", { value: "" },
         "Selected scene: " + (setting.enabled && setting.name ? setting.name : "— choose one —")));
-      SETTING_PRESETS.forEach(function (preset, index) {
-        select.appendChild(el("option", { value: String(index) }, preset[0]));
+      SETTING_PRESETS.slice().sort(function (a, b) {
+        return String(a[0]).toLowerCase().localeCompare(String(b[0]).toLowerCase());
+      }).forEach(function (preset, index) {
+        select.appendChild(el("option", { value: String(SETTING_PRESETS.indexOf(preset)) }, preset[0]));
       });
       return select;
     }
@@ -4879,7 +5123,7 @@ function buildGroupPresetPicker(group) {
             : "Shuffle off: the scene stays fixed. Click to pick a fresh scene every queued job.",
           "aria-label": "Randomize the scene every queued job",
           onClick: function () { toggleSceneShuffle(sceneShuffleOn); },
-        }, "🔁"),
+        }, icon("shuffle", { width: "13", height: "13" })),
         el("span", { class: "krea2-structured-spacer" }),
         el("button", {
           type: "button",
