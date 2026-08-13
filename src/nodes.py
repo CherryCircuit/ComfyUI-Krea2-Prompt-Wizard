@@ -569,7 +569,17 @@ class Krea2PromptWizard:
             for character in characters
             if isinstance(character, dict)
             and character.get("enabled", True) is not False
-            and str(character.get("lora_name") or "").strip()
+            and (
+                str(character.get("lora_name") or "").strip()
+                or (
+                    isinstance(character.get("loras"), list)
+                    and any(
+                        isinstance(lora, dict)
+                        and str(lora.get("filename") or "").strip()
+                        for lora in character.get("loras")
+                    )
+                )
+            )
         ]
         if not assignments:
             return model, []
@@ -587,29 +597,39 @@ class Krea2PromptWizard:
         warnings = []
         current = model
         for character in assignments:
-            lora_name = str(character["lora_name"]).strip()
-            if lora_name not in available:
-                warnings.append(
-                    f"LoRA '{lora_name}' was not found in the loras folder."
-                )
-                continue
-            try:
-                strength = float(character.get("lora_strength", 0.8))
-            except (TypeError, ValueError):
-                strength = 0.8
-            if strength == 0:
-                continue
-            path = get_full_path("loras", lora_name)
-            try:
-                current, _clip = load_lora_for_models(
-                    current,
-                    None,
-                    path,
-                    strength,
-                    0,
-                )
-            except Exception as exc:  # pragma: no cover - comfy runtime only
-                warnings.append(f"Could not apply LoRA '{lora_name}': {exc}")
+            assignments_for_character = [
+                (str(lora.get("filename") or "").strip(), lora.get("strength", 0.8))
+                for lora in character.get("loras")
+                if isinstance(lora, dict) and str(lora.get("filename") or "").strip()
+            ]
+            if not assignments_for_character:
+                assignments_for_character = [
+                    (str(character["lora_name"]).strip(), character.get("lora_strength", 0.8))
+                ]
+            for lora_name, raw_strength in assignments_for_character:
+                if lora_name not in available:
+                    warnings.append(
+                        f"LoRA '{lora_name}' was not found in the loras folder."
+                    )
+                    continue
+                try:
+                    strength = float(raw_strength)
+                except (TypeError, ValueError):
+                    strength = 0.8
+                strength = max(0.0, min(2.0, strength))
+                if strength == 0:
+                    continue
+                path = get_full_path("loras", lora_name)
+                try:
+                    current, _clip = load_lora_for_models(
+                        current,
+                        None,
+                        path,
+                        strength,
+                        0,
+                    )
+                except Exception as exc:  # pragma: no cover - comfy runtime only
+                    warnings.append(f"Could not apply LoRA '{lora_name}': {exc}")
         return current, warnings
 
 

@@ -139,6 +139,7 @@ class FrontendPackagingTests(unittest.TestCase):
                 ("GET", "/krea2_prompt_wizard/concept_colors"),
                 ("POST", "/krea2_prompt_wizard/concept_colors"),
                 ("GET", "/krea2_prompt_wizard/loras"),
+                ("POST", "/krea2_prompt_wizard/loras/upload"),
                 ("POST", "/krea2_prompt_wizard/preview"),
             },
         )

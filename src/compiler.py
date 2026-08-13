@@ -226,6 +226,61 @@ def _face_guidance_lines(guidance: Any) -> List[str]:
     return out
 
 
+_LORA_EXTENSIONS = (".safetensors", ".ckpt", ".pt", ".bin")
+
+
+def _lora_token_name(filename: Any) -> str:
+    """The LoRA identifier used inside <lora:...> tokens: the file name
+    without its extension (A1111 convention)."""
+    name = str(filename or "").strip()
+    for extension in _LORA_EXTENSIONS:
+        if name.lower().endswith(extension):
+            return name[: -len(extension)]
+    return name
+
+
+def _format_lora_strength(strength: float) -> str:
+    """Compact decimal (0.85 -> "0.85", 1.0 -> "1", -0.5 -> "-0.5")."""
+    if strength == int(strength):
+        return str(int(strength))
+    return f"{strength:.2f}".rstrip("0").rstrip(".")
+
+
+def _lora_tokens(character: Dict[str, Any]) -> List[str]:
+    """Per-character LoRA application tokens, one per assigned LoRA.
+
+    ``<lora:filename:strength>`` follows the A1111/Forge textual convention
+    that many image backends (including Krea2 wrappers) parse at inference
+    time. The per-character list drives emission; legacy single-LoRA state
+    (``lora_name`` / ``lora_strength``) is emitted when no list exists.
+    """
+    tokens: List[str] = []
+    loras = character.get("loras")
+    if isinstance(loras, list):
+        for lora in loras:
+            if not isinstance(lora, dict):
+                continue
+            filename = str(lora.get("filename") or "").strip()
+            if not filename:
+                continue
+            try:
+                strength = float(lora.get("strength", 0.8))
+            except (TypeError, ValueError):
+                strength = 0.8
+            tokens.append(
+                f"<lora:{_lora_token_name(filename)}:{_format_lora_strength(strength)}>"
+            )
+    if not tokens:
+        name = str(character.get("lora_name") or "").strip()
+        if name:
+            try:
+                strength = float(character.get("lora_strength", 0.8))
+            except (TypeError, ValueError):
+                strength = 0.8
+            tokens.append(f"<lora:{_lora_token_name(name)}:{_format_lora_strength(strength)}>")
+    return tokens
+
+
 def _compile_row_fragment(
     row: Dict[str, Any],
     preset_index: Dict[str, Dict[str, Any]],
@@ -445,6 +500,11 @@ def _compile_character(
     lora_lines = _face_guidance_lines(character.get("lora_triggers"))
     emitted.extend(lora_lines)
     plain_emitted.extend(lora_lines)
+    # A1111-style LoRA tokens, one per assigned LoRA: <lora:filename:strength>.
+    # These are the textual application of a LoRA to a character; the model-
+    # side application happens in the node (Model input -> Model output).
+    for token in _lora_tokens(character):
+        emitted.append(token)
     if interaction:
         emitted.append(interaction)
         plain_emitted.append(interaction)
