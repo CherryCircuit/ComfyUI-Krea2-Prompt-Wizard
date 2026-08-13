@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-import os
 from typing import Any
 
 from .compiler import compile_state
@@ -71,7 +70,12 @@ def register_routes() -> None:
 
     @routes.get("/krea2_prompt_wizard/loras")
     async def get_loras(_request: Any) -> web.Response:
-        """List the LoRA files available to the user (for the Cast tab)."""
+        """List the LoRA files available to the user (for the Cast tab).
+
+        Names come from ComfyUI's loras folder, relative paths included, so
+        subfolder organisation (image models / character loras / ...) shows
+        up exactly like the built-in LoRA loader dropdowns.
+        """
         try:
             from comfy.utils import get_filename_list
 
@@ -79,51 +83,6 @@ def register_routes() -> None:
         except Exception:
             names = []
         return web.json_response({"loras": sorted(names)})
-
-    @routes.post("/krea2_prompt_wizard/loras/upload")
-    async def upload_lora(request: Any) -> web.Response:
-        """Copy a LoRA file picked from disk into the ComfyUI loras folder.
-
-        The Cast tab's file picker can choose a .safetensors from anywhere;
-        ComfyUI can only load LoRAs that live in ``models/loras``, so the
-        frontend uploads the picked file here and the model-side application
-        (``_apply_character_loras``) then finds it by name.
-        """
-        try:
-            import folder_paths  # lazy: ComfyUI runtime only
-
-            reader = await request.multipart()
-            field = await reader.next()
-            if field is None or getattr(field, "name", None) != "file":
-                raise ValueError("Missing file field.")
-            filename = os.path.basename(str(getattr(field, "filename", "") or "lora.safetensors"))
-            if not filename:
-                raise ValueError("Missing file name.")
-            chunks = []
-            while True:
-                chunk = await field.read_chunk(1 << 20)
-                if not chunk:
-                    break
-                chunks.append(chunk)
-            payload = b"".join(chunks)
-            if not payload:
-                raise ValueError("Empty file.")
-            target_dir = folder_paths.get_folder_paths("loras")[0]
-            os.makedirs(target_dir, exist_ok=True)
-            target = os.path.join(target_dir, filename)
-            with open(target, "wb") as handle:
-                handle.write(payload)
-            return web.json_response({"name": filename})
-        except Exception as exc:
-            return web.json_response(
-                {
-                    "error": {
-                        "code": "lora.upload_failed",
-                        "message": f"Could not install the LoRA: {exc}",
-                    }
-                },
-                status=400,
-            )
 
     @routes.get("/krea2_prompt_wizard/master_presets")
     async def get_master_presets(_request: Any) -> web.Response:

@@ -2,7 +2,6 @@
 the metadata-writing Save Image node."""
 from __future__ import annotations
 
-import asyncio
 import json
 import os
 import sys
@@ -141,73 +140,6 @@ class LoRATests(unittest.TestCase):
         result = compile_state(state, load_library())
         self.assertIn("<lora:realism:0.8>", result.final_prompt)
 
-    def test_upload_route_copies_file_into_loras_folder(self):
-        handlers = {}
-
-        class FakeRoutes:
-            def get(self, path):
-                def decorator(handler):
-                    handlers[("GET", path)] = handler
-                    return handler
-
-                return decorator
-
-            def post(self, path):
-                def decorator(handler):
-                    handlers[("POST", path)] = handler
-                    return handler
-
-                return decorator
-
-        fake_web = types.SimpleNamespace(
-            json_response=lambda payload, status=200: {"body": payload, "status": status},
-            Response=object,
-        )
-        fake_aiohttp = types.SimpleNamespace(web=fake_web)
-        fake_server = types.SimpleNamespace(
-            PromptServer=types.SimpleNamespace(
-                instance=types.SimpleNamespace(routes=FakeRoutes())
-            )
-        )
-        target_dir = tempfile.mkdtemp()
-        fake_folder_paths = types.SimpleNamespace(
-            get_folder_paths=lambda folder: [target_dir] if folder == "loras" else []
-        )
-        payload = b"LORADATA"
-
-        class FakeField:
-            name = "file"
-            filename = "fresh_style.safetensors"
-            _read = False
-
-            async def read_chunk(self, _size):
-                if FakeField._read:
-                    return b""
-                FakeField._read = True
-                return payload
-
-        class FakeMultipart:
-            async def next(self):
-                return FakeField()
-
-        class FakeRequest:
-            async def multipart(self):
-                return FakeMultipart()
-
-        api_module._ROUTES_REGISTERED = False
-        with patch.dict(
-            sys.modules,
-            {"aiohttp": fake_aiohttp, "server": fake_server, "folder_paths": fake_folder_paths},
-        ):
-            api_module.register_routes()
-            result = asyncio.run(
-                handlers[("POST", "/krea2_prompt_wizard/loras/upload")](FakeRequest())
-            )
-        self.assertEqual(result["status"], 200)
-        self.assertEqual(result["body"]["name"], "fresh_style.safetensors")
-        with open(os.path.join(target_dir, "fresh_style.safetensors"), "rb") as handle:
-            self.assertEqual(handle.read(), payload)
-        api_module._ROUTES_REGISTERED = False
 
 
 class PromptSaverTests(unittest.TestCase):

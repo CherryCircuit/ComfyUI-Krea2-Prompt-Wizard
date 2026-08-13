@@ -23,7 +23,6 @@
     fetchMasterPresets,
     fetchSavedPresets,
     fetchLoras,
-    uploadLoraFile,
     fetchConflicts,
     saveSavedPresets,
     showToast,
@@ -3464,51 +3463,123 @@ function buildGroupPresetPicker(group) {
       return (number > 0 ? "+" : "") + String(number);
     }
 
-    function pickLoraFile(character, replaceLora) {
-      const input = el("input", {
-        type: "file",
-        accept: ".safetensors,.ckpt,.pt,.bin",
-        "aria-label": "Pick a LoRA file",
-        style: { display: "none" },
+    /* Folder of a loras-folder relative path ("" for the root folder). */
+    function loraFolderOf(name) {
+      const index = String(name || "").lastIndexOf("/");
+      return index > 0 ? String(name).slice(0, index) : "";
+    }
+
+    /* loras-folder names grouped by folder, both sorted alphabetically —
+     * exactly how the built-in ComfyUI LoRA loader dropdowns present them. */
+    function groupedLoraNames() {
+      const groups = new Map();
+      for (const name of loras) {
+        const folder = loraFolderOf(name);
+        if (!groups.has(folder)) groups.set(folder, []);
+        groups.get(folder).push(name);
+      }
+      const folders = Array.from(groups.keys()).sort(function (a, b) {
+        return a.toLowerCase().localeCompare(b.toLowerCase());
+      });
+      const out = [];
+      for (const folder of folders) {
+        const names = groups.get(folder).slice().sort(function (a, b) {
+          return a.toLowerCase().localeCompare(b.toLowerCase());
+        });
+        out.push({ folder: folder, names: names });
+      }
+      return out;
+    }
+
+    function commitLoraEntry(character, entry, finalName) {
+      if (entry) {
+        entry.filename = finalName;
+      } else {
+        if (!Array.isArray(character.loras)) character.loras = [];
+        character.loras.push({
+          filename: finalName,
+          strength: 0.8,
+          trigger: "",
+        });
+      }
+      syncLoraTextState(character);
+      markDirty();
+      render();
+      showToast("LoRA added: " + finalName, "info");
+    }
+
+    /* Add LoRA: the same dropdown the built-in LoRA loaders use — every
+     * file inside models/loras, grouped by folder and subfolder. */
+    function renderAddLoraSelect(character) {
+      const select = el("select", {
+        class: "krea2-compact-select krea2-v2-add-lora-select",
+        "aria-label": "Add a LoRA from the loras folder",
         onChange: function (event) {
-          const file = event.target.files && event.target.files[0];
-          if (!file) return;
-          const name = String(file.name || "").trim();
+          const name = event.target.value;
+          select.value = "";
           if (!name) return;
-          if (!Array.isArray(character.loras)) character.loras = [];
-          const entry = replaceLora && character.loras.indexOf(replaceLora) >= 0
-            ? replaceLora
-            : null;
-          const commit = function (finalName) {
-            if (entry) {
-              entry.filename = finalName;
-            } else {
-              character.loras.push({
-                filename: finalName,
-                strength: 0.8,
-                trigger: "",
-              });
-            }
-            syncLoraTextState(character);
-            markDirty();
-            render();
-            fetchLoras().then(function (names) { loras = names; });
-            showToast("LoRA added: " + finalName, "info");
-          };
-          // Copy the picked file into ComfyUI's loras folder so the
-          // model-side application can find it; the <lora:...> token is
-          // emitted either way.
-          uploadLoraFile(file).then(commit).catch(function (error) {
-            showToast("Could not install the LoRA into the loras folder: " + error.message, "warning");
-            commit(name);
-          });
+          commitLoraEntry(character, null, name);
         },
       });
-      document.body.appendChild(input);
-      input.click();
-      setTimeout(function () {
-        if (input.parentNode) input.parentNode.removeChild(input);
-      }, 0);
+      if (!loras.length) {
+        select.appendChild(el("option", { value: "" },
+          "No LoRAs found in models/loras — add files to that folder")) ;
+        select.disabled = true;
+        return select;
+      }
+      select.appendChild(el("option", { value: "" }, "Add a LoRA..."));
+      for (const group of groupedLoraNames()) {
+        const optgroup = el("optgroup", { label: group.folder || "root" });
+        for (const name of group.names) {
+          optgroup.appendChild(el("option", { value: name },
+            group.folder ? name.slice(group.folder.length + 1) : name));
+        }
+        select.appendChild(optgroup);
+      }
+      return select;
+    }
+
+    /* Replace a LoRA: popup menu listing the loras folder, grouped like the
+     * built-in loader dropdowns. */
+    function openLoraPicker(character, entry, anchor) {
+      const existing = document.querySelector(".krea2-lora-picker-menu");
+      if (existing) existing.remove();
+      const menu = el("div", { class: "krea2-lora-picker-menu" });
+      const groups = groupedLoraNames();
+      if (!groups.length) {
+        menu.appendChild(el("div", { class: "krea2-lora-picker-empty" },
+          "No LoRAs found in models/loras"));
+      }
+      for (const group of groups) {
+        menu.appendChild(el("div", { class: "krea2-lora-picker-group" },
+          group.folder || "root"));
+        for (const name of group.names) {
+          menu.appendChild(el("button", {
+            type: "button",
+            class: "krea2-lora-picker-item",
+            title: name,
+            onClick: function () {
+              menu.remove();
+              commitLoraEntry(character, entry, name);
+            },
+          }, group.folder ? name.slice(group.folder.length + 1) : name));
+        }
+      }
+      const rect = anchor.getBoundingClientRect();
+      Object.assign(menu.style, {
+        position: "fixed",
+        left: rect.left + "px",
+        top: (rect.bottom + 4) + "px",
+        zIndex: "2147483500",
+      });
+      document.body.appendChild(menu);
+      function onDocClick(e) {
+        if (!menu.contains(e.target)) {
+          menu.remove();
+          document.removeEventListener("click", onDocClick, true);
+        }
+      }
+      setTimeout(() => document.addEventListener("click", onDocClick, true), 0);
     }
 
     function renderLoraRow(character, lora) {
@@ -3516,10 +3587,12 @@ function buildGroupPresetPicker(group) {
       const fileBtn = el("button", {
         type: "button",
         class: "krea2-v2-lora-file",
-        title: lora.filename + " — click to replace this LoRA file",
+        title: lora.filename + " — click to replace this LoRA from the loras folder",
         "aria-label": "Replace the LoRA file",
       }, icon("file", { width: "13", height: "13" }));
-      fileBtn.addEventListener("click", function () { pickLoraFile(character, lora); });
+      fileBtn.addEventListener("click", function () {
+        openLoraPicker(character, lora, fileBtn);
+      });
       const name = el("span", { class: "krea2-v2-lora-name" }, K.helpers.loraFileName(lora.filename));
       const trigger = el("input", {
         type: "text",
@@ -3599,16 +3672,13 @@ function buildGroupPresetPicker(group) {
         for (const lora of loras) {
           body.appendChild(renderLoraRow(character, lora));
         }
-        body.appendChild(el("button", {
-          type: "button",
-          class: "krea2-wizard-btn krea2-v2-add-lora",
-          onClick: function () { pickLoraFile(character); },
-        }, "+ Add LoRA"));
+        body.appendChild(el("div", { class: "krea2-v2-add-lora-wrap" }, [
+          renderAddLoraSelect(character),
+        ]));
         body.appendChild(el("div", { class: "krea2-settings-copy" },
-          "Picked files are copied into ComfyUI's loras folder and applied to the model via the node's Model input. " +
-          "Their <lora:name:strength> tokens compile only inside " +
-          (character.name || "this character") + "\u2019s block, steering each LoRA's look toward this character. " +
-          "Strengths accept negatives and go well beyond 1 for very strong LoRAs."));
+          "LoRAs are picked from ComfyUI's models/loras folder \u2014 subfolders included, exactly like the built-in LoRA loader. " +
+          "Each one is applied to the model via the node's Model input, and its <lora:name:strength> token compiles only inside " +
+          (character.name || "this character") + "\u2019s block. Strengths accept negatives and go well beyond 1 for very strong LoRAs."));
       }
       block.appendChild(header);
       block.appendChild(body);

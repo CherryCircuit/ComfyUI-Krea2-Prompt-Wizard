@@ -820,6 +820,67 @@ body.dark {
   align-self: flex-start;
 }
 
+.krea2-v2-add-lora-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.krea2-v2-add-lora-select {
+  flex: 1 1 260px;
+  min-width: 0;
+  max-width: 420px;
+}
+
+/* Replace-LoRA popup menu, grouped by folder like the built-in loader. */
+.krea2-lora-picker-menu {
+  min-width: 220px;
+  max-width: 340px;
+  max-height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px;
+  background: #1c1f25;
+  border: 1px solid var(--krea2-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.krea2-lora-picker-group {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--krea2-text-faint);
+  padding: 4px 6px 2px;
+}
+
+.krea2-lora-picker-item {
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: 5px;
+  color: var(--krea2-text);
+  font-size: 11px;
+  padding: 4px 8px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.krea2-lora-picker-item:hover {
+  background: color-mix(in srgb, var(--krea2-accent) 22%, transparent);
+}
+
+.krea2-lora-picker-empty {
+  padding: 8px;
+  color: var(--krea2-text-faint);
+  font-size: 11px;
+}
+
 /* LoRA row: name + trigger flex, stepper cluster + trash right-aligned. */
 .krea2-v2-lora-controls {
   display: flex;

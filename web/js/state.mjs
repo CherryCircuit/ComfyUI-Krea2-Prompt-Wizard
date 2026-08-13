@@ -849,22 +849,6 @@
     }
   }
 
-  /* Upload a picked LoRA file into the ComfyUI loras folder so the
-   * model-side application can find it by name. */
-  async function uploadLoraFile(file) {
-    const api = (window.app && window.app.api) || null;
-    const url = (api && api.apiURL && api.apiURL("/krea2_prompt_wizard/loras/upload"))
-      || "/krea2_prompt_wizard/loras/upload";
-    const body = new FormData();
-    body.append("file", file);
-    const resp = await fetch(url, { method: "POST", body: body });
-    const payload = await resp.json();
-    if (!resp.ok) {
-      throw new Error((payload.error && payload.error.message) || "Could not install the LoRA.");
-    }
-    return String(payload.name || file.name || "");
-  }
-
   async function fetchConflicts() {
     try {
       const api = (window.app && window.app.api) || null;
@@ -1266,7 +1250,6 @@
     fetchMasterPresets,
     fetchSavedPresets,
     fetchLoras,
-    uploadLoraFile,
     fetchConflicts,
     saveSavedPresets,
     fetchConceptColors,

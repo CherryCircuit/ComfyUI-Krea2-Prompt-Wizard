@@ -160,7 +160,17 @@ globalThis.fetch = (url, options) => {
     });
   }
   if (apiPath === "/krea2_prompt_wizard/loras") {
-    return Promise.resolve({ ok: true, json: async () => ({ loras: [] }) });
+    return Promise.resolve({
+      ok: true,
+      json: async () => ({
+        loras: [
+          "image_models/char_style.safetensors",
+          "image_models/utility/scale_helpers.safetensors",
+          "video_models/motion_v2.safetensors",
+          "root_level.safetensors",
+        ],
+      }),
+    });
   }
   return new Promise(() => {});
 };
@@ -397,8 +407,39 @@ if (afterRemoval.includes("emotion.elation")) {
 
 /* --- Per-character LoRA block ------------------------------------------- */
 if (!findByClass(wizard.root, "krea2-v2-lora-block").length
-    || !findByClass(wizard.root, "krea2-v2-add-lora").length) {
-  throw new Error("Each cast card must expose the per-character LoRA block with Add LoRA.");
+    || !findByClass(wizard.root, "krea2-v2-add-lora-select").length) {
+  throw new Error("Each cast card must expose the LoRA block with an add-from-loras-folder dropdown.");
+}
+
+/* --- LoRAs are picked from models/loras (subfolders), not a file dialog --- */
+const addLoraSelect = findByClass(wizard.root, "krea2-v2-add-lora-select")[0];
+const addOptgroups = (addLoraSelect.children || []).filter((child) => child.tagName === "optgroup");
+if (addOptgroups.length !== 4) {
+  throw new Error("The add-LoRA dropdown must group files by folder, got " + addOptgroups.length + " groups.");
+}
+addLoraSelect.value = "image_models/char_style.safetensors";
+addLoraSelect.listeners.change({ target: { value: "image_models/char_style.safetensors" } });
+const addedLora = JSON.parse(stateWidget.value).characters[0].loras
+  .find((lora) => lora.filename === "image_models/char_style.safetensors");
+if (!addedLora) {
+  throw new Error("Choosing a LoRA from the dropdown must add it to the character.");
+}
+/* The file icon opens the grouped replace menu. */
+const replaceBtn = findByClass(wizard.root, "krea2-v2-lora-file")[0];
+replaceBtn.listeners.click({});
+const pickerMenu = findByClass(document.body, "krea2-lora-picker-menu")[0];
+if (!pickerMenu) {
+  throw new Error("Clicking the LoRA file icon must open the loras-folder picker.");
+}
+const pickerItems = findByClass(pickerMenu, "krea2-lora-picker-item");
+if (pickerItems.length !== 4) {
+  throw new Error("The loras-folder picker must list every file, got " + pickerItems.length);
+}
+pickerItems.find((item) => textOf(item).includes("motion_v2")).listeners.click({});
+const replacedLora = JSON.parse(stateWidget.value).characters[0].loras
+  .find((lora) => lora.filename === "video_models/motion_v2.safetensors");
+if (!replacedLora) {
+  throw new Error("Picking from the loras-folder menu must replace the LoRA.");
 }
 
 /* --- Header-click toggles (no dedicated collapse buttons) ---------------- */
