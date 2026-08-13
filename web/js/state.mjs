@@ -567,8 +567,13 @@
     ],
     chevron_down: [["path", { d: "M3.5 6l4.5 4.5L12.5 6" }]],
     chevron_right: [["path", { d: "M6 3.5l4.5 4.5L6 12.5" }]],
+    minus: [["path", { d: "M3 8h10" }]],
     plus: [["path", { d: "M8 3v10M3 8h10" }]],
     close: [["path", { d: "M4 4l8 8M12 4l-8 8" }]],
+    file: [
+      ["path", { d: "M3.5 2.5h6l3 3v8a1 1 0 0 1-1 1h-8a1 1 0 0 1-1-1v-10a1 1 0 0 1 1-1z" }],
+      ["path", { d: "M9.5 2.5v3h3" }],
+    ],
     copy: [
       ["rect", { x: "2.5", y: "5", width: "8.5", height: "8.5", rx: "1.3" }],
       ["path", { d: "M5 2.5h6.5A2 2 0 0 1 13.5 4.5V11" }],
@@ -787,6 +792,22 @@
     }
   }
 
+  /* Upload a picked LoRA file into the ComfyUI loras folder so the
+   * model-side application can find it by name. */
+  async function uploadLoraFile(file) {
+    const api = (window.app && window.app.api) || null;
+    const url = (api && api.apiURL && api.apiURL("/krea2_prompt_wizard/loras/upload"))
+      || "/krea2_prompt_wizard/loras/upload";
+    const body = new FormData();
+    body.append("file", file);
+    const resp = await fetch(url, { method: "POST", body: body });
+    const payload = await resp.json();
+    if (!resp.ok) {
+      throw new Error((payload.error && payload.error.message) || "Could not install the LoRA.");
+    }
+    return String(payload.name || file.name || "");
+  }
+
   async function fetchConflicts() {
     try {
       const api = (window.app && window.app.api) || null;
@@ -904,6 +925,41 @@
       .filter(Boolean);
   }
 
+  /* LoRA file name without its extension (the <lora:...> token name). */
+  function loraFileName(name) {
+    return String(name || "").replace(/\.(safetensors|ckpt|pt|bin)$/i, "");
+  }
+
+  function formatLoraStrength(value) {
+    const number = Math.round(Number(value) * 100) / 100;
+    if (number === Math.round(number)) return String(Math.round(number));
+    return String(number);
+  }
+
+  /* A1111-style LoRA application tokens, one per assigned LoRA. Mirrors
+   * src/compiler.py::_lora_tokens — the backend is the source of truth. */
+  function compileLoraTokens(character) {
+    const tokens = [];
+    const loras = Array.isArray(character.loras) ? character.loras : [];
+    for (const lora of loras) {
+      const filename = String((lora && lora.filename) || "").trim();
+      if (!filename) continue;
+      const strength = Number.isFinite(Number(lora && lora.strength))
+        ? Number(lora.strength)
+        : 0.8;
+      tokens.push("<lora:" + loraFileName(filename) + ":" + formatLoraStrength(strength) + ">");
+    }
+    if (!tokens.length) {
+      const name = String(character.lora_name || "").trim();
+      if (name) {
+        tokens.push(
+          "<lora:" + loraFileName(name) + ":" + formatLoraStrength(Number(character.lora_strength) || 0.8) + ">"
+        );
+      }
+    }
+    return tokens;
+  }
+
   function dedupePreservingOrder(items) {
     const seen = new Set();
     const out = [];
@@ -967,6 +1023,8 @@
     for (const line of guidance) fragments.push(line);
     const loraLines = faceGuidanceLines(character.lora_triggers);
     for (const line of loraLines) fragments.push(line);
+    const loraTokens = compileLoraTokens(character);
+    for (const token of loraTokens) fragments.push(token);
     const interaction = String(character.interaction || "").trim();
     if (interaction) fragments.push(interaction);
     const head = position ? name + " (" + position + ")" : name;
@@ -1147,6 +1205,7 @@
     fetchMasterPresets,
     fetchSavedPresets,
     fetchLoras,
+    uploadLoraFile,
     fetchConflicts,
     saveSavedPresets,
     fetchConceptColors,
@@ -1157,6 +1216,8 @@
     draftMotionLine,
     compileCharacterClause,
     compileCharacterRows,
+    compileLoraTokens,
+    loraFileName,
     characterHasDirection,
     faceGuidanceLines,
   };

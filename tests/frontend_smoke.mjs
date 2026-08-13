@@ -263,24 +263,26 @@ if (seededRows.length < 3
   throw new Error("Fresh characters must seed the three real library concept rows.");
 }
 
-/* --- Appearance row: Hair / Eyes / Build / Physique, one row each ------- */
+/* --- Appearance dropdowns: 9 fields on the card -------------------------- */
 const comboboxes = findByClass(wizard.root, "krea2-combobox");
-if (comboboxes.length !== 4) {
-  throw new Error("Each cast card must expose exactly four appearance dropdowns.");
+if (comboboxes.length !== 9) {
+  throw new Error("Each cast card must expose nine appearance dropdowns, got " + comboboxes.length);
 }
-for (const field of ["Hair", "Eyes", "Build", "Physique"]) {
+for (const field of ["Hair", "Eyes", "Build", "Physique", "Age", "Ethnicity", "Top", "Bottom", "Ensemble (full costume)"]) {
   if (comboboxes.filter((input) => input["aria-label"] === field).length !== 1) {
     throw new Error("Each cast card must expose exactly one " + field + " field.");
   }
 }
 
-/* --- Identity chips: gender (purple), age (blue), ethnicity (teal) ------ */
+/* --- Identity chip: sex only (age + ethnicity are dropdowns) ------------- */
 const identityChips = findByClass(wizard.root, "krea2-v2-identity-chip");
-if (identityChips.length !== 3
-    || !identityChips.some((chip) => chip.className.includes("is-gender"))
-    || !identityChips.some((chip) => chip.className.includes("is-age"))
-    || !identityChips.some((chip) => chip.className.includes("is-ethnicity"))) {
-  throw new Error("Identity chips must render gender, age and ethnicity pills.");
+if (identityChips.length !== 1 || !identityChips[0].className.includes("is-gender")) {
+  throw new Error("Only the sex identity chip must render (age and ethnicity are dropdowns).");
+}
+
+/* --- The sticky PROMPT chip near the top is gone ------------------------- */
+if (findByClass(wizard.root, "krea2-prompt-chip").length !== 0) {
+  throw new Error("The sticky PROMPT summary chip near the top must be removed.");
 }
 
 /* --- Concept rows: [−] [value] [+] steppers ---------------------------- */
@@ -288,6 +290,10 @@ if (findByClass(wizard.root, "krea2-row-step-minus").length !== 3
     || findByClass(wizard.root, "krea2-row-step-plus").length !== 3
     || findByClass(wizard.root, "krea2-row-value").length !== 3) {
   throw new Error("The concepts block must render [-] [value] [+] steppers per row.");
+}
+const minusBtn = findByClass(wizard.root, "krea2-row-step-minus")[0];
+if (!String(minusBtn.title || "").includes("Decrease")) {
+  throw new Error("The step-minus control must read as a decrease control (minus, not delete).");
 }
 const firstValue = findByClass(wizard.root, "krea2-row-value")[0];
 if (textOf(firstValue) !== "+1.5") {
@@ -303,6 +309,23 @@ if (steppedJoy.strength !== 2) {
 }
 if (textOf(findByClass(wizard.root, "krea2-row-value")[0]) !== "+2") {
   throw new Error("The [+] step must update the displayed value.");
+}
+
+/* --- Click the value to type an exact strength --------------------------- */
+const editValue = findByClass(wizard.root, "krea2-row-value")[0];
+editValue.listeners.click({});
+const editInput = findByClass(editValue, "krea2-row-value-input")[0];
+if (!editInput) {
+  throw new Error("Clicking the value must open an inline exact-value editor.");
+}
+editInput.value = "2.5";
+editInput.listeners.keydown({ key: "Enter", stopPropagation() {} });
+const typedState = JSON.parse(stateWidget.value);
+if (typedState.characters[0].rows.find((row) => row.preset_id === "emotion.joy").strength !== 2.5) {
+  throw new Error("Typing an exact value must commit it to the concept row.");
+}
+if (textOf(findByClass(wizard.root, "krea2-row-value")[0]) !== "+2.5") {
+  throw new Error("The typed value must update the displayed value.");
 }
 
 /* --- + Add Concept pill ------------------------------------------------- */
@@ -385,8 +408,8 @@ for (const sub of ["camera", "lighting", "environment", "style"]) {
   }
 }
 const cameraChips = findByClass(wizard.root, "krea2-v2-chip");
-if (cameraChips.length !== 26) {
-  throw new Error("Framing (4) + angle (4) + aperture (5) + setup (4) + atmosphere (5) + style (4) chips must render, got " + cameraChips.length);
+if (cameraChips.length !== 41) {
+  throw new Error("Framing (4) + angle (4) + aperture (5) + setup (4) + atmosphere (20) + style (4) chips must render, got " + cameraChips.length);
 }
 if (!findByClass(wizard.root, "krea2-v2-compass").length) {
   throw new Error("The Lighting subsection must render the compass rose.");
@@ -435,12 +458,50 @@ if (!findByClass(wizard.root, "krea2-v2-subsection-camera")[0].className.include
   throw new Error("Clicking the collapsed Camera header must reopen it.");
 }
 
-/* --- Lens slider writes a lens row --------------------------------------- */
+/* --- Lens slider commits on release, not mid-drag ------------------------ */
 const lensSlider = findByClass(wizard.root, "krea2-v2-lens-slider")[0];
 lensSlider.listeners.input({ target: { value: "85" } });
+if (JSON.parse(stateWidget.value).rows.some((row) => row.category === "lens")) {
+  throw new Error("Dragging the lens slider must not commit the prompt row mid-drag.");
+}
+lensSlider.listeners.change({ target: { value: "85" } });
 const lensRow = JSON.parse(stateWidget.value).rows.find((row) => row.category === "lens");
 if (!lensRow || !String(lensRow.preset_id).startsWith("lens.85")) {
-  throw new Error("The lens slider must snap to the 85mm lens preset.");
+  throw new Error("Releasing the lens slider must snap to the 85mm lens preset.");
+}
+
+/* --- Atmosphere is multi-select: foggy AND smokey ------------------------- */
+const fogChip = findByClass(wizard.root, "krea2-v2-chip").find((chip) => textOf(chip) === "Fog");
+const smokeChip = findByClass(wizard.root, "krea2-v2-chip").find((chip) => textOf(chip) === "Smoke");
+fogChip.listeners.click({});
+smokeChip.listeners.click({});
+let atmosphereRows = JSON.parse(stateWidget.value).rows.filter((row) => row.category === "atmosphere");
+if (!atmosphereRows.some((row) => row.preset_id === "atmosphere.fog")
+    || !atmosphereRows.some((row) => row.preset_id === "atmosphere.smoke")) {
+  throw new Error("Atmosphere chips must allow multiple active concepts (fog AND smoke).");
+}
+
+/* --- Lighting setups drive the multi-light plane --------------------------- */
+const threePointChip = findByClass(wizard.root, "krea2-v2-chip")
+  .find((chip) => textOf(chip) === "Three-point");
+threePointChip.listeners.click({});
+let lightsState = JSON.parse(stateWidget.value);
+if (!Array.isArray(lightsState.scene_sections.lights) || lightsState.scene_sections.lights.length !== 3) {
+  throw new Error("Three-point lighting must seed exactly three lights on the compass.");
+}
+if (!lightsState.rows.some((row) => row.category === "lighting_direction" && String(row.preset_id).startsWith("custom.light_"))) {
+  throw new Error("Each compass light must compile into a lighting_direction prompt row.");
+}
+const softChip = findByClass(wizard.root, "krea2-v2-chip")
+  .find((chip) => textOf(chip) === "Soft");
+softChip.listeners.click({});
+lightsState = JSON.parse(stateWidget.value);
+if (!Array.isArray(lightsState.scene_sections.lights) || lightsState.scene_sections.lights.length !== 1) {
+  throw new Error("Soft lighting must reset the plane to a single front light.");
+}
+if (findByClass(wizard.root, "krea2-v2-light-row").length !== 1
+    || !findByClass(wizard.root, "krea2-v2-add-light").length) {
+  throw new Error("The Lighting subsection must list the lights with per-light strength controls and an Add Light button.");
 }
 
 /* --- SCENE tab also carries the Final Prompt Preview --------------------- */
@@ -496,7 +557,71 @@ if (overlayItems.some((item) => textOf(item).includes("Grief"))) {
 if (!overlayItems.some((item) => textOf(item).includes("Joy"))) {
   throw new Error("The emotion picker must keep compatible emotions (joy).");
 }
+/* The character picker must be scoped to subject & expression only. */
+const groupChips = findByClass(document.body, "krea2-searchable-chip");
+if (groupChips.some((chip) => textOf(chip).includes("Camera"))
+    || groupChips.some((chip) => textOf(chip).includes("Lighting"))
+    || groupChips.some((chip) => textOf(chip).includes("Environment"))
+    || groupChips.some((chip) => textOf(chip).includes("Style"))) {
+  throw new Error("The character concept picker must not offer camera/lighting/environment/style groups.");
+}
+if (!groupChips.some((chip) => textOf(chip).includes("Subject"))) {
+  throw new Error("The character concept picker must offer the Subject & Expression group.");
+}
 findByClass(document.body, "krea2-searchable-close")[0].listeners.click({});
+
+/* --- Per-character LoRA rows emit <lora:name:strength> -------------------- */
+wizard.setState({
+  schema_version: 1,
+  characters: [{
+    id: "c1",
+    name: "Mara",
+    enabled: true,
+    rows: [],
+    loras: [
+      { filename: "realism.safetensors", strength: 0.85, trigger: "" },
+      { filename: "char_style.safetensors", strength: -0.5, trigger: "" },
+    ],
+  }],
+});
+const loraRows = findByClass(wizard.root, "krea2-v2-lora-row");
+if (loraRows.length !== 2) {
+  throw new Error("Each assigned LoRA must render as its own row.");
+}
+const firstLoraRow = loraRows[0];
+if (!findByClass(firstLoraRow, "krea2-v2-lora-file").length) {
+  throw new Error("Each LoRA row must show a replace-file icon button.");
+}
+if (textOf(firstLoraRow).includes("realism.safetensors")
+    || !textOf(firstLoraRow).includes("realism")) {
+  throw new Error("LoRA rows must show the file name without the extension.");
+}
+const loraSteppers = findByClass(firstLoraRow, "krea2-row-value");
+if (loraSteppers.length !== 1 || textOf(loraSteppers[0]) !== "+0.85") {
+  throw new Error("LoRA rows must show the [+] [value] [+] stepper with 0.05 steps, got " + textOf(loraSteppers[0]));
+}
+const loraPlus = findByClass(firstLoraRow, "krea2-row-step-plus")[0];
+loraPlus.listeners.mousedown({ button: 0, preventDefault() {} });
+(document._listeners.mouseup || []).forEach((listener) => listener({}));
+const loraPersisted = JSON.parse(stateWidget.value).characters[0].loras[0];
+if (loraPersisted.strength !== 0.9) {
+  throw new Error("The LoRA [+] must raise the strength by 0.05.");
+}
+const loraCompiled = window.KREA2.helpers.compilePreview(JSON.parse(stateWidget.value)).final_prompt;
+if (!loraCompiled.includes("<lora:realism:0.9>") || !loraCompiled.includes("<lora:char_style:-0.5>")) {
+  throw new Error("Character LoRAs must compile into <lora:name:strength> tokens inside the character block.");
+}
+const loraValue = findByClass(firstLoraRow, "krea2-row-value")[0];
+loraValue.listeners.click({});
+const loraEditInput = findByClass(firstLoraRow, "krea2-row-value-input")[0];
+if (!loraEditInput) {
+  throw new Error("LoRA values must support click-to-type like the concept rows.");
+}
+loraEditInput.value = "1.05";
+loraEditInput.listeners.keydown({ key: "Enter", stopPropagation() {} });
+if (JSON.parse(stateWidget.value).characters[0].loras[0].strength !== 1.05) {
+  throw new Error("Typing a refined LoRA strength must commit the exact value.");
+}
 
 /* --- Cast header actions still present ------------------------------------- */
 if (!findByClass(wizard.root, "krea2-cast-random-all").length) {

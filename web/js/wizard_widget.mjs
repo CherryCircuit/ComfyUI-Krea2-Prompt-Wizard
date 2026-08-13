@@ -23,6 +23,7 @@
     fetchMasterPresets,
     fetchSavedPresets,
     fetchLoras,
+    uploadLoraFile,
     fetchConflicts,
     saveSavedPresets,
     showToast,
@@ -270,17 +271,50 @@
       ["lighting_setup.rembrandt_lighting", "Rembrandt"],
     ],
     atmosphere: [
-      ["atmosphere.clear_air", "Clear"],
-      ["atmosphere.light_haze", "Haze"],
-      ["atmosphere.fog", "Fog"],
+      ["atmosphere.clear_air", "Clear air"],
+      ["atmosphere.light_haze", "Light haze"],
+      ["atmosphere.dense_haze", "Dense haze"],
       ["atmosphere.mist", "Mist"],
+      ["atmosphere.fog", "Fog"],
+      ["atmosphere.dense_cinematic_fog", "Dense fog"],
+      ["atmosphere.ground_fog", "Ground fog"],
       ["atmosphere.smoke", "Smoke"],
+      ["atmosphere.dust", "Dust"],
+      ["atmosphere.embers", "Embers"],
+      ["atmosphere.ash", "Ash"],
+      ["atmosphere.light_rain", "Light rain"],
+      ["atmosphere.heavy_rain", "Heavy rain"],
+      ["atmosphere.storm", "Storm"],
+      ["atmosphere.snowfall", "Snowfall"],
+      ["atmosphere.heavy_snowfall", "Heavy snowfall"],
+      ["atmosphere.wind", "Wind"],
+      ["atmosphere.strong_wind", "Strong wind"],
+      ["atmosphere.heat_shimmer", "Heat shimmer"],
+      ["atmosphere.humid_atmosphere", "Humid atmosphere"],
     ],
     style: [
       ["style.natural_photographic_realism", "Photorealistic"],
       ["style.cinematic_film_still", "Cinematic"],
       ["style.fashion_editorial", "Editorial"],
       ["style.documentary_photography", "Documentary"],
+    ],
+  };
+
+  /* Lighting setups that drive the multi-light compass layout. */
+  const LIGHT_SETUP_LAYOUTS = {
+    "lighting_setup.three_point_lighting": [
+      { angle: Math.PI / 4, distance: 0.85 },
+      { angle: (3 * Math.PI) / 4, distance: 0.85 },
+      { angle: -Math.PI / 2, distance: 0.8 },
+    ],
+    "lighting_setup.rembrandt_lighting": [
+      { angle: Math.PI / 4, distance: 0.85 },
+    ],
+    "lighting_setup.soft_diffused_lighting": [
+      { angle: Math.PI / 2, distance: 0.9 },
+    ],
+    "lighting_setup.hard_directional_lighting": [
+      { angle: Math.PI / 2, distance: 0.8 },
     ],
   };
 
@@ -443,7 +477,6 @@
     /* --- Top section: base prompt, mode, library button --- */
     const basePromptControl = buildBasePrompt();
     const livePreview = buildLivePreview();
-    const stickyPromptChip = el("div", { class: "krea2-prompt-chip", role: "status", "aria-live": "polite" });
     const showWorkToggle = buildShowWorkToggle(state);
     const libraryBtn = el("button", { type: "button", class: "krea2-wizard-btn", onClick: openLibrary }, "Library");
     const randomAllBtn = diceButton(
@@ -606,7 +639,6 @@
     }
 
     root.appendChild(topBar);
-    root.appendChild(stickyPromptChip);
     root.appendChild(editorBody);
     root.appendChild(footerHost);
 
@@ -2820,41 +2852,12 @@ function buildGroupPresetPicker(group) {
       return { root: root, previewBody: prettyBody, prettyBody: prettyBody, codeText: codeText, codeLabel: codeLabel, historySelect: historySelect };
     }
 
-    function renderStickyPromptChip(compiled) {
-      stickyPromptChip.innerHTML = "";
-      const prompt = (compiled && compiled.prompt) || compilePreview(state).prompt || "";
-      const motion = (compiled && (compiled.motion_prompt || compiled.motion_prompt_draft)) || "";
-      const enabledCharacters = (state.characters || []).filter(function (character) {
-        return character && character.enabled !== false;
-      }).length;
-      const activeConcepts = (state.rows || []).filter(function (row) {
-        return row && row.enabled !== false;
-      }).length;
-      const activeLoras = (state.characters || []).filter(function (character) {
-        return character && character.enabled !== false && String(character.lora_name || "").trim();
-      }).length;
-      const tokens = prompt.trim() ? prompt.trim().split(/\s+/).length : 0;
-      const preview = prompt || motion || "No generation prompt yet";
-      stickyPromptChip.appendChild(el("div", { class: "krea2-prompt-chip-label" }, "PROMPT"));
-      stickyPromptChip.appendChild(el("div", { class: "krea2-prompt-chip-text", title: preview }, preview));
-      stickyPromptChip.appendChild(el("div", { class: "krea2-prompt-chip-meta" },
-        tokens + " words · " + enabledCharacters + " cast · " + activeConcepts + " concepts · " + activeLoras + " LoRA"));
-      stickyPromptChip.appendChild(el("button", {
-        type: "button",
-        class: "krea2-wizard-btn krea2-icon-btn krea2-prompt-chip-copy",
-        title: "Copy compiled prompt",
-        "aria-label": "Copy compiled prompt",
-        onClick: function () { copy(prompt); },
-      }, icon("copy", { width: "12", height: "12" })));
-    }
-
     function renderLivePreview(requestAuthoritativePreview) {
       try {
         var signature = JSON.stringify(state);
         var compiled = latestPreview && latestPreview.signature === signature
           ? latestPreview.result
           : compilePreview(state);
-        renderStickyPromptChip(compiled);
         renderPrettyPreview(compiled);
         renderCodePreview(compiled);
         showWork.innerHTML = "";
@@ -3196,7 +3199,8 @@ function buildGroupPresetPicker(group) {
      * v2 redesigned tabbed editor (CAST / SCENE).
      * ------------------------------------------------------------------ */
 
-    /* The four appearance dropdowns on one row of a cast card. */
+    /* The appearance dropdowns on a cast card. Anything with more than a
+     * few choices is a dropdown (sex stays a click-to-cycle chip). */
     const V2_APPEARANCE_FIELDS = (function () {
       const byKey = {};
       CHARACTER_APPEARANCE.forEach(function (field) { byKey[field.key] = field; });
@@ -3205,6 +3209,11 @@ function buildGroupPresetPicker(group) {
         { key: "eyes", label: "Eyes", options: byKey.eyes.options },
         { key: "body_type", label: "Build", options: byKey.body_type.options },
         { key: "fitness", label: "Physique", options: byKey.fitness.options },
+        { key: "age", label: "Age", options: byKey.age.options },
+        { key: "ethnicity", label: "Ethnicity", options: byKey.ethnicity.options },
+        { key: "clothing_top", label: "Top", options: byKey.clothing_top.options },
+        { key: "clothing_bottom", label: "Bottom", options: byKey.clothing_bottom.options },
+        { key: "ensemble", label: "Ensemble (full costume)", options: byKey.ensemble.options },
       ];
     })();
 
@@ -3220,32 +3229,25 @@ function buildGroupPresetPicker(group) {
       return text ? text.charAt(0).toUpperCase() + text.slice(1) : "";
     }
 
-    /* Identity chips: gender (purple), age (blue), ethnicity (teal).
-     * Clicking a chip cycles its value. */
+    /* Identity chip: sex only (three choices — click to cycle). Age and
+     * ethnicity are dropdowns because they have many options. */
     function renderIdentityChips(character) {
       const row = el("div", { class: "krea2-v2-identity-chips" });
-      const specs = [
-        { key: "sex", cycle: IDENTITY_GENDER_CYCLE, kind: "gender" },
-        { key: "age", cycle: IDENTITY_AGE_CYCLE, kind: "age" },
-        { key: "ethnicity", cycle: IDENTITY_ETHNICITY_CYCLE, kind: "ethnicity" },
-      ];
-      for (const spec of specs) {
-        const value = String(character[spec.key] || "");
-        const nextIndex = (spec.cycle.indexOf(value) + 1) % spec.cycle.length;
-        const next = spec.cycle[nextIndex];
-        row.appendChild(el("button", {
-          type: "button",
-          class: "krea2-v2-identity-chip is-" + spec.kind + (value ? " has-value" : ""),
-          title: value ? capitalizeFirst(value) + " — click to change " + spec.kind
-            : "Click to set " + spec.kind,
-          "aria-label": spec.kind + ": " + (value || "not set"),
-          onClick: function () {
-            character[spec.key] = next;
-            markDirty();
-            render();
-          },
-        }, value ? capitalizeFirst(value) : spec.kind));
-      }
+      const value = String(character.sex || "");
+      const nextIndex = (IDENTITY_GENDER_CYCLE.indexOf(value) + 1) % IDENTITY_GENDER_CYCLE.length;
+      const next = IDENTITY_GENDER_CYCLE[nextIndex];
+      row.appendChild(el("button", {
+        type: "button",
+        class: "krea2-v2-identity-chip is-gender" + (value ? " has-value" : ""),
+        title: value ? capitalizeFirst(value) + " — click to change gender"
+          : "Click to set gender",
+        "aria-label": "gender: " + (value || "not set"),
+        onClick: function () {
+          character.sex = next;
+          markDirty();
+          render();
+        },
+      }, value ? capitalizeFirst(value) : "Gender"));
       return row;
     }
 
@@ -3282,6 +3284,10 @@ function buildGroupPresetPicker(group) {
             showSearchableSelector({
               presets: compatibleLibrary(),
               title: "Add concepts for " + (character.name || "this character"),
+              // Character concepts are subject & expression only: emotion,
+              // face, body, placement. Camera / lighting / environment /
+              // style live on the SCENE tab.
+              categories: DIRECTION_CATEGORIES,
               multiSelect: true,
               selectedIds: rows.map(function (row) { return row.preset_id; }),
               filterPreset: characterConflictFilter(character),
@@ -3338,21 +3344,29 @@ function buildGroupPresetPicker(group) {
       return block;
     }
 
-    /* Per-character LoRA list. Multiple LoRAs are supported; the first is
-     * the model-level LoRA (lora_name / lora_strength) while every trigger
-     * phrase compiles only inside this character's block. */
+    /* Per-character LoRA list. Every LoRA emits a <lora:name:strength>
+     * token inside this character's prompt block; the first also drives the
+     * model-side application (Model input -> Model output). */
     function syncLoraTextState(character) {
       const loras = Array.isArray(character.loras) ? character.loras : [];
       const primary = loras[0];
       character.lora_name = primary ? String(primary.filename || "") : "";
-      character.lora_strength = primary ? Math.max(0, Math.min(2, Math.round(Number(primary.strength) * 20) / 20)) : 0.8;
+      character.lora_strength = primary
+        ? Math.max(0, Math.min(2, Math.round(Number(primary.strength) * 20) / 20))
+        : 0.8;
       const lines = loras.map(function (lora) {
         return String(lora.trigger || "").trim();
       }).filter(Boolean);
       character.lora_triggers = lines.join("\n");
     }
 
-    function pickLoraFile(character) {
+    function formatLoraValue(value) {
+      const number = Math.round(Number(value) * 100) / 100;
+      if (number === 0) return "0";
+      return (number > 0 ? "+" : "") + String(number);
+    }
+
+    function pickLoraFile(character, replaceLora) {
       const input = el("input", {
         type: "file",
         accept: ".safetensors,.ckpt,.pt,.bin",
@@ -3364,15 +3378,32 @@ function buildGroupPresetPicker(group) {
           const name = String(file.name || "").trim();
           if (!name) return;
           if (!Array.isArray(character.loras)) character.loras = [];
-          character.loras.push({
-            filename: name,
-            strength: 0.8,
-            trigger: loraFileNameStem(name),
+          const entry = replaceLora && character.loras.indexOf(replaceLora) >= 0
+            ? replaceLora
+            : null;
+          const commit = function (finalName) {
+            if (entry) {
+              entry.filename = finalName;
+            } else {
+              character.loras.push({
+                filename: finalName,
+                strength: 0.8,
+                trigger: "",
+              });
+            }
+            syncLoraTextState(character);
+            markDirty();
+            render();
+            fetchLoras().then(function (names) { loras = names; });
+            showToast("LoRA added: " + finalName, "info");
+          };
+          // Copy the picked file into ComfyUI's loras folder so the
+          // model-side application can find it; the <lora:...> token is
+          // emitted either way.
+          uploadLoraFile(file).then(commit).catch(function (error) {
+            showToast("Could not install the LoRA into the loras folder: " + error.message, "warning");
+            commit(name);
           });
-          syncLoraTextState(character);
-          markDirty();
-          render();
-          showToast("LoRA added: " + name, "info");
         },
       });
       document.body.appendChild(input);
@@ -3383,29 +3414,31 @@ function buildGroupPresetPicker(group) {
     }
 
     function renderLoraRow(character, lora) {
-      const strength = Math.max(0, Math.min(2, Math.round(Number(lora.strength) * 20) / 20)) || 0.8;
       const row = el("div", { class: "krea2-v2-lora-row" });
-      const filename = el("span", {
-        class: "krea2-v2-lora-filename",
-        title: lora.filename,
-      }, lora.filename);
-      const strengthInput = el("input", {
-        type: "range",
-        class: "krea2-lora-strength",
-        min: "0",
-        max: "2",
-        step: "0.05",
-        value: String(strength),
-        "aria-label": "LoRA strength",
-        onInput: function (event) {
-          lora.strength = Math.round(Number(event.target.value) * 20) / 20;
-          strengthValue.textContent = lora.strength.toFixed(2);
+      const fileBtn = el("button", {
+        type: "button",
+        class: "krea2-v2-lora-file",
+        title: lora.filename + " — click to replace this LoRA file",
+        "aria-label": "Replace the LoRA file",
+      }, icon("file", { width: "13", height: "13" }));
+      fileBtn.addEventListener("click", function () { pickLoraFile(character, lora); });
+      const name = el("span", { class: "krea2-v2-lora-name" }, K.helpers.loraFileName(lora.filename));
+      const stepper = K.presetRow.makeStepper({
+        value: Number(lora.strength) || 0.8,
+        step: 0.05,
+        min: -10,
+        max: 10,
+        typedMin: -99,
+        typedMax: 99,
+        format: formatLoraValue,
+        label: "LoRA strength",
+        onCommit: function (value) {
+          lora.strength = Math.round(value * 100) / 100;
           syncLoraTextState(character);
           markDirty();
           scheduleAppearanceRender();
         },
       });
-      const strengthValue = el("span", { class: "krea2-lora-strength-value" }, strength.toFixed(2));
       const trigger = el("input", {
         type: "text",
         class: "krea2-compact-input krea2-v2-lora-trigger",
@@ -3430,14 +3463,7 @@ function buildGroupPresetPicker(group) {
           render();
         },
       }, icon("trash", { width: "12", height: "12" }));
-      row.append(
-        filename,
-        el("span", { class: "krea2-direction-label" }, "strength"),
-        strengthInput,
-        strengthValue,
-        trigger,
-        remove,
-      );
+      row.append(fileBtn, name, stepper.minus, stepper.valueEl, stepper.plus, trigger, remove);
       return row;
     }
 
@@ -3450,7 +3476,7 @@ function buildGroupPresetPicker(group) {
       const header = el("div", { class: "krea2-v2-block-head krea2-clickable-head" }, [
         el("strong", null, "LoRA"),
         el("span", { class: "krea2-v2-block-hint" },
-          "applies to this character only — pick a .safetensors file from disk"),
+          "each LoRA emits <lora:file:strength> inside this character's block"),
         el("span", { class: "krea2-structured-spacer" }),
         el("span", { class: "krea2-v2-block-count" },
           loras.length + (loras.length === 1 ? " LoRA" : " LoRAs")),
@@ -3473,9 +3499,10 @@ function buildGroupPresetPicker(group) {
           onClick: function () { pickLoraFile(character); },
         }, "+ Add LoRA"));
         body.appendChild(el("div", { class: "krea2-settings-copy" },
-          "The first LoRA is applied to the model with its strength; its trigger phrase compiles only inside " +
-          (character.name || "this character") + "\u2019s block, steering the LoRA's look toward this character. " +
-          "LoRAs without trigger words often respond to their file name \u2014 picking one fills it in automatically."));
+          "Picked files are copied into ComfyUI's loras folder and applied to the model via the node's Model input. " +
+          "Their <lora:name:strength> tokens compile only inside " +
+          (character.name || "this character") + "\u2019s block, steering each LoRA's look toward this character. " +
+          "Strengths accept negatives and go well beyond 1 for very strong LoRAs."));
       }
       block.appendChild(header);
       block.appendChild(body);
@@ -3575,14 +3602,30 @@ function buildGroupPresetPicker(group) {
       const body = el("div", { class: "krea2-character-card-body" });
       if (expanded) {
         const grid = el("div", { class: "krea2-v2-appearance-grid" });
-        for (const field of V2_APPEARANCE_FIELDS) {
+        const useEnsemble = Boolean(String(character.ensemble || "").trim());
+        const useSeparates = Boolean(
+          String(character.clothing_top || "").trim()
+          || String(character.clothing_bottom || "").trim(),
+        );
+        V2_APPEARANCE_FIELDS.forEach(function (field) {
           const combobox = comboboxForField(character, field);
-          grid.appendChild(el("label", { class: "krea2-v2-appearance-field" }, [
+          const isSeparate = field.key === "clothing_top" || field.key === "clothing_bottom";
+          if (isSeparate && useEnsemble) {
+            combobox.input.disabled = true;
+            combobox.input.title = "disabled — an ensemble is chosen";
+          }
+          if (field.key === "ensemble" && useSeparates) {
+            combobox.input.disabled = true;
+            combobox.input.title = "disabled — a top and bottom are chosen";
+          }
+          const fieldEl = el("label", { class: "krea2-v2-appearance-field" }, [
             el("span", { class: "krea2-v2-field-label" }, field.label),
             combobox.input,
             combobox.datalist,
-          ]));
-        }
+          ]);
+          if (field.key === "ensemble") fieldEl.classList.add("krea2-v2-appearance-ensemble");
+          grid.appendChild(fieldEl);
+        });
         body.appendChild(grid);
         body.appendChild(renderIdentityChips(character));
         body.appendChild(renderCharacterConceptsBlock(character));
@@ -3662,12 +3705,31 @@ function buildGroupPresetPicker(group) {
         const row = presetToRow(preset, state);
         row.strength = 1.2;
         state.rows.push(row);
+        if (preset.category === "lighting_setup") {
+          applyLightingSetupLayout(presetId);
+        }
       }
       markDirty();
       render();
     }
 
-    function renderChipRow(label, category, chips) {
+    /* Multi-select variant (atmosphere): several can be active at once —
+     * foggy AND smokey. */
+    function toggleSceneChipMulti(presetId) {
+      const preset = library.find(function (item) { return item.id === presetId; });
+      if (!preset) return;
+      if (chipActive(presetId)) {
+        state.rows = state.rows.filter(function (row) { return row.preset_id !== presetId; });
+      } else {
+        const row = presetToRow(preset, state);
+        row.strength = 1.2;
+        state.rows.push(row);
+      }
+      markDirty();
+      render();
+    }
+
+    function renderChipRow(label, category, chips, multi) {
       const row = el("div", { class: "krea2-v2-chip-row" });
       row.appendChild(el("span", { class: "krea2-v2-field-label" }, label));
       const wrap = el("div", { class: "krea2-v2-chips" });
@@ -3676,7 +3738,7 @@ function buildGroupPresetPicker(group) {
       }).map(function (row) { return row.preset_id; });
       for (const entry of chips) {
         const active = chipActive(entry[0]);
-        const conflicted = conflictsWithAny(entry[0], activeIds);
+        const conflicted = !multi && conflictsWithAny(entry[0], activeIds);
         wrap.appendChild(el("button", {
           type: "button",
           class: "krea2-v2-chip" + (active ? " is-active" : "") + (conflicted ? " is-conflicted" : ""),
@@ -3684,7 +3746,10 @@ function buildGroupPresetPicker(group) {
             ? "Conflicts with an active concept in this row"
             : (active ? "Click to remove" : "Click to apply"),
           disabled: conflicted,
-          onClick: function () { toggleSceneChip(entry[0]); },
+          onClick: function () {
+            if (multi) toggleSceneChipMulti(entry[0]);
+            else toggleSceneChip(entry[0]);
+          },
         }, entry[1]));
       }
       row.appendChild(wrap);
@@ -3751,8 +3816,12 @@ function buildGroupPresetPicker(group) {
         step: "1",
         value: String(mm),
         "aria-label": "Focal length in millimetres",
+        // Dragging only updates the visible label; the prompt row is
+        // committed on release so the slider never loses focus mid-drag.
         onInput: function (event) {
           value.textContent = Number(event.target.value) + "mm";
+        },
+        onChange: function (event) {
           setLensMm(Number(event.target.value));
         },
       });
@@ -3766,15 +3835,15 @@ function buildGroupPresetPicker(group) {
       return row;
     }
 
-    /* Lighting-direction compass rose: drag the light handle around the
-     * center subject icon. The direction maps to a lighting_direction
-     * concept row (front / 3-4 front / side / rim / back). */
-    const LIGHT_DIRECTION_PRESETS = {
-      front_lighting: Math.PI / 2,
-      three_quarter_front_lighting: Math.PI / 4,
-      side_lighting: 0,
-      rim_lighting: -Math.PI / 4,
-      backlighting: -Math.PI / 2,
+    /* Multi-light direction plane: every light is a draggable dot whose
+     * angle and distance from the subject are set by dragging; each light
+     * becomes a lighting_direction concept row in the scene. */
+    const LIGHT_DIRECTION_LABELS = {
+      front_lighting: "front lighting",
+      three_quarter_front_lighting: "three-quarter front lighting",
+      side_lighting: "side lighting",
+      rim_lighting: "rim lighting",
+      backlighting: "backlighting",
     };
 
     function normalizeAngle(rad) {
@@ -3798,34 +3867,97 @@ function buildGroupPresetPicker(group) {
       return "backlighting";
     }
 
-    function currentLightAngle() {
-      const stored = (state.scene_sections || {}).light_angle;
-      if (Number.isFinite(stored)) return stored;
-      const row = state.rows.find(function (r) { return r.category === "lighting_direction"; });
-      if (row && LIGHT_DIRECTION_PRESETS[row.preset_id] !== undefined) {
-        return LIGHT_DIRECTION_PRESETS[row.preset_id];
-      }
-      return Math.PI / 2;
+    function lightDistanceMetres(distance) {
+      const d = Math.max(0.25, Math.min(1, Number(distance) || 0.85));
+      return Math.round((0.5 + ((d - 0.25) / 0.75) * 1.5) * 2) / 2;
     }
 
-    function lightDirectionLabel() {
-      const row = state.rows.find(function (r) { return r.category === "lighting_direction"; });
-      return row ? (row.label || row.preset_id) : "not set — drag the light";
+    function lightPhrase(light) {
+      const label = LIGHT_DIRECTION_LABELS[lightingDirectionForAngle(light.angle)] || "lighting";
+      const metres = lightDistanceMetres(light.distance);
+      return label + " from " + metres + "m";
     }
 
-    function setLightDirection(rad) {
-      const presetId = lightingDirectionForAngle(rad);
+    function sceneLights() {
       state.scene_sections = state.scene_sections || {};
-      state.scene_sections.light_angle = normalizeAngle(rad);
-      const preset = library.find(function (item) { return item.id === presetId; });
-      if (preset) {
-        state.rows = state.rows.filter(function (row) { return row.category !== "lighting_direction"; });
-        const row = presetToRow(preset, state);
-        row.strength = 1.5;
-        state.rows.push(row);
+      if (!Array.isArray(state.scene_sections.lights)) state.scene_sections.lights = [];
+      if (!state.scene_sections.lights.length) {
+        const stored = state.scene_sections.light_angle;
+        state.scene_sections.lights.push({
+          id: "light_1",
+          angle: Number.isFinite(stored) ? normalizeAngle(stored) : Math.PI / 2,
+          distance: 0.85,
+        });
       }
+      return state.scene_sections.lights;
+    }
+
+    function syncLightRows() {
+      const lights = sceneLights();
+      state.rows = state.rows.filter(function (row) {
+        return !(row.category === "lighting_direction" && String(row.preset_id || "").indexOf("custom.light_") === 0);
+      });
+      lights.forEach(function (light, index) {
+        state.rows.push({
+          id: uniqueRowId(state),
+          category: "lighting_direction",
+          preset_id: "custom.light_" + (light.id || index),
+          label: "Light " + (index + 1) + " \u2014 " + lightPhrase(light),
+          phrase: lightPhrase(light),
+          control_mode: "scalar",
+          intensity: 0,
+          strength: Number.isFinite(Number(light.strength)) ? Number(light.strength) : 1.5,
+          enabled: true,
+          aliases: [],
+          verification: "general visual vocabulary",
+          source: "custom",
+        });
+      });
+    }
+
+    function setLightState(light, angle, distance, strength) {
+      if (Number.isFinite(angle)) light.angle = normalizeAngle(angle);
+      if (Number.isFinite(distance)) light.distance = Math.max(0.25, Math.min(1, distance));
+      if (Number.isFinite(strength)) light.strength = strength;
+      syncLightRows();
       markDirty();
       render();
+    }
+
+    function addLight() {
+      const lights = sceneLights();
+      lights.push({
+        id: "light_" + Date.now().toString(36),
+        angle: Math.PI / 2,
+        distance: 0.85,
+        strength: 1.5,
+      });
+      syncLightRows();
+      markDirty();
+      render();
+    }
+
+    function removeLight(light) {
+      const lights = sceneLights();
+      state.scene_sections.lights = lights.filter(function (item) { return item !== light; });
+      syncLightRows();
+      markDirty();
+      render();
+    }
+
+    function applyLightingSetupLayout(presetId) {
+      const layout = LIGHT_SETUP_LAYOUTS[presetId];
+      if (!layout) return;
+      state.scene_sections = state.scene_sections || {};
+      state.scene_sections.lights = layout.map(function (entry, index) {
+        return {
+          id: "light_" + (index + 1) + "_" + Date.now().toString(36),
+          angle: entry.angle,
+          distance: entry.distance,
+          strength: 1.5,
+        };
+      });
+      syncLightRows();
     }
 
     function svgEl(tag, attrs) {
@@ -3844,13 +3976,13 @@ function buildGroupPresetPicker(group) {
       const SIZE = 132;
       const C = SIZE / 2;
       const R = 50;
-      const angle = currentLightAngle();
+      const lights = sceneLights();
       const svg = svgEl("svg", {
         viewBox: "0 0 " + SIZE + " " + SIZE,
         width: String(SIZE),
         height: String(SIZE),
         class: "krea2-v2-compass",
-        "aria-label": "Lighting direction compass: drag the light around the subject",
+        "aria-label": "Lighting plane: drag each light around the subject; drag toward or away from the centre to change distance",
       });
       svg.appendChild(svgEl("circle", { cx: C, cy: C, r: R, class: "krea2-v2-compass-ring" }));
       for (let i = 0; i < 8; i += 1) {
@@ -3865,34 +3997,165 @@ function buildGroupPresetPicker(group) {
         }));
       }
       svg.appendChild(svgEl("circle", { cx: C, cy: C, r: 9, class: "krea2-v2-compass-subject" }));
-      const hx = C + Math.cos(angle) * (R - 12);
-      const hy = C + Math.sin(angle) * (R - 12);
-      svg.appendChild(svgEl("line", {
-        x1: C, y1: C, x2: hx, y2: hy,
-        class: "krea2-v2-compass-ray",
-      }));
-      svg.appendChild(svgEl("circle", { cx: hx, cy: hy, r: 7, class: "krea2-v2-compass-handle" }));
-      const onMove = function (event) {
-        const rect = svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
-        const cx = rect ? rect.left + rect.width / 2 : C;
-        const cy = rect ? rect.top + rect.height / 2 : C;
+
+      const rect = svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
+      const centerX = rect ? rect.left + rect.width / 2 : C;
+      const centerY = rect ? rect.top + rect.height / 2 : C;
+
+      const lightDots = [];
+      lights.forEach(function (light, index) {
+        const dx = Math.cos(light.angle) * (R - 8) * light.distance;
+        const dy = Math.sin(light.angle) * (R - 8) * light.distance;
+        const group = svgEl("g", { class: "krea2-v2-compass-light" });
+        group.appendChild(svgEl("line", {
+          x1: C, y1: C, x2: C + dx, y2: C + dy,
+          class: "krea2-v2-compass-ray",
+        }));
+        const dot = svgEl("circle", {
+          cx: C + dx,
+          cy: C + dy,
+          r: 7,
+          class: "krea2-v2-compass-handle",
+        });
+        group.appendChild(dot);
+        const num = svgEl("text", {
+          x: C + dx + 9,
+          y: C + dy + 3,
+          class: "krea2-v2-compass-num",
+        });
+        num.textContent = String(index + 1);
+        group.appendChild(num);
+        svg.appendChild(group);
+        lightDots.push({ light: light, dot: dot });
+      });
+
+      const drag = function (light, event) {
+        const cx = rect ? rect.left + rect.width / 2 : centerX;
+        const cy = rect ? rect.top + rect.height / 2 : centerY;
         const dx = event.clientX - cx;
         const dy = event.clientY - cy;
-        if (Math.sqrt(dx * dx + dy * dy) < 8) return;
-        setLightDirection(Math.atan2(dy, dx));
+        const radius = R - 8;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 6) return;
+        light.angle = normalizeAngle(Math.atan2(dy, dx));
+        light.distance = Math.max(0.25, Math.min(1, dist / radius));
+        // Live-update the dot without a full re-render so the drag never
+        // loses focus; state commits on mouseup.
+        const group = event.target && event.target.parentNode;
+        const line = group && group.children && group.children[0];
+        const label = group && group.children && group.children[2];
+        if (line) {
+          line.setAttribute("x2", String(C + Math.cos(light.angle) * radius * light.distance));
+          line.setAttribute("y2", String(C + Math.sin(light.angle) * radius * light.distance));
+        }
+        if (label) {
+          label.setAttribute("x", String(C + Math.cos(light.angle) * radius * light.distance + 9));
+          label.setAttribute("y", String(C + Math.sin(light.angle) * radius * light.distance + 3));
+        }
+        if (event.target) {
+          event.target.setAttribute("cx", String(C + Math.cos(light.angle) * radius * light.distance));
+          event.target.setAttribute("cy", String(C + Math.sin(light.angle) * radius * light.distance));
+        }
       };
-      const onUp = function () {
-        document.removeEventListener("mousemove", onMove);
-        document.removeEventListener("mouseup", onUp);
-      };
+
+      for (const entry of lightDots) {
+        const start = function (event) {
+          if (event.button !== 0) return;
+          event.preventDefault();
+          event.stopPropagation();
+          drag(entry.light, event);
+          const onMove = function (moveEvent) { drag(entry.light, moveEvent); };
+          const onUp = function () {
+            document.removeEventListener("mousemove", onMove);
+            document.removeEventListener("mouseup", onUp);
+            syncLightRows();
+            markDirty();
+            render();
+          };
+          document.addEventListener("mousemove", onMove);
+          document.addEventListener("mouseup", onUp);
+        };
+        entry.dot.addEventListener("mousedown", start);
+      }
+
+      /* Clicking empty compass space adds a light there. */
       svg.addEventListener("mousedown", function (event) {
         if (event.button !== 0) return;
         event.preventDefault();
-        onMove(event);
-        document.addEventListener("mousemove", onMove);
-        document.addEventListener("mouseup", onUp);
+        const cx = rect ? rect.left + rect.width / 2 : centerX;
+        const cy = rect ? rect.top + rect.height / 2 : centerY;
+        const dx = event.clientX - cx;
+        const dy = event.clientY - cy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 10) return;
+        state.scene_sections = state.scene_sections || {};
+        if (!Array.isArray(state.scene_sections.lights)) state.scene_sections.lights = [];
+        state.scene_sections.lights.push({
+          id: "light_" + Date.now().toString(36),
+          angle: normalizeAngle(Math.atan2(dy, dx)),
+          distance: Math.max(0.25, Math.min(1, dist / (R - 8))),
+          strength: 1.5,
+        });
+        syncLightRows();
+        markDirty();
+        render();
       });
       return svg;
+    }
+
+    function renderLightingContent() {
+      const wrap = el("div", { class: "krea2-v2-subsection-content" });
+      wrap.appendChild(renderChipRow("Lighting Setup", "lighting_setup", SCENE_CHIPS.lighting_setup));
+      const dirRow = el("div", { class: "krea2-v2-chip-row krea2-v2-dir-row" });
+      dirRow.append(
+        el("span", { class: "krea2-v2-field-label" }, "Lights"),
+        el("div", { class: "krea2-v2-compass-wrap" }, [
+          renderCompassRose(),
+          el("div", { class: "krea2-v2-lights" }, renderLightRows()),
+        ]),
+      );
+      wrap.appendChild(dirRow);
+      return wrap;
+    }
+
+    function renderLightRows() {
+      const rows = el("div", { class: "krea2-v2-light-rows" });
+      sceneLights().forEach(function (light, index) {
+        const row = el("div", { class: "krea2-v2-light-row" });
+        const label = el("span", {
+          class: "krea2-v2-light-label",
+          title: lightPhrase(light),
+        }, "Light " + (index + 1) + " \u00b7 " + lightPhrase(light));
+        const stepper = K.presetRow.makeStepper({
+          value: Number(light.strength) || 1.5,
+          step: 0.25,
+          min: -3,
+          max: 3,
+          format: formatLoraValue,
+          label: "Light " + (index + 1) + " strength",
+          onCommit: function (value) {
+            light.strength = Math.round(value * 100) / 100;
+            syncLightRows();
+            markDirty();
+            render();
+          },
+        });
+        const remove = el("button", {
+          type: "button",
+          class: "krea2-wizard-btn krea2-icon-btn krea2-danger",
+          title: "Remove this light",
+          "aria-label": "Remove light " + (index + 1),
+          onClick: function () { removeLight(light); },
+        }, icon("close", { width: "10", height: "10" }));
+        row.append(label, stepper.minus, stepper.valueEl, stepper.plus, remove);
+        rows.appendChild(row);
+      });
+      rows.appendChild(el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-v2-add-light",
+        onClick: addLight,
+      }, "+ Add Light"));
+      return rows;
     }
 
     function renderCameraContent() {
@@ -3904,24 +4167,9 @@ function buildGroupPresetPicker(group) {
       return wrap;
     }
 
-    function renderLightingContent() {
-      const wrap = el("div", { class: "krea2-v2-subsection-content" });
-      wrap.appendChild(renderChipRow("Lighting Setup", "lighting_setup", SCENE_CHIPS.lighting_setup));
-      const dirRow = el("div", { class: "krea2-v2-chip-row krea2-v2-dir-row" });
-      dirRow.append(
-        el("span", { class: "krea2-v2-field-label" }, "Direction"),
-        el("div", { class: "krea2-v2-compass-wrap" }, [
-          renderCompassRose(),
-          el("span", { class: "krea2-v2-dir-label" }, lightDirectionLabel()),
-        ]),
-      );
-      wrap.appendChild(dirRow);
-      return wrap;
-    }
-
     function renderEnvironmentContent() {
       const wrap = el("div", { class: "krea2-v2-subsection-content" });
-      wrap.appendChild(renderChipRow("Atmosphere", "atmosphere", SCENE_CHIPS.atmosphere));
+      wrap.appendChild(renderChipRow("Atmosphere", "atmosphere", SCENE_CHIPS.atmosphere, true));
       return wrap;
     }
 
@@ -4002,7 +4250,7 @@ function buildGroupPresetPicker(group) {
           placeholder: "Describe the scene, mood, lighting, camera, or style.",
           onInput: function (event) {
             state.base_prompt = event.target.value;
-            sizeBasePrompt();
+            autoExpandTextarea(event);
             markDirty();
             syncNodeHeight();
           },
