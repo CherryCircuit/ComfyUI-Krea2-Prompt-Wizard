@@ -192,6 +192,10 @@
     { label: "Focused", presets: [["emotion.determination", 1.4], ["gaze.fixed_intense_stare", 1.3], ["body.confident_stance", 1.2]] },
   ];
 
+  /* Build indicator shown in the top bar so it is obvious which wizard
+   * build is running. Bump when you ship a new build. */
+  const WIZARD_VERSION = "v2.0.0";
+
   const TABS = [
     ["cast", "Cast", "users"],
     ["scene", "Scene", "clapper"],
@@ -468,6 +472,11 @@
     const masterPresetSelect = buildMasterPresetControl();
 
     const topBar = el("div", { class: "krea2-wizard-top" }, [
+      el("span", {
+        class: "krea2-wizard-version",
+        title: "Krea2 Prompt Wizard build " + WIZARD_VERSION,
+        "aria-label": "Wizard build " + WIZARD_VERSION,
+      }, WIZARD_VERSION),
       savedPresetControl.root,
       el("span", { class: "krea2-structured-spacer" }),
       undoBtn,

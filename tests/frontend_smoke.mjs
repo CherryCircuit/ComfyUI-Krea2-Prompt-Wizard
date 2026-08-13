@@ -227,6 +227,10 @@ if (!rootClasses.includes("krea2-wizard-expanded")) {
 if (findByClass(wizard.root, "krea2-v2-tab").length !== 2) {
   throw new Error("The v2 wizard must render exactly two tabs: CAST and SCENE.");
 }
+const versionChip = findByClass(wizard.root, "krea2-wizard-version")[0];
+if (!versionChip || !/^v\d+\.\d+\.\d+/.test(textOf(versionChip))) {
+  throw new Error("The top bar must show the wizard build version indicator.");
+}
 const castTab = findByClass(wizard.root, "krea2-v2-tab")
   .find((tab) => textOf(tab).includes("Cast"));
 const sceneTab = findByClass(wizard.root, "krea2-v2-tab")

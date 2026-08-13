@@ -77,6 +77,21 @@ body.dark {
   border-radius: 10px;
 }
 
+.krea2-wizard-version {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--krea2-text-faint);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid color-mix(in srgb, var(--krea2-border) 70%, transparent);
+  border-radius: 5px;
+  padding: 1px 6px;
+  white-space: nowrap;
+  cursor: default;
+  user-select: none;
+}
+
 .krea2-wizard-editor {
   display: flex;
   flex-direction: column;
