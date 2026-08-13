@@ -518,8 +518,8 @@ body.dark {
 .krea2-character-card-body {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 8px 10px 10px;
+  gap: 10px;
+  padding: 10px 12px 12px;
   border-top: 1px solid color-mix(in srgb, var(--krea2-border) 55%, transparent);
 }
 
@@ -584,7 +584,7 @@ body.dark {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 9px;
+  padding: 8px 10px;
   border-radius: 7px;
   min-width: 0;
   user-select: none;
@@ -621,8 +621,8 @@ body.dark {
 .krea2-v2-block-body {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  padding: 2px 9px 8px;
+  gap: 6px;
+  padding: 4px 10px 10px;
   min-width: 0;
 }
 
@@ -684,10 +684,10 @@ body.dark {
 
 .krea2-row-head {
   display: grid;
-  grid-template-columns: 16px 16px minmax(0, 1fr) 24px 44px 24px 24px 24px;
+  grid-template-columns: 16px 16px minmax(0, 1fr) 26px 46px 26px 24px 24px;
   gap: 4px;
   align-items: center;
-  padding: 3px 4px;
+  padding: 4px 5px;
   min-width: 0;
 }
 
@@ -754,8 +754,8 @@ body.dark {
 
 .krea2-row-step-minus,
 .krea2-row-step-plus {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   padding: 0;
   display: inline-grid;
   place-items: center;
@@ -778,8 +778,8 @@ body.dark {
 }
 
 .krea2-row-value {
-  width: 44px;
-  height: 24px;
+  width: 46px;
+  height: 26px;
   display: inline-grid;
   place-items: center;
   background: #101318;
@@ -1437,8 +1437,8 @@ body.krea2-ns-resize * { cursor: ns-resize !important; }
 .krea2-v2-subsection-content {
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  padding: 7px 9px 9px;
+  gap: 9px;
+  padding: 8px 10px 11px;
   min-width: 0;
 }
 

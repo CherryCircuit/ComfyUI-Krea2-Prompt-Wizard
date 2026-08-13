@@ -95,11 +95,21 @@ class Element {
   }
   addEventListener(name, listener) { this.listeners[name] = listener; }
   removeEventListener() {}
+  removeChild(child) {
+    const index = this.children.indexOf(child);
+    if (index >= 0) {
+      this.children.splice(index, 1);
+      child.parentNode = null;
+    }
+    return child;
+  }
   querySelectorAll() { return []; }
   querySelector() { return null; }
   remove() { if (this.parentNode) this.parentNode.removeChild(this); }
   contains(target) { return target === this || this.children.includes(target); }
   scrollIntoView() {}
+  focus() {}
+  select() {}
   click() { if (typeof this.listeners.click === "function") this.listeners.click({}); }
   getBoundingClientRect() { return { left: 0, top: 0, width: 100, height: 24 }; }
 }
@@ -471,6 +481,18 @@ const joyPreset = libraryPayload.presets.find((p) => p.id === "emotion.joy");
 if (!griefPreset || !joyPreset) {
   throw new Error("Test setup requires emotion.grief and emotion.joy in the library.");
 }
+
+/* --- Conflict-aware cascading inside the character emotion picker -------- */
+const addConceptBtn = findByClass(wizard.root, "krea2-v2-add-concept")[0];
+addConceptBtn.listeners.click({});
+const overlayItems = findByClass(document.body, "krea2-searchable-item");
+if (overlayItems.some((item) => textOf(item).includes("Grief"))) {
+  throw new Error("The emotion picker must filter out conflicting emotions (grief with joy applied).");
+}
+if (!overlayItems.some((item) => textOf(item).includes("Joy"))) {
+  throw new Error("The emotion picker must keep compatible emotions (joy).");
+}
+findByClass(document.body, "krea2-searchable-close")[0].listeners.click({});
 
 /* --- Cast header actions still present ------------------------------------- */
 if (!findByClass(wizard.root, "krea2-cast-random-all").length) {
