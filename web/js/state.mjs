@@ -1156,8 +1156,8 @@
     for (const line of guidance) fragments.push(line);
     const loraLines = faceGuidanceLines(character.lora_triggers);
     for (const line of loraLines) fragments.push(line);
-    const loraTokens = compileLoraTokens(character);
-    for (const token of loraTokens) fragments.push(token);
+    /* Character LoRAs are NOT emitted into the prompt text: they are applied
+     * per character by the Krea2CharacterLoras node (ComfyUI Hook System). */
   /* Krea2 understands natural-language descriptions, so named species get a
    * self-contained visual description instead of a bare label. Mirrors
    * src/compiler.py::_SPECIES_DESCRIPTIONS. */

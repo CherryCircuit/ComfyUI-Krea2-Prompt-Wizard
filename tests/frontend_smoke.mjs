@@ -779,7 +779,7 @@ if (!groupChips.some((chip) => textOf(chip).includes("Subject"))) {
 }
 findByClass(document.body, "krea2-searchable-close")[0].listeners.click({});
 
-/* --- Per-character LoRA rows emit <lora:name:strength> -------------------- */
+/* --- Per-character LoRA rows --------------------------------------------- */
 wizard.setState({
   schema_version: 1,
   characters: [{
@@ -819,9 +819,12 @@ const loraPersisted = JSON.parse(stateWidget.value).characters[0].loras[0];
 if (loraPersisted.strength !== 0.9) {
   throw new Error("The LoRA [+] must raise the strength by 0.05.");
 }
-const loraCompiled = window.KREA2.helpers.compilePreview(JSON.parse(stateWidget.value)).final_prompt;
-if (!loraCompiled.includes("<lora:realism:0.9>") || !loraCompiled.includes("<lora:char_style:-0.5>")) {
-  throw new Error("Character LoRAs must compile into <lora:name:strength> tokens inside the character block.");
+const loraCompiledNow = window.KREA2.helpers.compilePreview(JSON.parse(stateWidget.value)).final_prompt;
+if (loraCompiledNow.includes("<lora:")) {
+  throw new Error("Character LoRAs must NOT be emitted as text tokens (the regional hook node applies them).");
+}
+if (!findByClass(wizard.root, "krea2-v2-regional-lora").length) {
+  throw new Error("The LoRA block must expose a Create Regional LoRA Node button.");
 }
 const loraValue = findByClass(firstLoraRow, "krea2-row-value")[0];
 loraValue.listeners.click({});

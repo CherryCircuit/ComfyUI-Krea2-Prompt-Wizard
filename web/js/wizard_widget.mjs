@@ -3970,8 +3970,22 @@ function buildGroupPresetPicker(group) {
         ]));
         body.appendChild(el("div", { class: "krea2-settings-copy" },
           "LoRAs are picked from ComfyUI's models/loras folder \u2014 subfolders included, exactly like the built-in LoRA loader. " +
-          "Each one is applied to the model via the node's Model input, and its <lora:name:strength> token compiles only inside " +
-          (character.name || "this character") + "\u2019s block. Strengths accept negatives and go well beyond 1 for very strong LoRAs."));
+          "Use \u201cCreate Regional LoRA Node\u201d to apply each character's LoRAs only to that character's region (ComfyUI Hook System). " +
+          "Strengths accept negatives and go well beyond 1 for very strong LoRAs."));
+        body.appendChild(el("button", {
+          type: "button",
+          class: "krea2-wizard-btn krea2-v2-regional-lora",
+          title: "Create a Krea2CharacterLoras node that applies each character's LoRAs only to that character's region (ComfyUI Hook System)",
+          onClick: function () {
+            const result = K.materialize && K.materialize.materializeRegional
+              ? K.materialize.materializeRegional(node)
+              : null;
+            showToast(
+              result ? "Regional LoRA node created \u2014 connect a CLIP to it and route its conditioning to the sampler" : "Could not create the regional LoRA node",
+              result ? "info" : "warning",
+            );
+          },
+        }, "Create Regional LoRA Node"));
       }
       block.appendChild(header);
       block.appendChild(body);

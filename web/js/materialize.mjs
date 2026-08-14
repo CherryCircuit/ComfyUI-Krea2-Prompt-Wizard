@@ -200,5 +200,36 @@
     }
   }
 
-  K.materialize = { materialize: materialize, createSubgraph: createSubgraph };
+  /* Create a Krea2CharacterLoras node wired to the wizard: Prompt Output,
+   * Character LoRA JSON and Model outputs connected, CLIP left for the
+   * user. The regional node applies each character's LoRAs via ComfyUI's
+   * Hook System (per-conditioning hooks + region masks). */
+  function materializeRegional(wizardNode, options) {
+    options = options || {};
+    const graph = findGraph();
+    if (!graph || !window.LiteGraph) {
+      K.helpers.showToast("Cannot materialize: no active graph found.", "error");
+      return null;
+    }
+    const x0 = options.x != null ? options.x : graph.canvas && graph.canvas.canvas ? graph.canvas.canvas.width / 2 - 220 : 0;
+    const y0 = options.y != null ? options.y : graph.canvas && graph.canvas.canvas ? graph.canvas.canvas.height / 2 + 40 : 0;
+    const regional = createNode("Krea2CharacterLoras", [x0, y0]);
+    if (!regional) {
+      K.helpers.showToast("Krea2CharacterLoras not found — restart ComfyUI to register the new node.", "error");
+      return null;
+    }
+    graph.add(regional);
+    if (wizardNode) {
+      // Wizard outputs: 0 Prompt Output, 1 Video Motion Prompt, 2 Model, 3 Character LoRA.
+      // Regional inputs: 0 model, 1 clip, 2 text, 3 lora_state, 4 mask_size.
+      connect(wizardNode, 0, regional, 2);
+      connect(wizardNode, 3, regional, 3);
+      connect(wizardNode, 2, regional, 0);
+    }
+    layoutNodes(graph, [regional]);
+    if (graph.setDirtyCanvas) graph.setDirtyCanvas(true, true);
+    return { nodes: [regional] };
+  }
+
+  K.materialize = { materialize: materialize, createSubgraph: createSubgraph, materializeRegional: materializeRegional };
 })();

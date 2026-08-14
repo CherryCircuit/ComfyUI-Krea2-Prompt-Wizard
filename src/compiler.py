@@ -543,14 +543,11 @@ def _compile_character(
     lora_lines = _face_guidance_lines(character.get("lora_triggers"))
     emitted.extend(lora_lines)
     plain_emitted.extend(lora_lines)
-    # A1111-style LoRA tokens, one per assigned LoRA: <lora:filename:strength>.
-    # These are the textual application of a LoRA to a character; the model-
-    # side application happens in the node (Model input -> Model output).
-    for token in _lora_tokens(character):
-        emitted.append(token)
     # Krea2 follows natural-language descriptions (official prompting guide),
     # so skin and ethnicity also get weighted visual phrases — "blue skin"
     # reads far better to the Qwen3-VL encoder than "skin colour: blue".
+    # Character LoRAs are NOT emitted into the prompt text: they are applied
+    # per character by the Krea2CharacterLoras node (ComfyUI Hook System).
     skin = str(character.get("skin_color") or "").strip()
     if skin and re.fullmatch(r"[a-z ]+", skin, re.IGNORECASE):
         emitted.append(f"({skin} skin:1.5)")

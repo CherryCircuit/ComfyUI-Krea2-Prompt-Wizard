@@ -11,7 +11,6 @@ import unittest
 from unittest.mock import patch
 
 from src import api as api_module
-from src.compiler import _format_lora_strength, _lora_token_name, _lora_tokens
 from src.nodes import Krea2PromptSaver, Krea2PromptWizard, Krea2SaveImage
 
 
@@ -92,35 +91,9 @@ class LoRATests(unittest.TestCase):
         result = Krea2PromptWizard().build(state, model=sentinel)
         self.assertIs(result["result"][2], sentinel)
 
-    def test_lora_tokens_emit_a1111_syntax_per_character(self):
-        character = {
-            "name": "Mara",
-            "loras": [
-                {"filename": "realism.safetensors", "strength": 1.0},
-                {"filename": "char_style.ckpt", "strength": 0.85},
-                {"filename": "anti_thing.safetensors", "strength": -0.5},
-            ],
-        }
-        tokens = _lora_tokens(character)
-        self.assertEqual(
-            tokens,
-            [
-                "<lora:realism:1>",
-                "<lora:char_style:0.85>",
-                "<lora:anti_thing:-0.5>",
-            ],
-        )
-        self.assertEqual(_lora_token_name("Style v2.safetensors"), "Style v2")
-        self.assertEqual(_lora_token_name("plain"), "plain")
-        self.assertEqual(_format_lora_strength(1.5), "1.5")
-        self.assertEqual(_format_lora_strength(0.8), "0.8")
-        self.assertEqual(_format_lora_strength(2.0), "2")
-
-    def test_legacy_lora_state_falls_back_to_a_token(self):
-        character = {"name": "Mara", "lora_name": "legacy.safetensors", "lora_strength": 1.25}
-        self.assertEqual(_lora_tokens(character), ["<lora:legacy:1.25>"])
-
-    def test_compiled_prompt_includes_lora_tokens(self):
+    def test_compiled_prompt_has_no_lora_tags(self):
+        # LoRAs are applied by the Krea2CharacterLoras hook node, never as
+        # <lora:...> text tokens in the prompt.
         from src.compiler import compile_state
         from src.library import load_library
 
@@ -134,11 +107,191 @@ class LoRATests(unittest.TestCase):
                     "enabled": True,
                     "lora_name": "realism.safetensors",
                     "lora_strength": 0.8,
+                    "loras": [{"filename": "realism.safetensors", "strength": 0.8}],
                 }
             ],
         }
         result = compile_state(state, load_library())
-        self.assertIn("<lora:realism:0.8>", result.final_prompt)
+        self.assertNotIn("<lora:", result.final_prompt)
+
+    def test_character_lora_manifest_output(self):
+        from src.nodes import _character_lora_json
+
+        state = {
+            "characters": [
+                {
+                    "id": "c1",
+                    "name": "Mara",
+                    "enabled": True,
+                    "position": "standing on the left side",
+                    "loras": [
+                        {"filename": "woman_blonde.safetensors", "strength": 1.0},
+                        {"filename": "realism.safetensors", "strength": 0.8},
+                    ],
+                },
+                {"id": "c2", "name": "Ghost", "enabled": False, "loras": [{"filename": "x.safetensors", "strength": 1.0}]},
+                {"id": "c3", "name": "Ivo", "enabled": True, "position": "on the right", "lora_name": "legacy.safetensors", "lora_strength": 1.25},
+            ]
+        }
+        manifest = json.loads(_character_lora_json(state))
+        self.assertEqual(len(manifest["characters"]), 2)
+        self.assertEqual(manifest["characters"][0]["name"], "Mara")
+        self.assertEqual(manifest["characters"][0]["position"], "standing on the left side")
+        self.assertEqual(len(manifest["characters"][0]["loras"]), 2)
+        self.assertEqual(manifest["characters"][1]["loras"], [{"filename": "legacy.safetensors", "strength": 1.25}])
+
+    def test_regional_node_splits_segments_and_strips_tags(self):
+        from src.nodes import Krea2CharacterLoras
+
+        text = (
+            "portrait, Character Mara: woman with blonde hair, (joy:1.5) <lora:woman_blonde:1.0>, "
+            "Character Ivo: man in a trench coat <lora:man_trenchcoat:1.0>, Setting Street: rainy"
+        )
+        segments = Krea2CharacterLoras.split_segments(text)
+        self.assertEqual(len(segments), 3)
+        self.assertEqual(segments[0][1], None)
+        self.assertEqual(segments[1][1], "mara")
+        self.assertNotIn("<lora:", segments[1][0])
+        self.assertIn("woman with blonde hair", segments[1][0])
+        self.assertEqual(segments[2][1], "ivo")
+        self.assertNotIn("<lora:", segments[2][0])
+
+    def test_regional_node_region_selection(self):
+        from src.nodes import Krea2CharacterLoras
+
+        region = Krea2CharacterLoras.region_for
+        self.assertEqual(region("standing on the left side of the frame", 0, 2), "left")
+        self.assertEqual(region("standing on the right side", 0, 2), "right")
+        self.assertEqual(region("in the centre", 0, 2), "center")
+        self.assertEqual(region("", 0, 2), "left")
+        self.assertEqual(region("", 1, 2), "right")
+        self.assertEqual(region("", 0, 3), "left")
+        self.assertEqual(region("", 1, 3), "center")
+        self.assertEqual(region("", 2, 3), "right")
+
+    def test_regional_node_builds_masks(self):
+        from src.nodes import Krea2CharacterLoras
+
+        class FakeTensor:
+            def __init__(self, shape):
+                self.shape = shape
+                self._mask = [0.0] * (shape[2] * shape[3])
+
+            def __setitem__(self, key, value):
+                pass
+
+            def __getitem__(self, key):
+                return self
+
+        class FakeTorch:
+            float32 = "float32"
+
+            @staticmethod
+            def zeros(shape, dtype=None):
+                return FakeTensor(shape)
+
+        left = Krea2CharacterLoras._build_mask.__wrapped__("left", 8) if hasattr(Krea2CharacterLoras._build_mask, "__wrapped__") else None
+        # _build_mask imports torch lazily; patch sys.modules and re-run.
+        with patch.dict(sys.modules, {"torch": FakeTorch()}):
+            mask = Krea2CharacterLoras._build_mask("left", 8)
+        self.assertEqual(mask.shape, (1, 1, 8, 8))
+
+    def test_regional_node_encode_attaches_hooks_and_masks(self):
+        from src.nodes import Krea2CharacterLoras
+
+        recorded = {}
+
+        class FakeHooks:
+            class HookGroup:
+                def __init__(self):
+                    self.hooks = ["h"]
+
+                def clone_and_combine(self, other):
+                    self.hooks = self.hooks + [other]
+                    return self
+
+            @staticmethod
+            def create_hook_lora(lora=None, strength_model=1.0, strength_clip=0.0):
+                return "hook:" + str(strength_model)
+
+            @staticmethod
+            def set_hooks_for_conditioning(cond, hooks, append_hooks=True, cache=None):
+                cond[0][1]["hooks"] = hooks
+                return cond
+
+        class FakeUtils:
+            @staticmethod
+            def load_torch_file(path, safe_load=True):
+                return {"tensors": True}
+
+        class FakeFolderPaths:
+            @staticmethod
+            def get_full_path(folder, name):
+                return "C:/loras/" + name if name == "woman_blonde.safetensors" else ""
+
+        class FakeTensor:
+            def __init__(self, shape):
+                self.shape = shape
+
+            def __setitem__(self, key, value):
+                pass
+
+        class FakeTorch:
+            float32 = "float32"
+
+            @staticmethod
+            def zeros(shape, dtype=None):
+                return FakeTensor(shape)
+
+        class FakeClip:
+            def tokenize(self, text):
+                recorded["tokenized"] = text
+                return {"k": [[("tok", text)]]}
+
+            def encode_from_tokens_scheduled(self, tokens):
+                return [("cond", {"model_options": {}})] if isinstance(tokens, dict) else []
+
+        class FakeModel:
+            pass
+
+        def fake_deepcopy(value):
+            return dict(value)
+
+        manifest = json.dumps({
+            "characters": [
+                {
+                    "name": "Mara",
+                    "position": "on the left",
+                    "loras": [{"filename": "woman_blonde.safetensors", "strength": 1.0}],
+                }
+            ]
+        })
+        text = "Character Mara: woman with blonde hair <lora:woman_blonde:1.0>"
+
+        node = Krea2CharacterLoras()
+        fake_comfy = types.ModuleType("comfy")
+        fake_comfy.hooks = FakeHooks()
+        fake_comfy.utils = FakeUtils()
+        with patch.dict(
+            sys.modules,
+            {
+                "comfy": fake_comfy,
+                "comfy.hooks": FakeHooks(),
+                "comfy.utils": FakeUtils(),
+                "torch": FakeTorch(),
+                "folder_paths": FakeFolderPaths(),
+            },
+        ), patch("copy.deepcopy", side_effect=fake_deepcopy):
+            fake_model = FakeModel()
+            conditioning, model = node.encode(fake_model, FakeClip(), text, manifest, mask_size=8)
+
+        self.assertIs(model, fake_model)
+        self.assertEqual(len(conditioning), 1)
+        cond = conditioning[0]
+        self.assertIn("hooks", cond[1])
+        self.assertIn("mask", cond[1])
+        self.assertIn("mask_strength", cond[1])
+        self.assertNotIn("<lora:", recorded["tokenized"])
 
 
 
