@@ -959,12 +959,15 @@ class Krea2CharacterLoras:
     """Regional, per-character LoRA application.
 
     Parses the wizard's Prompt Output into per-character segments, strips
-    any ``<lora:...>`` tags from the text, encodes each segment with the
-    CLIP, attaches the character's LoRAs as conditioning hooks, and masks
-    the segment to the character's region of the frame (from the position
-    field when present, otherwise split by cast order). Feed the BASE model
-    (Load Diffusion Model output), the wizard's Prompt Output and its
-    Character LoRA JSON, and a CLIP.
+    any ``<lora:...>`` tags and ``(phrase:weight)`` weighting syntax from
+    the text, encodes each segment with the CLIP, attaches the character's
+    LoRAs as conditioning hooks, and masks the segment to the character's
+    region of the frame (from the position field when present, otherwise
+    split by cast order). Feed the BASE model (Load Diffusion Model
+    output), the wizard's Prompt Output and its Character LoRA JSON, and a
+    CLIP. Connect the Krea2 Prompt Weight node's conditioning output to the
+    optional ``conditioning`` input to append these regional segments to it
+    — the sampler then receives one combined conditioning.
     """
 
     @classmethod
@@ -978,7 +981,7 @@ class Krea2CharacterLoras:
                     {
                         "multiline": True,
                         "default": "",
-                        "tooltip": "The wizard's Prompt Output. <lora:...> tags are stripped before encoding.",
+                        "tooltip": "The wizard's Prompt Output. <lora:...> tags and (phrase:weight) syntax are stripped before encoding.",
                     },
                 ),
                 "lora_state": (
@@ -991,6 +994,12 @@ class Krea2CharacterLoras:
                 ),
             },
             "optional": {
+                "conditioning": (
+                    "CONDITIONING",
+                    {
+                        "tooltip": "Base conditioning to append to — e.g. the Krea2 Prompt Weight node's conditioning output. Kept at the front so its token-weight positions stay valid.",
+                    },
+                ),
                 "mask_size": ("INT", {"default": 1024, "min": 256, "max": 4096, "step": 64}),
             },
         }
@@ -1030,9 +1039,14 @@ class Krea2CharacterLoras:
 
     @staticmethod
     def split_segments(text: str):
-        """Split the prompt into (text, character_name_or_None) segments."""
-        clean = re.sub(r"<lora:[^>]+>", "", text or "")
-        parts = re.split(r"(?=Character )", clean)
+        """Split the prompt into (text, character_name_or_None) segments.
+
+        Strips <lora:...> tags and (phrase:weight) weighting syntax (the
+        phrase text is kept) so neither leaks into the encoded text.
+        """
+        cleaned = re.sub(r"<lora:[^>]+>", "", text or "")
+        cleaned = re.sub(r"\(([^():]+):-?\d*\.?\d+\)", r"\1", cleaned)
+        parts = re.split(r"(?=Character )", cleaned)
         segments = []
         for part in parts:
             stripped = part.strip()
@@ -1057,7 +1071,7 @@ class Krea2CharacterLoras:
             return thirds[min(cast_index, 2)]
         return "left" if cast_index % 2 == 0 else "right"
 
-    def encode(self, model, clip, text, lora_state, mask_size=1024):
+    def encode(self, model, clip, text, lora_state, conditioning=None, mask_size=1024):
         import copy
         import os
 
@@ -1071,7 +1085,9 @@ class Krea2CharacterLoras:
         segments = self.split_segments(text)
         cast_total = len([1 for seg in segments if seg[1] is not None])
         cast_index = 0
-        conditioning = []
+        # Any base conditioning (e.g. the Krea2 Prompt Weight node's output)
+        # stays at the front so its token-weight positions remain valid.
+        conditioning = list(conditioning) if isinstance(conditioning, list) else []
         for seg_text, char_key in segments:
             tokens = clip.tokenize(seg_text)
             cond = clip.encode_from_tokens_scheduled(tokens)

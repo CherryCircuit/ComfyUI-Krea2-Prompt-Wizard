@@ -152,6 +152,8 @@ class LoRATests(unittest.TestCase):
         self.assertEqual(segments[0][1], None)
         self.assertEqual(segments[1][1], "mara")
         self.assertNotIn("<lora:", segments[1][0])
+        self.assertNotIn("(joy:1.5)", segments[1][0])
+        self.assertIn("joy", segments[1][0])
         self.assertIn("woman with blonde hair", segments[1][0])
         self.assertEqual(segments[2][1], "ivo")
         self.assertNotIn("<lora:", segments[2][0])
@@ -266,7 +268,7 @@ class LoRATests(unittest.TestCase):
                 }
             ]
         })
-        text = "Character Mara: woman with blonde hair <lora:woman_blonde:1.0>"
+        text = "Character Mara: woman with blonde hair (joy:1.5) <lora:woman_blonde:1.0>"
 
         node = Krea2CharacterLoras()
         fake_comfy = types.ModuleType("comfy")
@@ -283,15 +285,19 @@ class LoRATests(unittest.TestCase):
             },
         ), patch("copy.deepcopy", side_effect=fake_deepcopy):
             fake_model = FakeModel()
-            conditioning, model = node.encode(fake_model, FakeClip(), text, manifest, mask_size=8)
+            base = [("base-cond", {"model_options": {}})]
+            conditioning, model = node.encode(fake_model, FakeClip(), text, manifest, conditioning=base, mask_size=8)
 
         self.assertIs(model, fake_model)
-        self.assertEqual(len(conditioning), 1)
-        cond = conditioning[0]
+        # The base conditioning stays at the front; the regional segment appends.
+        self.assertEqual(conditioning[0][0], "base-cond")
+        self.assertEqual(len(conditioning), 2)
+        cond = conditioning[1]
         self.assertIn("hooks", cond[1])
         self.assertIn("mask", cond[1])
         self.assertIn("mask_strength", cond[1])
         self.assertNotIn("<lora:", recorded["tokenized"])
+        self.assertNotIn("(joy:1.5)", recorded["tokenized"])
 
 
 
