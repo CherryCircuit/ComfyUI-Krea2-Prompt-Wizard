@@ -1004,11 +1004,11 @@ class Krea2CharacterLoras:
             },
         }
 
-    RETURN_TYPES = ("CONDITIONING", "MODEL")
-    RETURN_NAMES = ("conditioning", "model")
+    RETURN_TYPES = ("CONDITIONING", "MODEL", "STRING")
+    RETURN_NAMES = ("conditioning", "model", "applied_lora_log")
     FUNCTION = "encode"
     CATEGORY = "_Krea2 Prompt Wizard"
-    DESCRIPTION = "Applies each character's LoRAs only to that character's region via conditioning hooks and masks. Connect the base model, the wizard's Prompt Output, its Character LoRA JSON, and a CLIP."
+    DESCRIPTION = "Applies each character's LoRAs only to that character's region via conditioning hooks and masks. Connect the base model, the wizard's Prompt Output, its Character LoRA JSON, and a CLIP. The applied_lora_log output shows exactly which LoRA loads for which character."
     SEARCH_ALIASES = ["regional lora", "per character lora", "character lora", "hook lora"]
 
     @staticmethod
@@ -1085,6 +1085,7 @@ class Krea2CharacterLoras:
         segments = self.split_segments(text)
         cast_total = len([1 for seg in segments if seg[1] is not None])
         cast_index = 0
+        log_lines = []
         # Any base conditioning (e.g. the Krea2 Prompt Weight node's output)
         # stays at the front so its token-weight positions remain valid.
         conditioning = list(conditioning) if isinstance(conditioning, list) else []
@@ -1094,10 +1095,14 @@ class Krea2CharacterLoras:
             entry = manifest.get(char_key) if char_key else None
             if entry:
                 hooks = comfy.hooks.HookGroup()
+                applied = []
                 for lora in entry["loras"]:
                     filename = str(lora.get("filename") or "").strip()
                     path = folder_paths.get_full_path("loras", filename)
                     if not path or not os.path.exists(path):
+                        log_lines.append(
+                            f"Character '{char_key}': LoRA '{filename}' NOT FOUND in the loras folder \u2014 skipped"
+                        )
                         continue
                     try:
                         strength = float(lora.get("strength", 1.0))
@@ -1107,10 +1112,18 @@ class Krea2CharacterLoras:
                     hooks = hooks.clone_and_combine(
                         comfy.hooks.create_hook_lora(lora=tensors, strength_model=strength, strength_clip=0.0)
                     )
+                    applied.append(f"{filename}@{strength:g}")
                 if hooks.hooks:
                     cond = comfy.hooks.set_hooks_for_conditioning(cond, hooks)
-                region = self.region_for(entry["position"], cast_index, cast_total)
-                mask = self._build_mask(region, int(mask_size))
+                if applied:
+                    log_lines.append(f"Character '{char_key}': {', '.join(applied)}")
+                else:
+                    log_lines.append(f"Character '{char_key}': no LoRAs were loaded")
+            elif char_key is not None:
+                log_lines.append(f"Character '{char_key}': NO MATCH in the Character LoRA manifest (name mismatch or no LoRAs assigned)")
+            region = self.region_for(entry["position"] if entry else "", cast_index, cast_total)
+            mask = self._build_mask(region, int(mask_size)) if entry else None
+            if mask is not None:
                 out = copy.deepcopy(cond[0][1])
                 out["mask"] = mask
                 out["set_area_to_bounds"] = False
@@ -1119,7 +1132,7 @@ class Krea2CharacterLoras:
             conditioning.extend(cond)
             if char_key:
                 cast_index += 1
-        return (conditioning, model)
+        return (conditioning, model, "\n".join(log_lines))
 
     @staticmethod
     def _build_mask(region: str, size: int):

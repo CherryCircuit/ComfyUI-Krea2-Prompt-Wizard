@@ -283,10 +283,10 @@ class LoRATests(unittest.TestCase):
                 "torch": FakeTorch(),
                 "folder_paths": FakeFolderPaths(),
             },
-        ), patch("copy.deepcopy", side_effect=fake_deepcopy):
+        ), patch("copy.deepcopy", side_effect=fake_deepcopy), patch("os.path.exists", return_value=True):
             fake_model = FakeModel()
             base = [("base-cond", {"model_options": {}})]
-            conditioning, model = node.encode(fake_model, FakeClip(), text, manifest, conditioning=base, mask_size=8)
+            conditioning, model, log_text = node.encode(fake_model, FakeClip(), text, manifest, conditioning=base, mask_size=8)
 
         self.assertIs(model, fake_model)
         # The base conditioning stays at the front; the regional segment appends.
@@ -298,6 +298,8 @@ class LoRATests(unittest.TestCase):
         self.assertIn("mask_strength", cond[1])
         self.assertNotIn("<lora:", recorded["tokenized"])
         self.assertNotIn("(joy:1.5)", recorded["tokenized"])
+        self.assertIn("Character 'mara'", log_text)
+        self.assertIn("woman_blonde.safetensors@1", log_text)
 
 
 
