@@ -981,7 +981,7 @@ class Krea2CharacterLoras:
                     {
                         "multiline": True,
                         "default": "",
-                        "tooltip": "The wizard's Prompt Output. <lora:...> tags and (phrase:weight) syntax are stripped before encoding.",
+                        "tooltip": "TOP field: connect the wizard's Prompt Output here (the compiled prompt text).",
                     },
                 ),
                 "lora_state": (
@@ -989,7 +989,7 @@ class Krea2CharacterLoras:
                     {
                         "multiline": True,
                         "default": "{}",
-                        "tooltip": "The wizard's Character LoRA JSON output.",
+                        "tooltip": "BOTTOM field: connect the wizard's Character LoRA output here (the JSON manifest).",
                     },
                 ),
             },
@@ -1008,7 +1008,7 @@ class Krea2CharacterLoras:
     RETURN_NAMES = ("conditioning", "model", "applied_lora_log")
     FUNCTION = "encode"
     CATEGORY = "_Krea2 Prompt Wizard"
-    DESCRIPTION = "Applies each character's LoRAs only to that character's region via conditioning hooks and masks. Connect the base model, the wizard's Prompt Output, its Character LoRA JSON, and a CLIP. The applied_lora_log output shows exactly which LoRA loads for which character."
+    DESCRIPTION = "Applies each character's LoRAs only to that character's region via conditioning hooks and masks. Wiring: top text field = wizard's Prompt Output; bottom text field (shows {}) = wizard's Character LoRA output; model = the BASE model; clip = your CLIP; optional conditioning = the Krea2 Prompt Weight node's conditioning output. The applied_lora_log output explains exactly what was loaded (or what is missing)."
     SEARCH_ALIASES = ["regional lora", "per character lora", "character lora", "hook lora"]
 
     @staticmethod
@@ -1081,11 +1081,71 @@ class Krea2CharacterLoras:
         import comfy.utils
         import folder_paths
 
-        manifest = self.parse_manifest(lora_state)
-        segments = self.split_segments(text)
+        log_lines = []
+        raw_text = str(text or "")
+        raw_state = str(lora_state or "").strip()
+
+        # Guard against swapping the two STRING inputs: if the JSON landed in
+        # the text field (and vice versa), fix it and say so.
+        text_looks_json = raw_text.lstrip().startswith("{") and '"characters"' in raw_text
+        state_is_json = raw_state.startswith("{")
+        if text_looks_json and not state_is_json:
+            raw_text, raw_state = raw_state, raw_text
+            log_lines.append(
+                "NOTE: the two text inputs looked swapped (the Character LoRA JSON was in the Prompt field) \u2014 fixed automatically"
+            )
+
+        if not raw_text.strip():
+            log_lines.append(
+                "text input is EMPTY \u2014 connect the wizard's Prompt Output to the top text field"
+            )
+        if raw_state == "" or raw_state == "{}":
+            log_lines.append(
+                "character_lora_json input is EMPTY (\u201c{}\u201d) \u2014 connect the wizard's Character LoRA output to the bottom text field"
+            )
+        elif not state_is_json:
+            log_lines.append(
+                "character_lora_json is not valid JSON \u2014 connect the wizard's Character LoRA output to the bottom text field"
+            )
+
+        manifest = self.parse_manifest(raw_state)
+        segments = self.split_segments(raw_text)
+        if not segments:
+            log_lines.append(
+                "No prompt segments found \u2014 the text field must contain the wizard's Prompt Output (with \u201cCharacter \u2026\u201d blocks)"
+            )
         cast_total = len([1 for seg in segments if seg[1] is not None])
         cast_index = 0
-        log_lines = []
+        # Pre-flight: ComfyUI's hook patcher walks the WHOLE model state dict
+        # and resolves each key against module attributes (get_key_patches).
+        # GGUF / quantized Krea2 backends register quantized scale keys
+        # (e.g. "...weight_scale") whose state-dict path does not exist as a
+        # module attribute, which crashes the sampler with
+        # "AttributeError: 'Linear' object has no attribute 'weight_scale'".
+        # Detect that condition and skip hooks with a clear log line.
+        hook_supported = True
+        try:
+            sd = model.model_state_dict() if hasattr(model, "model_state_dict") else None
+            if isinstance(sd, dict):
+                for key in sd:
+                    tail = key.rsplit(".", 1)
+                    if len(tail) == 2 and tail[1] in ("weight_scale", "weight_bias", "scales", "zeros", "bias_scale"):
+                        try:
+                            op = comfy.utils.get_attr(model.model, tail[0])
+                            if op is None or not hasattr(op, tail[1]):
+                                hook_supported = False
+                                break
+                        except Exception:
+                            hook_supported = False
+                            break
+        except Exception:
+            hook_supported = True
+        if not hook_supported:
+            log_lines.append(
+                "Your model looks quantized (GGUF): ComfyUI's hook LoRA patcher cannot resolve the "
+                "quantized scale keys, so character LoRAs were SKIPPED to avoid a sampler crash. "
+                "Use the unquantized Krea2 .safetensors checkpoint for per-character LoRAs."
+            )
         # Any base conditioning (e.g. the Krea2 Prompt Weight node's output)
         # stays at the front so its token-weight positions remain valid.
         conditioning = list(conditioning) if isinstance(conditioning, list) else []
@@ -1093,7 +1153,7 @@ class Krea2CharacterLoras:
             tokens = clip.tokenize(seg_text)
             cond = clip.encode_from_tokens_scheduled(tokens)
             entry = manifest.get(char_key) if char_key else None
-            if entry:
+            if entry and hook_supported:
                 hooks = comfy.hooks.HookGroup()
                 applied = []
                 for lora in entry["loras"]:

@@ -158,6 +158,94 @@ class LoRATests(unittest.TestCase):
         self.assertEqual(segments[2][1], "ivo")
         self.assertNotIn("<lora:", segments[2][0])
 
+    def test_regional_node_skips_hooks_on_quantized_model(self):
+        # GGUF / quantized models expose "...weight_scale" state-dict keys
+        # that the hook patcher cannot resolve; the node must skip hooks
+        # (never crash the sampler) and explain itself in the log.
+        from src.nodes import Krea2CharacterLoras
+
+        class FakeModelQ:
+            def model_state_dict(self):
+                return {"blocks.0.attn.to_q.weight_scale": object()}
+
+        class FakeUtils:
+            @staticmethod
+            def load_torch_file(path, safe_load=True):
+                return {"tensors": True}
+
+            @staticmethod
+            def get_attr(model, path):
+                raise AttributeError("unresolvable on quantized model")
+
+        class FakeFolderPaths:
+            @staticmethod
+            def get_full_path(folder, name):
+                return "C:/loras/" + name
+
+        class FakeTensor:
+            def __init__(self, shape):
+                self.shape = shape
+
+            def __setitem__(self, key, value):
+                pass
+
+        class FakeTorch:
+            float32 = "float32"
+
+            @staticmethod
+            def zeros(shape, dtype=None):
+                return FakeTensor(shape)
+
+        class FakeClip:
+            def tokenize(self, text):
+                return {"k": [[("tok", text)]]}
+
+            def encode_from_tokens_scheduled(self, tokens):
+                return [("cond", {"model_options": {}})] if isinstance(tokens, dict) else []
+
+        class FakeHooks:
+            class HookGroup:
+                def __init__(self):
+                    self.hooks = []
+
+                def clone_and_combine(self, other):
+                    self.hooks.append(other)
+                    return self
+
+            @staticmethod
+            def create_hook_lora(lora=None, strength_model=1.0, strength_clip=0.0):
+                return "hook"
+
+            @staticmethod
+            def set_hooks_for_conditioning(cond, hooks, append_hooks=True, cache=None):
+                cond[0][1]["hooks"] = hooks
+                return cond
+
+        manifest = json.dumps({
+            "characters": [{"name": "Mara", "position": "on the left",
+                            "loras": [{"filename": "woman_blonde.safetensors", "strength": 1.0}]}]
+        })
+        text = "Character Mara: woman with blonde hair"
+
+        fake_comfy = types.ModuleType("comfy")
+        fake_comfy.hooks = FakeHooks()
+        fake_comfy.utils = FakeUtils()
+        node = Krea2CharacterLoras()
+        with patch.dict(
+            sys.modules,
+            {
+                "comfy": fake_comfy,
+                "comfy.hooks": FakeHooks(),
+                "comfy.utils": FakeUtils(),
+                "torch": FakeTorch(),
+                "folder_paths": FakeFolderPaths(),
+            },
+        ), patch("os.path.exists", return_value=True):
+            conditioning, _model, log_text = node.encode(FakeModelQ(), FakeClip(), text, manifest, mask_size=8)
+
+        self.assertIn("quantized", log_text)
+        self.assertNotIn("hooks", conditioning[0][1])
+
     def test_regional_node_region_selection(self):
         from src.nodes import Krea2CharacterLoras
 
