@@ -4,17 +4,17 @@ import { app } from "../../scripts/app.js";
 window.app = app;
 
 // These are .mjs so ComfyUI does not auto-import them independently and out of order.
-await import("./js/state.mjs?v=14");
-await import("./js/searchable_selector.mjs?v=14");
-await import("./js/preset_row.mjs?v=14");
-await import("./js/library_editor.mjs?v=14");
-await import("./js/materialize.mjs?v=14");
-await import("./js/inspector.mjs?v=14");
-await import("./js/wizard_widget.mjs?v=14");
+await import("./js/state.mjs?v=15");
+await import("./js/searchable_selector.mjs?v=15");
+await import("./js/preset_row.mjs?v=15");
+await import("./js/library_editor.mjs?v=15");
+await import("./js/materialize.mjs?v=15");
+await import("./js/inspector.mjs?v=15");
+await import("./js/wizard_widget.mjs?v=15");
 
 const stylesheet = document.createElement("link");
 stylesheet.rel = "stylesheet";
-stylesheet.href = new URL("./css/wizard.css?v=14", import.meta.url).href;
+stylesheet.href = new URL("./css/wizard.css?v=15", import.meta.url).href;
 document.head.appendChild(stylesheet);
 
 app.registerExtension({
