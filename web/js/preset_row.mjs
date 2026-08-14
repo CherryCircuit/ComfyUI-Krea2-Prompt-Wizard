@@ -332,7 +332,7 @@
       title: "Delete concept",
       "aria-label": "Delete concept",
       onClick: function () { ctx.removeRow(row.id); },
-    }, icon("close", { width: "10", height: "10" }));
+    }, icon("trash", { width: "11", height: "11" }));
 
     wrap.appendChild(el("div", { class: "krea2-row-head" }, [
       dragHandle,

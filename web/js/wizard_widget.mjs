@@ -28,6 +28,8 @@
     showToast,
     groupForCategory,
     paletteNearestName,
+    hexToHsv,
+    hsvToHex,
     sortedOptions,
   } = K.helpers;
   const fetchConceptColors = K.helpers.fetchConceptColors || function () { return Promise.resolve({}); };
@@ -194,9 +196,9 @@
   /* The Concepts Applied block splits subject & expression into three
    * side-by-side groups, each with its own dice and each-job shuffle. */
   const CHARACTER_CONCEPT_GROUPS = [
+    { id: "emotion", icon: "sparkle", label: "Emotion", categories: ["emotion", "emotion_trigger"], emptyHint: "No emotion set." },
+    { id: "expression", icon: "eye", label: "Expression", categories: ["face", "face_trigger", "gaze", "mouth"], emptyHint: "No facial action set." },
     { id: "pose", icon: "users", label: "Pose & Placement", categories: ["body", "position"], emptyHint: "No pose or placement set." },
-    { id: "emotion", icon: "sparkle", label: "Emotion & Triggers", categories: ["emotion", "emotion_trigger"], emptyHint: "No emotion set." },
-    { id: "face", icon: "eye", label: "Face, Gaze & Mouth", categories: ["face", "face_trigger", "gaze", "mouth"], emptyHint: "No facial action set." },
   ];
 
   /* TV/movie-style multi-concept direction presets shown as chips on each
@@ -543,7 +545,7 @@
         title: "More options",
         "aria-label": "More options",
         onClick: function (event) {
-          event.stopPropagation();
+          if (event && typeof event.stopPropagation === "function") event.stopPropagation();
           const open = menu.classList.toggle("is-open");
           document.addEventListener("mousedown", closeOnOutside, { once: true });
           function closeOnOutside(event) {
@@ -857,6 +859,24 @@
           },
         }),
         el("span", null, "Pretty Prompt Preview (grouped concept cards)"),
+      ]));
+      panel.appendChild(el("div", { class: "krea2-settings-field" }, [
+        el("span", null, "Character Creator"),
+        (function () {
+          const select = el("select", {
+            class: "krea2-compact-select",
+            "aria-label": "Character Creator mode",
+            onChange: function (event) {
+              state.character_creator = event.target.value;
+              markDirty();
+              render();
+            },
+          });
+          select.appendChild(el("option", { value: "legacy" }, "Legacy Character Creator"));
+          select.appendChild(el("option", { value: "visual" }, "Visual Character Creator"));
+          select.value = state.character_creator || "legacy";
+          return select;
+        })(),
       ]));
       panel.appendChild(el("label", { class: "krea2-inline-check" }, [
         el("input", {
@@ -1355,13 +1375,7 @@
       const collapsed = !!(character.collapsed_direction || {})[groupKey];
       section.classList.toggle("is-collapsed", collapsed);
       const header = el("div", { class: "krea2-wizard-category-header" }, [
-        group.icon ? el("span", { class: "krea2-wizard-category-icon", "aria-hidden": "true" }, group.icon) : null,
         el("strong", { class: "krea2-wizard-category-title" }, group.label),
-        el("span", { class: "krea2-wizard-category-summary", title: rows.map(function (row) {
-          return row.label || row.preset_id;
-        }).join(", ") }, rows.map(function (row) {
-          return row.label || row.preset_id;
-        }).join(" · ")),
         el("span", { class: "krea2-wizard-category-count" },
           rows.length + (rows.length === 1 ? " concept" : " concepts")),
       ]);
@@ -1369,7 +1383,7 @@
         type: "button",
         class: "krea2-wizard-category-add",
         onClick: function (event) {
-          event.stopPropagation();
+          if (event && typeof event.stopPropagation === "function") event.stopPropagation();
           showSearchableSelector({
             presets: characterRowPresets(),
             title: "Add " + group.label + " for " + (character.name || "this character"),
@@ -1404,7 +1418,7 @@
         title: "Save these direction concepts as a reusable preset",
         "aria-label": "Save " + group.label + " preset",
         onClick: function (event) {
-          event.stopPropagation();
+          if (event && typeof event.stopPropagation === "function") event.stopPropagation();
           const label = window.prompt("Name this " + group.label + " preset", "");
           if (!label || !label.trim()) return;
           saveCharacterDirectionPreset(character, groupKey, label.trim());
@@ -1413,7 +1427,7 @@
       const randomBtn = diceButton(
         "Replace this direction with a random combination",
         function (event) {
-          event.stopPropagation();
+          if (event && typeof event.stopPropagation === "function") event.stopPropagation();
           randomizeCharacterDirection(character, group);
         },
         "krea2-wizard-category-random krea2-icon-btn",
@@ -1427,7 +1441,7 @@
           : "Shuffle off: this direction is randomized once when you press the dice. Click to randomize it every queued job.",
         "aria-label": "Randomize this direction every queued job",
         onClick: function (event) {
-          event.stopPropagation();
+          if (event && typeof event.stopPropagation === "function") event.stopPropagation();
           if (!character.randomize_direction_groups) character.randomize_direction_groups = {};
           character.randomize_direction_groups[groupKey] = !character.randomize_direction_groups[groupKey];
           markDirty();
@@ -1818,7 +1832,7 @@
         "aria-label": "Randomize " + field.label + " once",
         disabled: disabledByEnsemble,
         onClick: function (event) {
-          if (event && typeof event.stopPropagation === "function") event.stopPropagation();
+          if (event && typeof event.stopPropagation === "function") if (event && typeof event.stopPropagation === "function") event.stopPropagation();
           if (disabledByEnsemble) return;
           randomizeAppearanceField(character, field);
           markDirty();
@@ -1837,7 +1851,7 @@
         "aria-pressed": eachRun ? "true" : "false",
         disabled: disabledByEnsemble,
         onClick: function (event) {
-          if (event && typeof event.stopPropagation === "function") event.stopPropagation();
+          if (event && typeof event.stopPropagation === "function") if (event && typeof event.stopPropagation === "function") event.stopPropagation();
           if (disabledByEnsemble) return;
           setAppearanceFieldEachJob(character, field, !eachRun);
           markDirty();
@@ -3143,7 +3157,7 @@ function buildGroupPresetPicker(group) {
           type: "button",
           class: "krea2-wizard-category-add",
           onClick: function (event) {
-            event.stopPropagation();
+            if (event && typeof event.stopPropagation === "function") event.stopPropagation();
             showSearchableSelector({
               presets: compatibleLibrary(),
               title: "Add " + GROUP_LABELS[group] + " concepts",
@@ -3165,7 +3179,7 @@ function buildGroupPresetPicker(group) {
         const randomBtn = diceButton(
           "Replace this group with a random combination",
           function (event) {
-            event.stopPropagation();
+            if (event && typeof event.stopPropagation === "function") event.stopPropagation();
             randomizeGroup(group);
           },
           "krea2-wizard-category-random krea2-icon-btn",
@@ -3175,7 +3189,7 @@ function buildGroupPresetPicker(group) {
           class: "krea2-wizard-category-save",
           title: "Save these concepts and their values as a reusable group preset",
           onClick: function (event) {
-            event.stopPropagation();
+            if (event && typeof event.stopPropagation === "function") event.stopPropagation();
             saveGroupPreset(group);
           },
         }, "Save preset");
@@ -3189,7 +3203,7 @@ function buildGroupPresetPicker(group) {
             : "Shuffle off: this group is randomized once when you press the dice. Click to randomize it every queued job.",
           "aria-label": "Randomize this group every queued job",
           onClick: function (event) {
-            event.stopPropagation();
+            if (event && typeof event.stopPropagation === "function") event.stopPropagation();
             state.randomize_on_job = state.randomize_on_job || {};
             state.randomize_on_job[group] = !state.randomize_on_job[group];
             markDirty();
@@ -3325,7 +3339,7 @@ function buildGroupPresetPicker(group) {
           class: "krea2-v2-gender-pill" + (active ? " is-active" : ""),
           title: "Set gender to " + option,
           onClick: function (event) {
-            if (event && typeof event.stopPropagation === "function") event.stopPropagation();
+            if (event && typeof event.stopPropagation === "function") if (event && typeof event.stopPropagation === "function") event.stopPropagation();
             character.sex = character.sex === option ? "" : option;
             markDirty();
             render();
@@ -3343,7 +3357,7 @@ function buildGroupPresetPicker(group) {
         title: "Roll " + field.label + " once now",
         "aria-label": "Randomize " + field.label + " once",
         onClick: function (event) {
-          if (event && typeof event.stopPropagation === "function") event.stopPropagation();
+          if (event && typeof event.stopPropagation === "function") if (event && typeof event.stopPropagation === "function") event.stopPropagation();
           randomizeAppearanceField(character, field);
           markDirty();
           render();
@@ -3359,7 +3373,7 @@ function buildGroupPresetPicker(group) {
         "aria-label": "Randomize " + field.label + " every queued job",
         "aria-pressed": eachJobOn ? "true" : "false",
         onClick: function (event) {
-          if (event && typeof event.stopPropagation === "function") event.stopPropagation();
+          if (event && typeof event.stopPropagation === "function") if (event && typeof event.stopPropagation === "function") event.stopPropagation();
           setAppearanceFieldEachJob(character, field, !eachJobOn);
           markDirty();
           render();
@@ -3376,46 +3390,216 @@ function buildGroupPresetPicker(group) {
       return entry ? entry[1] : "";
     }
 
+    /* Photoshop / Adobe Express style colour picker pop-up: a hue bar on
+     * top, a saturation/value square below it, and a Hex field with a copy
+     * button at the bottom. The stored value stays a model-friendly colour
+     * word (nearest palette entry); the Hex field always shows the hex. */
     function openColorPopup(anchor, palette, current, label, onPick) {
       const existing = document.querySelector(".krea2-color-popup");
       if (existing) existing.remove();
-      const popup = el("div", { class: "krea2-color-popup" });
+      const popup = el("div", { class: "krea2-color-popup krea2-color-popup-full" });
       popup.appendChild(el("div", { class: "krea2-color-popup-label" }, label));
-      const swatches = el("div", { class: "krea2-v2-palette-swatches" });
-      swatches.appendChild(el("button", {
-        type: "button",
-        class: "krea2-v2-palette-swatch krea2-v2-palette-swatch-none" + (current ? "" : " is-active"),
-        title: "No colour",
-        "aria-label": "No colour",
-        onClick: function () { onPick(""); popup.remove(); },
-      }));
-      for (const entry of palette) {
-        const active = current === entry[0];
-        swatches.appendChild(el("button", {
-          type: "button",
-          class: "krea2-v2-palette-swatch" + (active ? " is-active" : ""),
-          style: { background: entry[1] },
-          title: entry[0],
-          "aria-label": entry[0],
-          onClick: function () { onPick(entry[0]); popup.remove(); },
-        }));
-      }
-      popup.appendChild(swatches);
-      const hex = el("input", {
+
+      const HUE_W = 216;
+      const HUE_H = 14;
+      const SV_W = 216;
+      const SV_H = 128;
+      const svgNs = "http://www.w3.org/2000/svg";
+      const mk = typeof document.createElementNS === "function"
+        ? function (tag) { return document.createElementNS(svgNs, tag); }
+        : function (tag) { return document.createElement(tag); };
+
+      let hsv = hexToHsv(colourHexFor(String(current || ""), palette) || "#ffffff");
+      const hexInput = el("input", {
         type: "text",
         class: "krea2-compact-input krea2-v2-palette-hex",
-        value: current,
+        value: hsvToHex(hsv),
         placeholder: "#rrggbb",
         "aria-label": label + " (hex code)",
         onKeyDown: function (event) {
           if (event.key === "Enter") {
-            const name = paletteNearestName(hex.value, palette);
+            const name = paletteNearestName(hexInput.value, palette);
             if (name) { onPick(name); popup.remove(); }
           }
-          if (typeof event.stopPropagation === "function") event.stopPropagation();
+          if (typeof event.stopPropagation === "function") if (event && typeof event.stopPropagation === "function") event.stopPropagation();
         },
       });
-      popup.appendChild(hex);
+
+      const commit = function () {
+        const name = paletteNearestName(hsvToHex(hsv), palette);
+        if (name) onPick(name);
+      };
+
+      /* Hue bar */
+      const hueSvg = mk("svg");
+      hueSvg.setAttribute("viewBox", "0 0 " + HUE_W + " " + HUE_H);
+      hueSvg.setAttribute("width", String(HUE_W));
+      hueSvg.setAttribute("height", String(HUE_H));
+      hueSvg.setAttribute("class", "krea2-color-hue");
+      const defs = mk("defs");
+      const gradient = mk("linearGradient");
+      gradient.setAttribute("id", "krea2-hue-grad");
+      gradient.setAttribute("x1", "0");
+      gradient.setAttribute("y1", "0");
+      gradient.setAttribute("x2", "1");
+      gradient.setAttribute("y2", "0");
+      const hueStops = [
+        ["0%", "#ff0000"], ["17%", "#ffff00"], ["33%", "#00ff00"], ["50%", "#00ffff"],
+        ["67%", "#0000ff"], ["83%", "#ff00ff"], ["100%", "#ff0000"],
+      ];
+      for (const stop of hueStops) {
+        const node = mk("stop");
+        node.setAttribute("offset", stop[0]);
+        node.setAttribute("stop-color", stop[1]);
+        gradient.appendChild(node);
+      }
+      defs.appendChild(gradient);
+      hueSvg.appendChild(defs);
+      const hueRect = mk("rect");
+      hueRect.setAttribute("x", "0"); hueRect.setAttribute("y", "0");
+      hueRect.setAttribute("width", String(HUE_W)); hueRect.setAttribute("height", String(HUE_H));
+      hueRect.setAttribute("rx", "7");
+      hueRect.setAttribute("fill", "url(#krea2-hue-grad)");
+      hueSvg.appendChild(hueRect);
+      const hueHandle = mk("circle");
+      hueHandle.setAttribute("r", "7");
+      hueHandle.setAttribute("class", "krea2-color-handle");
+      const positionHueHandle = function () {
+        hueHandle.setAttribute("cx", String((hsv.h / 360) * HUE_W));
+        hueHandle.setAttribute("cy", String(HUE_H / 2));
+      };
+      hueSvg.appendChild(hueHandle);
+      positionHueHandle();
+
+      /* Saturation / value square */
+      const svSvg = mk("svg");
+      svSvg.setAttribute("viewBox", "0 0 " + SV_W + " " + SV_H);
+      svSvg.setAttribute("width", String(SV_W));
+      svSvg.setAttribute("height", String(SV_H));
+      svSvg.setAttribute("class", "krea2-color-sv");
+      const svBase = mk("rect");
+      svBase.setAttribute("width", String(SV_W)); svBase.setAttribute("height", String(SV_H));
+      svBase.setAttribute("rx", "8");
+      const svOverlayWhite = mk("rect");
+      svOverlayWhite.setAttribute("width", String(SV_W)); svOverlayWhite.setAttribute("height", String(SV_H));
+      svOverlayWhite.setAttribute("rx", "8");
+      const svOverlayBlack = mk("rect");
+      svOverlayBlack.setAttribute("width", String(SV_W)); svOverlayBlack.setAttribute("height", String(SV_H));
+      svOverlayBlack.setAttribute("rx", "8");
+      const updateSv = function () {
+        const base = hsvToHex({ h: hsv.h, s: 1, v: 1 });
+        svBase.setAttribute("fill", base);
+        svOverlayWhite.setAttribute("fill", "url(#krea2-sv-white)");
+        svOverlayBlack.setAttribute("fill", "url(#krea2-sv-black)");
+      };
+      const svDefs = mk("defs");
+      const whiteGrad = mk("linearGradient");
+      whiteGrad.setAttribute("id", "krea2-sv-white");
+      whiteGrad.setAttribute("x1", "0"); whiteGrad.setAttribute("y1", "0");
+      whiteGrad.setAttribute("x2", "1"); whiteGrad.setAttribute("y2", "0");
+      whiteGrad.appendChild(whiteStop("#ffffff", "1"));
+      whiteGrad.appendChild(whiteStop("#ffffff", "0"));
+      function whiteStop(color, opacity) {
+        const node = mk("stop");
+        node.setAttribute("offset", opacity === "1" ? "0%" : "100%");
+        node.setAttribute("stop-color", color);
+        node.setAttribute("stop-opacity", opacity);
+        return node;
+      }
+      const blackGrad = mk("linearGradient");
+      blackGrad.setAttribute("id", "krea2-sv-black");
+      blackGrad.setAttribute("x1", "0"); blackGrad.setAttribute("y1", "0");
+      blackGrad.setAttribute("x2", "0"); blackGrad.setAttribute("y2", "1");
+      const blackTop = mk("stop");
+      blackTop.setAttribute("offset", "0%");
+      blackTop.setAttribute("stop-color", "#000000");
+      blackTop.setAttribute("stop-opacity", "0");
+      const blackBottom = mk("stop");
+      blackBottom.setAttribute("offset", "100%");
+      blackBottom.setAttribute("stop-color", "#000000");
+      blackBottom.setAttribute("stop-opacity", "1");
+      blackGrad.appendChild(blackTop);
+      blackGrad.appendChild(blackBottom);
+      svDefs.appendChild(whiteGrad);
+      svDefs.appendChild(blackGrad);
+      svSvg.appendChild(svDefs);
+      svSvg.appendChild(svBase);
+      svSvg.appendChild(svOverlayWhite);
+      svSvg.appendChild(svOverlayBlack);
+      const svHandle = mk("circle");
+      svHandle.setAttribute("r", "8");
+      svHandle.setAttribute("class", "krea2-color-handle");
+      svSvg.appendChild(svHandle);
+      const positionSvHandle = function () {
+        svHandle.setAttribute("cx", String(hsv.s * SV_W));
+        svHandle.setAttribute("cy", String((1 - hsv.v) * SV_H));
+      };
+      updateSv();
+      positionSvHandle();
+
+      const redraw = function () {
+        positionHueHandle();
+        positionSvHandle();
+        updateSv();
+        hexInput.value = hsvToHex(hsv);
+      };
+
+      const dragHue = function (event) {
+        const bounds = hueSvg.getBoundingClientRect();
+        if (!bounds || !bounds.width) return;
+        const x = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
+        hsv.h = x * 360;
+        hsv.s = Math.max(0, Math.min(1, hsv.s));
+        redraw();
+      };
+      const dragSv = function (event) {
+        const bounds = svSvg.getBoundingClientRect();
+        if (!bounds || !bounds.width) return;
+        hsv.s = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
+        hsv.v = Math.max(0, Math.min(1, 1 - (event.clientY - bounds.top) / bounds.height));
+        redraw();
+      };
+
+      function attachDrag(surface, onDrag, onUp) {
+        surface.addEventListener("mousedown", function (event) {
+          if (event.button !== 0) return;
+          event.preventDefault();
+          onDrag(event);
+          const move = function (e) { onDrag(e); };
+          const up = function () {
+            document.removeEventListener("mousemove", move);
+            document.removeEventListener("mouseup", up);
+            commit();
+          };
+          document.addEventListener("mousemove", move);
+          document.addEventListener("mouseup", up);
+        });
+      }
+      attachDrag(hueSvg, dragHue);
+      attachDrag(svSvg, dragSv);
+
+      /* Hex row: format label + divider + value + copy button */
+      const hexRow = el("div", { class: "krea2-color-hexrow" }, [
+        el("span", { class: "krea2-color-hexlabel" }, "Hex"),
+        el("span", { class: "krea2-color-hexdivider" }),
+        hexInput,
+        el("button", {
+          type: "button",
+          class: "krea2-wizard-btn krea2-icon-btn",
+          title: "Copy hex code",
+          "aria-label": "Copy hex code",
+          onClick: function (event) {
+            if (event && typeof event.stopPropagation === "function") event.stopPropagation();
+            if (typeof navigator !== "undefined" && navigator.clipboard) {
+              navigator.clipboard.writeText(hexInput.value).then(function () {}, function () {});
+            }
+          },
+        }, icon("copy", { width: "12", height: "12" })),
+      ]);
+      popup.appendChild(hueSvg);
+      popup.appendChild(svSvg);
+      popup.appendChild(hexRow);
+
       const rect = anchor.getBoundingClientRect();
       Object.assign(popup.style, {
         position: "fixed",
@@ -3431,6 +3615,7 @@ function buildGroupPresetPicker(group) {
         }
       }
       setTimeout(() => document.addEventListener("click", onDocClick, true), 0);
+      return popup;
     }
 
     function renderColorPopupButton(character, key, palette, label) {
@@ -3442,7 +3627,7 @@ function buildGroupPresetPicker(group) {
         title: (current || "no colour") + " — click to pick " + label,
         "aria-label": label + ": " + (current || "none"),
         onClick: function (event) {
-          event.stopPropagation();
+          if (event && typeof event.stopPropagation === "function") event.stopPropagation();
           openColorPopup(btn, palette, current, label, function (name) {
             character[key] = name;
             markDirty();
@@ -3793,6 +3978,292 @@ function buildGroupPresetPicker(group) {
       return block;
     }
 
+    /* ------------------------------------------------------------------
+     * Visual Character Creator (experimental, opt-in via node settings).
+     * An avatar-first panel: live preview, tile/swatch/slider controls per
+     * category, category bar at the bottom, undo/redo/reset/randomize.
+     * ------------------------------------------------------------------ */
+    const VISUAL_CATEGORIES = [
+      { id: "hair_style", label: "Hair style", icon: "palette" },
+      { id: "hair_color", label: "Hair color", icon: "dot" },
+      { id: "hair_length", label: "Hair length", icon: "sliders" },
+      { id: "eyes", label: "Eyes", icon: "eye" },
+      { id: "body_type", label: "Build", icon: "users" },
+      { id: "fitness", label: "Fitness", icon: "sparkle" },
+      { id: "proportions", label: "Height", icon: "compass" },
+      { id: "age", label: "Age", icon: "sliders" },
+      { id: "ethnicity", label: "Heritage", icon: "globe" },
+      { id: "skin_color", label: "Skin tone", icon: "dot" },
+      { id: "makeup", label: "Makeup", icon: "star" },
+      { id: "nose", label: "Nose", icon: "eye" },
+      { id: "mouth", label: "Mouth", icon: "star" },
+      { id: "chin", label: "Chin", icon: "users" },
+      { id: "face_shape", label: "Face shape", icon: "compass" },
+    ];
+
+    const VISUAL_OPTION_FIELDS = (function () {
+      const byKey = {};
+      CHARACTER_APPEARANCE.forEach(function (field) { byKey[field.key] = field; });
+      return byKey;
+    })();
+
+    const HAIR_LENGTH_ORDER = ["shaved", "buzz cut", "short", "ear-length", "chin-length", "neck-length",
+      "shoulder-length", "mid-back length", "waist-length", "hip-length", "floor-length"];
+
+    function visualFieldOptions(key) {
+      const field = VISUAL_OPTION_FIELDS[key];
+      return field ? field.options : [];
+    }
+
+    function visualTile(label, active, onPick, opts) {
+      const tile = el("button", {
+        type: "button",
+        class: "krea2-visual-tile" + (active ? " is-active" : ""),
+        "aria-pressed": active ? "true" : "false",
+        title: label,
+        onClick: onPick,
+      }, [el("span", { class: "krea2-visual-tile-label" }, label)]);
+      if (active) tile.appendChild(el("span", { class: "krea2-visual-check" }, icon("check", { width: "10", height: "10" })));
+      return tile;
+    }
+
+    function visualSwatch(name, hex, active, onPick) {
+      return el("button", {
+        type: "button",
+        class: "krea2-visual-swatch" + (active ? " is-active" : ""),
+        style: { background: hex },
+        title: name,
+        "aria-label": name,
+        "aria-pressed": active ? "true" : "false",
+        onClick: onPick,
+      });
+    }
+
+    function visualSlider(character, key, options, label, onChange) {
+      const current = String(character[key] || "");
+      const index = Math.max(0, options.indexOf(current));
+      const slider = el("input", {
+        type: "range",
+        class: "krea2-visual-slider",
+        min: "0",
+        max: String(options.length - 1),
+        step: "1",
+        value: String(index >= 0 ? index : 0),
+        "aria-label": label,
+        onChange: function (event) {
+          const option = options[Number(event.target.value)];
+          if (option) onChange(option);
+        },
+      });
+      return el("div", { class: "krea2-visual-slider-row" }, [
+        el("span", { class: "krea2-visual-slider-value" }, current || "—"),
+        slider,
+      ]);
+    }
+
+    function visualCategoryControls(character, categoryId) {
+      const wrap = el("div", { class: "krea2-visual-controls" });
+      const commit = function (key, value) {
+        character[key] = value;
+        markDirty();
+        render();
+      };
+      switch (categoryId) {
+        case "hair_style":
+        case "nose":
+        case "mouth":
+        case "chin":
+        case "face_shape":
+        case "ethnicity":
+        case "body_type":
+        case "makeup": {
+          const options = visualFieldOptions(categoryId);
+          const grid = el("div", { class: "krea2-visual-tile-grid" });
+          for (const option of options) {
+            grid.appendChild(visualTile(option, String(character[categoryId] || "") === option,
+              function () { commit(categoryId, option); }));
+          }
+          wrap.appendChild(grid);
+          break;
+        }
+        case "hair_color":
+        case "skin_color": {
+          const palette = categoryId === "skin_color" ? PALETTE_COLORS : PALETTE_COLORS;
+          const swatches = el("div", { class: "krea2-visual-swatch-row" });
+          for (const entry of palette) {
+            swatches.appendChild(visualSwatch(entry[0], entry[1],
+              String(character[categoryId] || "") === entry[0],
+              function () { commit(categoryId, entry[0]); }));
+          }
+          swatches.appendChild(el("button", {
+            type: "button",
+            class: "krea2-visual-custom-color",
+            title: "Custom colour...",
+            "aria-label": "Custom colour",
+            onClick: function (event) {
+              if (event && typeof event.stopPropagation === "function") event.stopPropagation();
+              const anchor = event.currentTarget;
+              openColorPopup(anchor, PALETTE_COLORS, String(character[categoryId] || ""),
+                categoryId === "skin_color" ? "Skin tone" : "Hair colour",
+                function (name) { commit(categoryId, name); });
+            },
+          }, icon("sparkle", { width: "12", height: "12" })));
+          wrap.appendChild(swatches);
+          break;
+        }
+        case "eyes": {
+          const shapes = visualFieldOptions("eyes").filter(function (option) {
+            return !/(blue|green|hazel|brown|black|grey|amber|violet|heterochromatic)/.test(option);
+          });
+          const grid = el("div", { class: "krea2-visual-tile-grid" });
+          for (const option of shapes) {
+            grid.appendChild(visualTile(option, String(character.eyes || "") === option,
+              function () { commit("eyes", option); }));
+          }
+          wrap.appendChild(grid);
+          const iris = el("div", { class: "krea2-visual-swatch-row" });
+          iris.appendChild(el("span", { class: "krea2-visual-group-label" }, "Iris colour"));
+          for (const entry of PALETTE_COLORS) {
+            iris.appendChild(visualSwatch(entry[0], entry[1],
+              String(character.eye_color || "") === entry[0],
+              function () { commit("eye_color", entry[0]); }));
+          }
+          wrap.appendChild(iris);
+          break;
+        }
+        case "hair_length": {
+          const presets = [
+            ["Short", "short"], ["Medium", "shoulder-length"],
+            ["Long", "waist-length"], ["Extra Long", "floor-length"],
+          ];
+          const presetsRow = el("div", { class: "krea2-visual-preset-row" });
+          for (const entry of presets) {
+            presetsRow.appendChild(visualTile(entry[0], String(character.hair_length || "") === entry[1],
+              function () { commit("hair_length", entry[1]); }));
+          }
+          wrap.appendChild(presetsRow);
+          wrap.appendChild(visualSlider(character, "hair_length", HAIR_LENGTH_ORDER, "Hair length refinement",
+            function (option) { commit("hair_length", option); }));
+          break;
+        }
+        case "fitness": {
+          wrap.appendChild(visualSlider(character, "fitness", visualFieldOptions("fitness"), "Fitness",
+            function (option) { commit("fitness", option); }));
+          break;
+        }
+        case "proportions": {
+          wrap.appendChild(visualSlider(character, "proportions", visualFieldOptions("proportions"), "Height",
+            function (option) { commit("proportions", option); }));
+          break;
+        }
+        case "age": {
+          wrap.appendChild(visualSlider(character, "age", visualFieldOptions("age"), "Age",
+            function (option) { commit("age", option); }));
+          break;
+        }
+        default:
+          break;
+      }
+      return wrap;
+    }
+
+    function renderVisualCreator(character) {
+      const panel = el("div", { class: "krea2-visual-creator" });
+      const top = el("div", { class: "krea2-visual-top" }, [
+        el("button", {
+          type: "button",
+          class: "krea2-wizard-btn krea2-icon-btn",
+          title: "Close the visual creator",
+          "aria-label": "Close the visual creator",
+          onClick: function () {
+            character.expanded = false;
+            markDirty();
+            render();
+          },
+        }, icon("close", { width: "12", height: "12" })),
+        el("span", { class: "krea2-visual-title" }, (character.name || "Character") + " — Visual Creator"),
+        el("span", { class: "krea2-structured-spacer" }),
+        el("button", {
+          type: "button",
+          class: "krea2-wizard-btn krea2-visual-save",
+          onClick: function () { saveCharacterPreset(character, character.name || ""); },
+        }, "Save"),
+      ]);
+      const actions = el("div", { class: "krea2-visual-actions" }, [
+        el("button", { type: "button", class: "krea2-wizard-btn", title: "Undo", onClick: undo }, "Undo"),
+        el("button", { type: "button", class: "krea2-wizard-btn", title: "Redo", onClick: redo }, "Redo"),
+        el("button", {
+          type: "button", class: "krea2-wizard-btn", title: "Reset this character's look",
+          onClick: function () {
+            if (!window.confirm("Reset " + (character.name || "this character") + "'s appearance?")) return;
+            for (const field of CHARACTER_APPEARANCE) {
+              character[field.key] = "";
+            }
+            markDirty();
+            render();
+          },
+        }, "Reset"),
+        el("button", {
+          type: "button", class: "krea2-wizard-btn krea2-visual-randomize", title: "Randomize unlocked categories",
+          onClick: function () {
+            const locked = character.visual_locked || {};
+            for (const field of CHARACTER_APPEARANCE) {
+              if (locked[field.key]) continue;
+              randomizeAppearanceField(character, field);
+            }
+            markDirty();
+            render();
+          },
+        }, "Randomize"),
+      ]);
+      const activeCategory = character.visual_category || "hair_style";
+      const previewWrap = el("div", { class: "krea2-visual-preview" }, [
+        buildCharacterAvatar(character),
+      ]);
+      const controlsArea = el("div", { class: "krea2-visual-controls-area" }, [
+        visualCategoryControls(character, activeCategory),
+      ]);
+      const bar = el("div", { class: "krea2-visual-category-bar", role: "tablist" });
+      for (const category of VISUAL_CATEGORIES) {
+        const active = category.id === activeCategory;
+        const locked = !!(character.visual_locked || {})[category.id];
+        const btn = el("button", {
+          type: "button",
+          role: "tab",
+          "aria-selected": active ? "true" : "false",
+          class: "krea2-visual-category" + (active ? " is-active" : ""),
+          title: category.label + (locked ? " (locked)" : ""),
+          onClick: function () {
+            character.visual_category = category.id;
+            markDirty();
+            render();
+          },
+        }, [
+          icon(category.icon, { width: "13", height: "13" }),
+          el("span", { class: "krea2-visual-category-label" }, category.label),
+        ]);
+        if (locked) btn.classList.add("is-locked");
+        bar.appendChild(btn);
+      }
+      const lockRow = el("div", { class: "krea2-visual-lock-row" }, [
+        el("label", { class: "krea2-inline-check", title: "Lock the active category so Randomize keeps it" }, [
+          el("input", {
+            type: "checkbox",
+            checked: !!(character.visual_locked || {})[activeCategory],
+            onChange: function (event) {
+              if (!character.visual_locked) character.visual_locked = {};
+              character.visual_locked[activeCategory] = !!event.target.checked;
+              markDirty();
+              render();
+            },
+          }),
+          el("span", null, "Lock " + ((VISUAL_CATEGORIES.find(function (c) { return c.id === activeCategory; }) || {}).label || activeCategory) + " for Randomize"),
+        ]),
+      ]);
+      panel.append(top, actions, previewWrap, controlsArea, lockRow, bar);
+      return panel;
+    }
+
     /* v2 cast card: header (click = toggle) + four appearance dropdowns on
      * one row, identity chips, concepts block, quick directions, LoRA. */
     function renderCharacterCard(character, index) {
@@ -3802,7 +4273,8 @@ function buildGroupPresetPicker(group) {
         dataset: { characterId: character.id },
       });
       const header = el("div", { class: "krea2-character-card-header krea2-clickable-head" });
-      const avatar = buildCharacterAvatar(character);
+      const visualCreatorOn = state.character_creator === "visual";
+      const avatar = visualCreatorOn ? null : buildCharacterAvatar(character);
       const name = el("input", {
         type: "text",
         class: "krea2-compact-input krea2-character-name",
@@ -3863,7 +4335,7 @@ function buildGroupPresetPicker(group) {
           }
           markDirty(); render();
         },
-      }, icon("close", { width: "12", height: "12" }));
+      }, icon("trash", { width: "12", height: "12" }));
       const chevron = el("span", { class: "krea2-v2-chevron krea2-character-chevron", "aria-hidden": "true" },
         icon(expanded ? "chevron_down" : "chevron_right", { width: "13", height: "13" }));
       const identity = el("div", { class: "krea2-character-card-identity" }, [
@@ -3877,7 +4349,8 @@ function buildGroupPresetPicker(group) {
         save,
         remove,
       ]);
-      header.append(avatar, identity, actions, chevron);
+      if (avatar) header.append(avatar, identity, actions, chevron);
+      else header.append(identity, actions, chevron);
       header.addEventListener("click", function (event) {
         const target = event && event.target;
         if (target && typeof target.closest === "function"
@@ -3889,7 +4362,10 @@ function buildGroupPresetPicker(group) {
 
       const body = el("div", { class: "krea2-character-card-body" });
       if (expanded) {
-        const grid = el("div", { class: "krea2-v2-appearance-grid" });
+        if (visualCreatorOn) {
+          body.appendChild(renderVisualCreator(character));
+        } else {
+          const grid = el("div", { class: "krea2-v2-appearance-grid" });
         V2_APPEARANCE_FIELDS.forEach(function (field) {
           const fieldEl = el("div", { class: "krea2-v2-appearance-field" }, [
             el("span", { class: "krea2-v2-field-label" }, field.label),
@@ -3911,6 +4387,7 @@ function buildGroupPresetPicker(group) {
         body.appendChild(renderQuickDirectionsBlock(character));
         body.appendChild(renderCharacterConceptsBlock(character));
         body.appendChild(renderCharacterLoraBlock(character));
+        }
       }
       card.appendChild(header);
       card.appendChild(body);
@@ -4009,6 +4486,48 @@ function buildGroupPresetPicker(group) {
       render();
     }
 
+    /* Map a scene chip category to the backend group its each-job shuffle
+     * flag lives on. */
+    function groupForChipCategory(category) {
+      if (category === "framing" || category === "angle" || category === "aperture" || category === "lens") {
+        return "camera_film";
+      }
+      if (category === "lighting_setup" || category === "lighting_direction") {
+        return "lighting";
+      }
+      if (category === "atmosphere" || category === "environment_movement") {
+        return "environment";
+      }
+      return "style_finish";
+    }
+
+    /* Randomize one scene chip category once: replace its rows with a
+     * random preset from the chip rail. */
+    function randomizeSceneChips(category, chips) {
+      const options = chips.filter(function (entry) {
+        return library.some(function (preset) { return preset.id === entry[0]; });
+      });
+      if (!options.length) return;
+      const entry = options[Math.floor(Math.random() * options.length)];
+      const preset = library.find(function (item) { return item.id === entry[0]; });
+      if (!preset) return;
+      state.rows = state.rows.filter(function (row) { return row.category !== category; });
+      const row = presetToRow(preset, state);
+      row.strength = 1.2;
+      state.rows.push(row);
+      if (category === "lighting_setup") applyLightingSetupLayout(preset.id);
+      markDirty();
+      render();
+    }
+
+    function toggleChipShuffle(category) {
+      const group = groupForChipCategory(category);
+      state.randomize_on_job = state.randomize_on_job || {};
+      state.randomize_on_job[group] = !state.randomize_on_job[group];
+      markDirty();
+      render();
+    }
+
     function renderChipRow(label, category, chips, multi) {
       const row = el("div", { class: "krea2-v2-chip-row" });
       row.appendChild(el("span", { class: "krea2-v2-field-label" }, label));
@@ -4033,6 +4552,26 @@ function buildGroupPresetPicker(group) {
         }, entry[1]));
       }
       row.appendChild(wrap);
+      const group = groupForChipCategory(category);
+      const shuffleOn = !!(state.randomize_on_job || {})[group];
+      const dice = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-icon-btn krea2-chip-dice",
+        title: "Randomize " + label + " once now",
+        "aria-label": "Randomize " + label + " once",
+        onClick: function () { randomizeSceneChips(category, chips); },
+      }, icon("dice", { width: "12", height: "12" }));
+      const shuffle = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-icon-btn krea2-shuffle" + (shuffleOn ? " is-active" : ""),
+        title: shuffleOn
+          ? "Shuffle on: this section randomizes every queued job. Click to stop."
+          : "Shuffle off: randomize this section every queued job.",
+        "aria-label": "Randomize " + label + " every queued job",
+        "aria-pressed": shuffleOn ? "true" : "false",
+        onClick: function () { toggleChipShuffle(category); },
+      }, icon("shuffle", { width: "12", height: "12" }));
+      row.appendChild(el("div", { class: "krea2-v2-field-random-controls" }, [dice, shuffle]));
       return row;
     }
 
@@ -4329,9 +4868,16 @@ function buildGroupPresetPicker(group) {
           cy: C + dy,
           r: 7,
           class: "krea2-v2-compass-handle",
+          "data-light-index": String(index),
           style: colourHex ? "fill: " + colourHex + ";" : "",
         });
         group.appendChild(dot);
+        dot.addEventListener("mouseenter", function () {
+          highlightLightRow(index, true);
+        });
+        dot.addEventListener("mouseleave", function () {
+          highlightLightRow(index, false);
+        });
         const num = svgEl("text", {
           x: C + dx + 9,
           y: C + dy + 3,
@@ -4380,12 +4926,14 @@ function buildGroupPresetPicker(group) {
         const start = function (event) {
           if (event.button !== 0) return;
           event.preventDefault();
-          event.stopPropagation();
+          if (event && typeof event.stopPropagation === "function") event.stopPropagation();
+          highlightLightRow(lightDots.indexOf(entry), true);
           drag(entry.light, event);
           const onMove = function (moveEvent) { drag(entry.light, moveEvent); };
           const onUp = function () {
             document.removeEventListener("mousemove", onMove);
             document.removeEventListener("mouseup", onUp);
+            highlightLightRow(lightDots.indexOf(entry), false);
             syncLightRows();
             markDirty();
             render();
@@ -4398,10 +4946,31 @@ function buildGroupPresetPicker(group) {
       return svg;
     }
 
+    /* Cross-highlight: hovering/dragging a light in one spot highlights it
+     * in the other (diagram dot <-> list row). */
+    function highlightLightRow(index, on) {
+      const wrap = document.querySelector(".krea2-v2-compass-wrap");
+      if (!wrap) return;
+      const rows = wrap.querySelectorAll('.krea2-v2-light-row[data-light-index="' + index + '"]');
+      for (const row of rows) row.classList.toggle("is-highlighted", on);
+    }
+
+    function highlightLightDot(index, on) {
+      const wrap = document.querySelector(".krea2-v2-compass-wrap");
+      if (!wrap) return;
+      const dots = wrap.querySelectorAll('.krea2-v2-compass-handle[data-light-index="' + index + '"]');
+      for (const dot of dots) dot.classList.toggle("is-highlighted", on);
+    }
+
     function renderLightRows() {
       const rows = el("div", { class: "krea2-v2-light-rows" });
       sceneLights().forEach(function (light, index) {
-        const row = el("div", { class: "krea2-v2-light-row" });
+        const row = el("div", {
+          class: "krea2-v2-light-row",
+          dataset: { lightIndex: String(index) },
+        });
+        row.addEventListener("mouseenter", function () { highlightLightDot(index, true); });
+        row.addEventListener("mouseleave", function () { highlightLightDot(index, false); });
         const label = el("span", {
           class: "krea2-v2-light-label",
           title: lightPhrase(light),
@@ -4429,19 +4998,42 @@ function buildGroupPresetPicker(group) {
           },
         });
         const colour = renderLightColorButton(light, index);
+        const colourDice = el("button", {
+          type: "button",
+          class: "krea2-wizard-btn krea2-icon-btn krea2-light-colour-dice",
+          title: "Randomize this light's colour once now",
+          "aria-label": "Randomize light " + (index + 1) + " colour",
+          onClick: function () {
+            const entry = LIGHT_PALETTE[Math.floor(Math.random() * LIGHT_PALETTE.length)];
+            setLightState(light, { color: entry[0] });
+          },
+        }, icon("dice", { width: "11", height: "11" }));
+        const colourShuffleOn = !!(state.randomize_on_job || {}).lighting;
+        const colourShuffle = el("button", {
+          type: "button",
+          class: "krea2-wizard-btn krea2-icon-btn krea2-shuffle" + (colourShuffleOn ? " is-active" : ""),
+          title: colourShuffleOn
+            ? "Shuffle on: light colours randomize every queued job. Click to stop."
+            : "Randomize light colours every queued job.",
+          "aria-label": "Randomize light colours every queued job",
+          "aria-pressed": colourShuffleOn ? "true" : "false",
+          onClick: function () { toggleChipShuffle("lighting_direction"); },
+        }, icon("shuffle", { width: "11", height: "11" }));
         const remove = el("button", {
           type: "button",
           class: "krea2-wizard-btn krea2-icon-btn krea2-danger",
           title: "Remove this light",
           "aria-label": "Remove light " + (index + 1),
           onClick: function () { removeLight(light); },
-        }, icon("close", { width: "10", height: "10" }));
+        }, icon("trash", { width: "11", height: "11" }));
         const controls = el("div", { class: "krea2-v2-light-controls" }, [
           el("span", { class: "krea2-v2-light-tag" }, "angle"),
           angleStepper.minus, angleStepper.valueEl, angleStepper.plus,
           el("span", { class: "krea2-v2-light-tag" }, "intensity"),
           intensityStepper.minus, intensityStepper.valueEl, intensityStepper.plus,
           colour,
+          colourDice,
+          colourShuffle,
           remove,
         ]);
         row.append(label, controls);
@@ -4466,7 +5058,7 @@ function buildGroupPresetPicker(group) {
         title: (current || "white") + " light — click to pick a colour",
         "aria-label": "Light " + (index + 1) + " colour: " + (current || "white"),
         onClick: function (event) {
-          event.stopPropagation();
+          if (event && typeof event.stopPropagation === "function") event.stopPropagation();
           openColorPopup(btn, LIGHT_PALETTE, current, "Light " + (index + 1) + " colour", function (name) {
             setLightState(light, { color: name });
           });
@@ -4498,83 +5090,12 @@ function buildGroupPresetPicker(group) {
       return wrap;
     }
 
-    /* Environment: each atmosphere concept becomes a compact stepper row
-     * (pill label + [−] value [+] ×), added from a dropdown so fog, smoke,
-     * dust and rain can stack with their own strengths. */
+    /* Environment behaves exactly like the CAST concept groups: adding via
+     * the picker, presets, save, dice, each-job shuffle and drag-reorder —
+     * with atmosphere and environmental movement as the pool. */
     function renderEnvironmentContent() {
-      const wrap = el("div", { class: "krea2-v2-subsection-content" });
-      const rowsHost = el("div", { class: "krea2-v2-env-rows" });
-      const atmosphereRows = state.rows.filter(function (row) { return row.category === "atmosphere"; });
-      for (const row of atmosphereRows) {
-        rowsHost.appendChild(renderAtmosphereRow(row));
-      }
-      const addRow = el("div", { class: "krea2-v2-env-add" });
-      const select = el("select", {
-        class: "krea2-compact-select krea2-v2-env-select",
-        "aria-label": "Add an atmosphere concept",
-      });
-      select.appendChild(el("option", { value: "" }, "Add an atmosphere concept..."));
-      const options = library.filter(function (preset) {
-        return preset.category === "atmosphere" && !preset.disabled;
-      }).slice().sort(function (a, b) {
-        return String(a.label).toLowerCase().localeCompare(String(b.label).toLowerCase());
-      });
-      for (const preset of options) {
-        select.appendChild(el("option", { value: preset.id }, preset.label));
-      }
-      const addBtn = el("button", {
-        type: "button",
-        class: "krea2-wizard-btn",
-        onClick: function () {
-          const preset = library.find(function (item) { return item.id === select.value; });
-          if (!preset) return;
-          if (state.rows.some(function (row) { return row.preset_id === preset.id; })) return;
-          const row = presetToRow(preset, state);
-          row.strength = 1.2;
-          state.rows.push(row);
-          markDirty();
-          render();
-        },
-      }, "Add");
-      addRow.append(select, addBtn);
-      wrap.appendChild(rowsHost);
-      wrap.appendChild(addRow);
-      return wrap;
-    }
-
-    function renderAtmosphereRow(row) {
-      const wrap = el("div", { class: "krea2-v2-env-row" });
-      const label = el("span", {
-        class: "krea2-v2-env-label",
-        title: row.phrase || row.label,
-      }, row.label || row.preset_id);
-      const stepper = K.presetRow.makeStepper({
-        value: Number(row.strength) || 1.2,
-        step: 0.5,
-        min: -3,
-        max: 3,
-        format: formatLoraValue,
-        label: "Strength for " + (row.label || row.preset_id),
-        onCommit: function (value) {
-          row.strength = value;
-          markDirty();
-        },
-      });
-      const remove = el("button", {
-        type: "button",
-        class: "krea2-wizard-btn krea2-icon-btn krea2-danger",
-        title: "Remove this atmosphere concept",
-        "aria-label": "Remove " + (row.label || row.preset_id),
-        onClick: function () {
-          state.rows = state.rows.filter(function (item) { return item.id !== row.id; });
-          markDirty();
-          render();
-        },
-      }, icon("close", { width: "10", height: "10" }));
-      const cluster = el("div", { class: "krea2-v2-env-controls" }, [
-        stepper.minus, stepper.valueEl, stepper.plus, remove,
-      ]);
-      wrap.append(label, cluster);
+      const wrap = el("div", { class: "krea2-v2-subsection-content krea2-v2-env-group" });
+      renderGroupSections(wrap, ["environment"]);
       return wrap;
     }
 
@@ -4682,7 +5203,7 @@ function buildGroupPresetPicker(group) {
           title: "Copy compiled prompt",
           "aria-label": "Copy compiled prompt",
           onClick: function (event) {
-            event.stopPropagation();
+            if (event && typeof event.stopPropagation === "function") event.stopPropagation();
             copy(livePreview.codeText.textContent);
           },
         }, icon("copy", { width: "12", height: "12" })),
@@ -5640,6 +6161,7 @@ function buildGroupPresetPicker(group) {
           "show_motion_prompt", "show_face_guidance", "show_concepts_tab",
           "scene_collapsed", "wizard_expanded",
           "scene_sections", "final_preview_open", "pretty_preview",
+          "character_creator",
         ];
         for (const key of uiKeys) {
           if (key in state) merged[key] = state[key];

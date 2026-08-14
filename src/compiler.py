@@ -231,6 +231,47 @@ def _face_guidance_lines(guidance: Any) -> List[str]:
 _LORA_EXTENSIONS = (".safetensors", ".ckpt", ".pt", ".bin")
 
 
+# Krea2 understands natural-language descriptions (official prompting
+# guide), so named species get a self-contained visual description instead
+# of a bare label. Pattern: "a <species> alien, a <body> humanoid with
+# <skin>, <face>, and <unique anatomy>".
+_SPECIES_DESCRIPTIONS: Dict[str, str] = {
+    "andorian": "an Andorian alien, a blue-skinned humanoid with white or silver hair and two flexible antennae rising from the crown of the head",
+    "asari": "an Asari alien, a graceful blue-to-violet feminine humanoid with subtle skin markings, no hair, and swept-back fleshy scalp crests",
+    "bajoran": "a Bajoran alien, an otherwise human-looking person with several short horizontal ridges across the upper bridge of the nose",
+    "betazoid": "a Betazoid alien, an externally human-looking person with unusually dark irises and an intense empathic gaze",
+    "cardassian": "a Cardassian alien with pale grey-beige skin, a broad angular face, a spoon-shaped forehead depression, and bony ridges along the temples and neck",
+    "chiss": "a Chiss alien, a human-shaped person with cobalt-blue skin, luminous red eyes, and straight blue-black hair",
+    "drell": "a Drell alien, a lean hairless humanoid with green scaled skin, large glossy black eyes, a narrow reptilian face, and patterned throat scales",
+    "ferengi": "a short Ferengi alien with orange-brown skin, an oversized ridged forehead, enormous rounded ribbed ears, a broad nose, and small pointed teeth",
+    "klingon": "a powerfully built Klingon alien with prominent segmented forehead and skull ridges, a broad rugged face, and thick dark hair",
+    "krogan": "a massive stocky Krogan alien with a hunched dorsal hump, thick reptilian hide, a wide blunt face, and heavy natural armour plates covering the crown",
+    "martian": "a tall bald green Martian humanoid with an elongated skull, heavy brow, red eyes, pointed ears, and smooth features",
+    "miraluka": "a Miraluka alien, an otherwise human-looking person with the entire eye area concealed beneath an opaque cloth blindfold or ornamental mask",
+    "mirialan": "a Mirialan alien with olive-green or yellow-green skin and precise symmetrical black geometric tattoos across the forehead and cheeks",
+    "na'vi": "an extremely tall slender feline humanoid with blue striped skin, faint bioluminescent freckles, large golden eyes, a broad flat nose, pointed ears, and a long tail",
+    "ood": "an Ood alien with pale mottled skin, a bald wrinkled head, deep dark eyes, and a cluster of short fleshy tentacles replacing the mouth",
+    "pantoran": "a Pantoran alien, a human-shaped person with saturated blue skin, dark hair, golden-yellow eyes, and decorative yellow facial markings",
+    "protoss": "a very tall lean Protoss alien with digitigrade legs, an elongated hairless head, glowing blue eyes, no mouth, and nerve-cord tendrils extending from the back of the skull",
+    "quarian": "a Quarian alien completely enclosed in a fitted environmental suit, hood, respirator, and dark reflective faceplate, with no exposed skin",
+    "rodian": "a Rodian alien with green pebbled skin, enormous glossy black compound eyes, a narrow trumpet-shaped snout, and flexible antennae",
+    "romulan": "a Romulan alien, a largely human-looking person with sharply pointed ears, upswept eyebrows, angular cheekbones, straight dark hair, and subtle V-shaped forehead ridges",
+    "salarian": "a very tall thin Salarian alien with long limbs, mottled amphibian skin, an oversized elongated head, enormous oval eyes, and two backward-pointing cranial horns",
+    "silurian": "a modern Silurian alien, a green reptilian humanoid with layered facial scales, a broad ridged skull, red-orange eyes, and a lipless mouth",
+    "sontaran": "a short heavily built Sontaran alien with an oversized bald dome-shaped head, wrinkled grey-brown skin, tiny eyes, a flattened nose, and an extremely thick neck",
+    "time lord": "an externally human-looking Time Lord with an air of immense age and authority; the species has no reliably visible anatomy",
+    "togruta": "a hairless Togruta alien with colourful skin, symmetrical white facial markings, two tall striped horn-like montrals, and three thick striped head-tails",
+    "trill": "a Trill alien, an otherwise human-looking person with orderly rows of small brown spots running from both temples down the sides of the face and neck",
+    "turian": "a tall lean Turian alien with hard metallic facial plates, a narrow crested skull, movable cheek mandibles, and long digitigrade legs",
+    "twi'lek": "a hairless Twi'lek alien with a human-like face, brightly coloured skin, and two long smooth prehensile head-tails growing from the back of the skull",
+    "vulcan": "a Vulcan alien, an otherwise human-looking person with sharply pointed ears, strongly upswept eyebrows, angular features, and straight dark hair",
+    "wookiee": "a towering broad-shouldered Wookiee alien covered completely in long shaggy brown, black, or golden fur, with a canine-ape face and large clawed hands",
+    "xenomorph": "an adult Xenomorph creature with a glossy black biomechanical exoskeleton, an elongated smooth eyeless dome, skeletal ribs, clawed limbs, a long bladed tail, and a second extendable inner jaw",
+    "yautja": "a gigantic muscular Yautja hunter with mottled reptilian skin, four opening jaw mandibles tipped with tusks, deep-set eyes, and thick black tendril-like hair",
+    "zabrak": "a Zabrak alien, a human-shaped person with a crown of short blunt horns growing from the scalp and bold symmetrical facial tattoos",
+}
+
+
 def _lora_token_name(filename: Any) -> str:
     """The LoRA identifier used inside <lora:...> tokens: the file name
     without its extension (A1111 convention)."""
@@ -514,7 +555,10 @@ def _compile_character(
     if skin and re.fullmatch(r"[a-z ]+", skin, re.IGNORECASE):
         emitted.append(f"({skin} skin:1.5)")
     ethnicity = str(character.get("ethnicity") or "").strip()
-    if ethnicity and not re.search(r"[:()]", ethnicity):
+    species = _SPECIES_DESCRIPTIONS.get(ethnicity.lower()) if ethnicity else None
+    if species:
+        emitted.append(f"({species}:1.5)")
+    elif ethnicity and not re.search(r"[:()]", ethnicity):
         emitted.append(f"({ethnicity}:1.3)")
     if interaction:
         emitted.append(interaction)

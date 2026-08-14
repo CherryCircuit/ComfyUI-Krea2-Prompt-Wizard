@@ -25,8 +25,8 @@ if (!state.collapsed || Object.keys(state.collapsed).length !== 0) {
 if (state.pretty_preview !== false) {
   throw new Error("Pretty Prompt Preview must default to OFF.");
 }
-if (state.final_preview_open !== true) {
-  throw new Error("The Final Prompt Preview must default to open.");
+if (state.final_preview_open !== false) {
+  throw new Error("The Final Prompt Preview must default to collapsed.");
 }
 const v2Probe = window.KREA2.helpers.coerceState({
   rows: [],

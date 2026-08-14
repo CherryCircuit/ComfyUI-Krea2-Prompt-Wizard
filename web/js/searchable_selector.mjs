@@ -12,6 +12,39 @@
     GROUP_CATEGORIES,
   } = K.constants;
 
+  /* Emotion concepts are grouped by sentiment with emoji headers so the
+   * picker reads like a mood board instead of one flat alphabet. */
+  const EMOTION_BUCKETS = [
+    { emoji: "😀", label: "Happy & Joyful", keys: ["joy", "happi", "glee", "elat", "delight", "amuse", "excit", "content", "radian", "cheer", "bliss", "relief", "affection", "tender", "love", "pride", "hope", "wonder", "awe", "seren", "calm", "playful", "flirt", "warmth"] },
+    { emoji: "😡", label: "Angry & Frustrated", keys: ["anger", "angry", "rage", "fury", "furious", "irritat", "frustrat", "annoy", "exasper", "fuming"] },
+    { emoji: "😭", label: "Sad & Depressed", keys: ["sad", "grief", "despair", "melanchol", "lonel", "sorrow", "mourn", "disappoint", "depress", "hopeless", "cry", "tear"] },
+    { emoji: "😨", label: "Fear & Anxiety", keys: ["fear", "afraid", "terror", "panic", "anxi", "nervous", "dread", "horr", "scared", "terrif"] },
+    { emoji: "😲", label: "Surprise & Shock", keys: ["surpris", "shock", "astonish", "amaze", "startl", "jaw"] },
+    { emoji: "🤔", label: "Curious & Thinking", keys: ["curious", "confus", "puzzl", "skeptic", "suspic", "uncertain", "baffl", "intrigu", "thoughtful", "contemplat"] },
+    { emoji: "😏", label: "Sly & Contemptuous", keys: ["contempt", "disgust", "sneer", "disdain", "smug", "smirk", "scorn", "suspicion"] },
+    { emoji: "😴", label: "Tired & Numb", keys: ["fatigue", "tired", "exhaust", "weary", "bored", "numb", "apathet", "drained", "sleepy", "letharg"] },
+    { emoji: "😰", label: "Shame & Embarrassment", keys: ["embarrass", "shame", "guilt", "humiliat", "awkward", "blush", "remorse"] },
+    { emoji: "😤", label: "Defiant & Determined", keys: ["defian", "determin", "resolute", "assert", "stubborn", "firm", "commanded"] },
+  ];
+  const EMOTION_OTHER_BUCKET = { emoji: "✨", label: "Other" };
+
+  function emotionBucketFor(preset) {
+    const haystack = [preset.label, preset.phrase].concat(preset.aliases || [])
+      .join(" ").toLowerCase();
+    for (const bucket of EMOTION_BUCKETS) {
+      if (bucket.keys.some(function (key) { return haystack.includes(key); })) {
+        return bucket;
+      }
+    }
+    return EMOTION_OTHER_BUCKET;
+  }
+
+  function emotionBucketIndex(preset) {
+    const bucket = emotionBucketFor(preset);
+    if (bucket === EMOTION_OTHER_BUCKET) return EMOTION_BUCKETS.length;
+    return EMOTION_BUCKETS.indexOf(bucket);
+  }
+
   function showSearchableSelector(opts) {
     const {
       presets,
@@ -25,7 +58,6 @@
       selectedIds = [],
       title = multiSelect ? "Add concepts" : "Choose a concept",
     } = opts;
-
     const list = Array.isArray(presets) ? presets : [];
     if (!list.length) return null;
 
@@ -231,29 +263,47 @@
       }
 
       // Sort by category, then alphabetically by label within each category.
+      // Emotion concepts are grouped into sentiment buckets first.
       currentResults.sort(function (a, b) {
         var catA = a.category || "";
         var catB = b.category || "";
         var byCategory = catA.localeCompare(catB);
         if (byCategory !== 0) return byCategory;
+        var bucketA = emotionBucketIndex(a);
+        var bucketB = emotionBucketIndex(b);
+        if (bucketA !== bucketB) return bucketA - bucketB;
         return String(a.label || "").toLowerCase().localeCompare(String(b.label || "").toLowerCase());
       });
 
       var lastCategory = "";
+      var lastBucket = null;
       var absIndex = 0;
       for (var ri = 0; ri < currentResults.length; ri++) {
         const preset = currentResults[ri];
         var presetCat = preset.category || "";
+        var isEmotionCat = presetCat === "emotion" || presetCat === "emotion_trigger";
         if (presetCat !== lastCategory) {
-          if (lastCategory !== "") {
+          // Emotion and emotion-trigger share one combined section.
+          if (lastCategory !== "" && !(isEmotionCat && (lastCategory === "emotion" || lastCategory === "emotion_trigger"))) {
             // Add a subtle separator between categories
             var sep = el("div", { class: "krea2-searchable-cat-sep" });
             listEl.appendChild(sep);
           }
-          var headerLabel = CATEGORY_LABELS[presetCat] || presetCat;
-          var header = el("div", { class: "krea2-searchable-cat-header" }, headerLabel);
-          listEl.appendChild(header);
+          if (!(isEmotionCat && (lastCategory === "emotion" || lastCategory === "emotion_trigger"))) {
+            var headerLabel = CATEGORY_LABELS[presetCat] || presetCat;
+            var header = el("div", { class: "krea2-searchable-cat-header" }, headerLabel);
+            listEl.appendChild(header);
+          }
           lastCategory = presetCat;
+          lastBucket = null;
+        }
+        if (isEmotionCat) {
+          const bucket = emotionBucketFor(preset);
+          if (bucket && bucket !== lastBucket) {
+            lastBucket = bucket;
+            listEl.appendChild(el("div", { class: "krea2-searchable-bucket-header" },
+              bucket.emoji + " " + bucket.label));
+          }
         }
 
         var index = ri;

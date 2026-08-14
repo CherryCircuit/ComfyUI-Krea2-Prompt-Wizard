@@ -209,7 +209,8 @@
       wizard_expanded: false,
       // v2 redesign: tabbed editor state.
       pretty_preview: false,
-      final_preview_open: true,
+      final_preview_open: false,
+      character_creator: "legacy",
       scene_sections: {},
     };
   }
@@ -254,6 +255,7 @@
       "wizard_expanded",
       "pretty_preview",
       "final_preview_open",
+      "character_creator",
       "scene_sections",
     ]) {
       if (key in raw) base[key] = raw[key];
@@ -778,6 +780,48 @@
     return best;
   }
 
+  function hexToHsv(hex) {
+    const raw = String(hex || "").trim().replace(/^#/, "");
+    const full = raw.length === 3
+      ? raw.split("").map(function (c) { return c + c; }).join("")
+      : (raw.length === 6 ? raw : "ffffff");
+    const r = parseInt(full.slice(0, 2), 16) / 255;
+    const g = parseInt(full.slice(2, 4), 16) / 255;
+    const b = parseInt(full.slice(4, 6), 16) / 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const delta = max - min;
+    let h = 0;
+    if (delta > 0) {
+      if (max === r) h = 60 * (((g - b) / delta) % 6);
+      else if (max === g) h = 60 * ((b - r) / delta + 2);
+      else h = 60 * ((r - g) / delta + 4);
+    }
+    if (h < 0) h += 360;
+    const s = max === 0 ? 0 : delta / max;
+    return { h: h, s: s, v: max };
+  }
+
+  function hsvToHex(hsv) {
+    const h = ((Number(hsv.h) % 360) + 360) % 360;
+    const s = Math.max(0, Math.min(1, Number(hsv.s) || 0));
+    const v = Math.max(0, Math.min(1, Number(hsv.v) || 0));
+    const c = v * s;
+    const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+    const m = v - c;
+    let r = 0, g = 0, b = 0;
+    if (h < 60) { r = c; g = x; }
+    else if (h < 120) { r = x; g = c; }
+    else if (h < 180) { g = c; b = x; }
+    else if (h < 240) { g = x; b = c; }
+    else if (h < 300) { r = x; b = c; }
+    else { r = c; b = x; }
+    const toHex = function (n) {
+      return Math.round((n + m) * 255).toString(16).padStart(2, "0");
+    };
+    return "#" + toHex(r) + toHex(g) + toHex(b);
+  }
+
   function sortedOptions(options) {
     return (options || []).slice().sort(function (a, b) {
       return String(a).toLowerCase().localeCompare(String(b).toLowerCase());
@@ -861,6 +905,28 @@
   }
 
   async function fetchLoras() {
+    // The exact mechanism the core ComfyUI LoraLoader (and rgthree Power
+    // Lora Loader, was-ns Lora Loader, DaSiWa Advanced LoRA Loader) uses:
+    // read the node definition's combo list straight from /object_info.
+    // Falls back to the wizard's own route when that is unavailable.
+    try {
+      const api = (window.app && window.app.api) || null;
+      const infoUrl = (api && api.apiURL && api.apiURL("/object_info/LoraLoader"))
+        || "/object_info/LoraLoader";
+      const infoResp = await fetch(infoUrl, { cache: "no-store" });
+      if (infoResp.ok) {
+        const info = await infoResp.json();
+        const combo = info && info.LoraLoader
+          && info.LoraLoader.input && info.LoraLoader.input.required
+          && info.LoraLoader.input.required.lora_name;
+        if (Array.isArray(combo) && combo.length && Array.isArray(combo[0])) {
+          const names = combo[0].slice();
+          if (names.length) return names;
+        }
+      }
+    } catch (e) {
+      // fall through to the wizard route
+    }
     try {
       const api = (window.app && window.app.api) || null;
       const url = (api && api.apiURL && api.apiURL("/krea2_prompt_wizard/loras"))
@@ -1092,14 +1158,53 @@
     for (const line of loraLines) fragments.push(line);
     const loraTokens = compileLoraTokens(character);
     for (const token of loraTokens) fragments.push(token);
-    /* Krea2 follows natural-language descriptions (official prompting
-     * guide), so skin and ethnicity also get weighted visual phrases —
-     * "blue skin" reads far better to the Qwen3-VL encoder than
-     * "skin colour: blue". */
+  /* Krea2 understands natural-language descriptions, so named species get a
+   * self-contained visual description instead of a bare label. Mirrors
+   * src/compiler.py::_SPECIES_DESCRIPTIONS. */
+  const SPECIES_DESCRIPTIONS = Object.freeze({
+    andorian: "an Andorian alien, a blue-skinned humanoid with white or silver hair and two flexible antennae rising from the crown of the head",
+    asari: "an Asari alien, a graceful blue-to-violet feminine humanoid with subtle skin markings, no hair, and swept-back fleshy scalp crests",
+    bajoran: "a Bajoran alien, an otherwise human-looking person with several short horizontal ridges across the upper bridge of the nose",
+    betazoid: "a Betazoid alien, an externally human-looking person with unusually dark irises and an intense empathic gaze",
+    cardassian: "a Cardassian alien with pale grey-beige skin, a broad angular face, a spoon-shaped forehead depression, and bony ridges along the temples and neck",
+    chiss: "a Chiss alien, a human-shaped person with cobalt-blue skin, luminous red eyes, and straight blue-black hair",
+    drell: "a Drell alien, a lean hairless humanoid with green scaled skin, large glossy black eyes, a narrow reptilian face, and patterned throat scales",
+    ferengi: "a short Ferengi alien with orange-brown skin, an oversized ridged forehead, enormous rounded ribbed ears, a broad nose, and small pointed teeth",
+    klingon: "a powerfully built Klingon alien with prominent segmented forehead and skull ridges, a broad rugged face, and thick dark hair",
+    krogan: "a massive stocky Krogan alien with a hunched dorsal hump, thick reptilian hide, a wide blunt face, and heavy natural armour plates covering the crown",
+    martian: "a tall bald green Martian humanoid with an elongated skull, heavy brow, red eyes, pointed ears, and smooth features",
+    miraluka: "a Miraluka alien, an otherwise human-looking person with the entire eye area concealed beneath an opaque cloth blindfold or ornamental mask",
+    mirialan: "a Mirialan alien with olive-green or yellow-green skin and precise symmetrical black geometric tattoos across the forehead and cheeks",
+    "na'vi": "an extremely tall slender feline humanoid with blue striped skin, faint bioluminescent freckles, large golden eyes, a broad flat nose, pointed ears, and a long tail",
+    ood: "an Ood alien with pale mottled skin, a bald wrinkled head, deep dark eyes, and a cluster of short fleshy tentacles replacing the mouth",
+    pantoran: "a Pantoran alien, a human-shaped person with saturated blue skin, dark hair, golden-yellow eyes, and decorative yellow facial markings",
+    protoss: "a very tall lean Protoss alien with digitigrade legs, an elongated hairless head, glowing blue eyes, no mouth, and nerve-cord tendrils extending from the back of the skull",
+    quarian: "a Quarian alien completely enclosed in a fitted environmental suit, hood, respirator, and dark reflective faceplate, with no exposed skin",
+    rodian: "a Rodian alien with green pebbled skin, enormous glossy black compound eyes, a narrow trumpet-shaped snout, and flexible antennae",
+    romulan: "a Romulan alien, a largely human-looking person with sharply pointed ears, upswept eyebrows, angular cheekbones, straight dark hair, and subtle V-shaped forehead ridges",
+    salarian: "a very tall thin Salarian alien with long limbs, mottled amphibian skin, an oversized elongated head, enormous oval eyes, and two backward-pointing cranial horns",
+    silurian: "a modern Silurian alien, a green reptilian humanoid with layered facial scales, a broad ridged skull, red-orange eyes, and a lipless mouth",
+    sontaran: "a short heavily built Sontaran alien with an oversized bald dome-shaped head, wrinkled grey-brown skin, tiny eyes, a flattened nose, and an extremely thick neck",
+    "time lord": "an externally human-looking Time Lord with an air of immense age and authority; the species has no reliably visible anatomy",
+    togruta: "a hairless Togruta alien with colourful skin, symmetrical white facial markings, two tall striped horn-like montrals, and three thick striped head-tails",
+    trill: "a Trill alien, an otherwise human-looking person with orderly rows of small brown spots running from both temples down the sides of the face and neck",
+    turian: "a tall lean Turian alien with hard metallic facial plates, a narrow crested skull, movable cheek mandibles, and long digitigrade legs",
+    "twi'lek": "a hairless Twi'lek alien with a human-like face, brightly coloured skin, and two long smooth prehensile head-tails growing from the back of the skull",
+    vulcan: "a Vulcan alien, an otherwise human-looking person with sharply pointed ears, strongly upswept eyebrows, angular features, and straight dark hair",
+    wookiee: "a towering broad-shouldered Wookiee alien covered completely in long shaggy brown, black, or golden fur, with a canine-ape face and large clawed hands",
+    xenomorph: "an adult Xenomorph creature with a glossy black biomechanical exoskeleton, an elongated smooth eyeless dome, skeletal ribs, clawed limbs, a long bladed tail, and a second extendable inner jaw",
+    yautja: "a gigantic muscular Yautja hunter with mottled reptilian skin, four opening jaw mandibles tipped with tusks, deep-set eyes, and thick black tendril-like hair",
+    zabrak: "a Zabrak alien, a human-shaped person with a crown of short blunt horns growing from the scalp and bold symmetrical facial tattoos",
+  });
     const skin = String(character.skin_color || "").trim();
     if (skin && /^[a-z ]+$/i.test(skin)) fragments.push("(" + skin + " skin:1.5)");
     const ethnicity = String(character.ethnicity || "").trim();
-    if (ethnicity && !/[:()]/.test(ethnicity)) fragments.push("(" + ethnicity + ":1.3)");
+    const species = ethnicity ? SPECIES_DESCRIPTIONS[ethnicity.toLowerCase()] : null;
+    if (species) {
+      fragments.push("(" + species + ":1.5)");
+    } else if (ethnicity && !/[:()]/.test(ethnicity)) {
+      fragments.push("(" + ethnicity + ":1.3)");
+    }
     const interaction = String(character.interaction || "").trim();
     if (interaction) fragments.push(interaction);
     const head = position ? name + " (" + position + ")" : name;
@@ -1269,6 +1374,8 @@
     storedStrength,
     formatStepValue,
     paletteNearestName,
+    hexToHsv,
+    hsvToHex,
     sortedOptions,
     sliderToWeightScalar,
     sliderToWeightRaw,

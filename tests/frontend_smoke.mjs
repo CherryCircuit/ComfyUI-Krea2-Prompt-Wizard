@@ -103,8 +103,29 @@ class Element {
     }
     return child;
   }
-  querySelectorAll() { return []; }
-  querySelector() { return null; }
+  querySelectorAll(selector) {
+    const matches = [];
+    const walk = (node) => {
+      if (node !== this && this._matches(node, selector)) matches.push(node);
+      for (const child of node.children || []) walk(child);
+    };
+    walk(this);
+    return matches;
+  }
+  _matches(node, selector) {
+    const sel = String(selector || "").trim();
+    if (sel.startsWith(".")) {
+      return (node.className || "").split(/\s+/).includes(sel.slice(1));
+    }
+    if (sel.includes(" ")) {
+      const parts = sel.split(/\s+/).filter(Boolean);
+      return parts.every((part) => this._matches(node, part));
+    }
+    return node.tagName === sel;
+  }
+  querySelector(selector) {
+    return this.querySelectorAll(selector)[0] || null;
+  }
   remove() { if (this.parentNode) this.parentNode.removeChild(this); }
   contains(target) { return target === this || this.children.includes(target); }
   scrollIntoView() {}
@@ -138,6 +159,28 @@ window.KREA2 = {};
 window.app = { api: { apiURL: (url) => url }, extensionManager: { toast: { add() {} } } };
 globalThis.fetch = (url, options) => {
   const apiPath = String(url).replace(/^.*\/krea2_prompt_wizard/, "/krea2_prompt_wizard");
+  if (apiPath.includes("/object_info/LoraLoader")) {
+    return Promise.resolve({
+      ok: true,
+      json: async () => ({
+        LoraLoader: {
+          input: {
+            required: {
+              lora_name: [
+                [
+                  "image_models/char_style.safetensors",
+                  "image_models/utility/scale_helpers.safetensors",
+                  "video_models/motion_v2.safetensors",
+                  "root_level.safetensors",
+                ],
+                { image_upload: true },
+              ],
+            },
+          },
+        },
+      }),
+    });
+  }
   if (apiPath === "/krea2_prompt_wizard/library") {
     return Promise.resolve({ ok: true, json: async () => libraryPayload });
   }
@@ -492,10 +535,19 @@ const castPreview = findByClass(wizard.root, "krea2-v2-final-preview");
 if (castPreview.length !== 1 || !textOf(castPreview[0]).includes("Final Prompt Preview")) {
   throw new Error("The CAST tab must render the Final Prompt Preview at the bottom.");
 }
+if (castPreview[0].className.includes("is-open")) {
+  throw new Error("The Final Prompt Preview must be collapsed by default.");
+}
+const previewHeader = castPreview[0].children.find((child) => child.className.includes("krea2-v2-block-head"));
+previewHeader.listeners.click({ target: previewHeader });
 const previewCode = findByClass(wizard.root, "krea2-wizard-preview");
 if (!previewCode.length) {
-  throw new Error("The Final Prompt Preview must render the plain code area.");
+  throw new Error("Expanding the Final Prompt Preview must render the plain code area.");
 }
+if (!JSON.parse(stateWidget.value).final_preview_open) {
+  throw new Error("Clicking the preview header must persist the open flag.");
+}
+previewHeader.listeners.click({ target: previewHeader });
 
 /* --- SCENE tab ----------------------------------------------------------- */
 switchTab("scene");
@@ -535,9 +587,33 @@ if (!findByClass(wizard.root, "krea2-v2-compass").length) {
 if (!findByClass(wizard.root, "krea2-v2-lens-slider").length) {
   throw new Error("The Camera subsection must render the lens slider.");
 }
-/* Atmosphere is added from a dropdown as stepper rows (fog AND smoke). */
-if (!findByClass(wizard.root, "krea2-v2-env-select").length) {
-  throw new Error("The Environment subsection must offer an atmosphere dropdown.");
+/* Environment behaves like the CAST concept groups. */
+const envSub = findByClass(wizard.root, "krea2-v2-subsection-environment")[0];
+if (findByClass(envSub, "krea2-wizard-category").length !== 1
+    || findByClass(envSub, "krea2-wizard-category-add").length !== 1
+    || findByClass(envSub, "krea2-wizard-category-random").length !== 1
+    || findByClass(envSub, "krea2-wizard-category-save").length !== 1
+    || findByClass(envSub, "krea2-shuffle").length !== 1) {
+  throw new Error("The Environment subsection must behave like the concept groups (add, dice, shuffle, save).");
+}
+const envAdd = findByClass(envSub, "krea2-wizard-category-add")[0];
+envAdd.listeners.click({});
+const envGroupChips = findByClass(document.body, "krea2-searchable-chip");
+if (!envGroupChips.some((chip) => textOf(chip).includes("Environment"))) {
+  throw new Error("The environment picker must be scoped to atmosphere and environmental movement.");
+}
+let envItems = findByClass(document.body, "krea2-searchable-item");
+const fogItem = envItems.find((item) => textOf(item).includes("Fog"));
+if (!fogItem) throw new Error("The environment picker must offer atmosphere concepts.");
+fogItem.listeners.click({});
+envItems = findByClass(document.body, "krea2-searchable-item");
+const smokeItem = envItems.find((item) => textOf(item).includes("Smoke"));
+smokeItem.listeners.click({});
+findByClass(document.body, "krea2-searchable-close")[0].listeners.click({});
+let atmosphereRows = JSON.parse(stateWidget.value).rows.filter((row) => row.category === "atmosphere");
+if (!atmosphereRows.some((row) => row.preset_id === "atmosphere.fog")
+    || !atmosphereRows.some((row) => row.preset_id === "atmosphere.smoke")) {
+  throw new Error("Environment must allow multiple concepts (fog AND smoke) with per-concept steppers.");
 }
 
 /* --- Scene chips toggle real concept rows ------------------------------- */
@@ -592,24 +668,6 @@ if (!lensRow || !String(lensRow.preset_id).startsWith("lens.85")) {
   throw new Error("Releasing the lens slider must snap to the 85mm lens preset.");
 }
 
-/* --- Atmosphere: dropdown + stepper rows, multiple at once ---------------- */
-const envAddRow = () => findByClass(wizard.root, "krea2-v2-env-add")[0];
-let envSelect = envAddRow().children[0];
-envSelect.value = "atmosphere.fog";
-envAddRow().children[1].listeners.click({});
-envSelect = envAddRow().children[0];
-envSelect.value = "atmosphere.smoke";
-envAddRow().children[1].listeners.click({});
-let atmosphereRows = JSON.parse(stateWidget.value).rows.filter((row) => row.category === "atmosphere");
-if (!atmosphereRows.some((row) => row.preset_id === "atmosphere.fog")
-    || !atmosphereRows.some((row) => row.preset_id === "atmosphere.smoke")) {
-  throw new Error("Atmosphere must allow multiple concepts (fog AND smoke) with per-concept steppers.");
-}
-if (findByClass(wizard.root, "krea2-v2-env-row").length !== 2
-    || findByClass(wizard.root, "krea2-v2-env-row")[0].className.indexOf("krea2-v2-env-row") < 0) {
-  throw new Error("Each atmosphere concept must render as a stepper row.");
-}
-
 /* --- Lighting setups drive the multi-light plane --------------------------- */
 const threePointChip = findByClass(wizard.root, "krea2-v2-chip")
   .find((chip) => textOf(chip) === "Three-point");
@@ -652,8 +710,13 @@ const initialPretty = JSON.parse(stateWidget.value).pretty_preview;
 if (initialPretty !== false) {
   throw new Error("Pretty Prompt Preview must default to OFF.");
 }
+const scenePreview = findByClass(wizard.root, "krea2-v2-final-preview")[0];
+const scenePreviewHeader = scenePreview.children.find((child) => child.className.includes("krea2-v2-block-head"));
+if (!scenePreview.className.includes("is-open")) {
+  scenePreviewHeader.listeners.click({ target: scenePreviewHeader });
+}
 const previewCodeEl = findByClass(wizard.root, "krea2-wizard-preview")[0];
-if (previewCodeEl.style.display === "none") {
+if (!previewCodeEl || previewCodeEl.style.display === "none") {
   throw new Error("Plain code must be visible by default.");
 }
 
@@ -805,6 +868,44 @@ wizard.recordExecution("second prompt");
 if (wizard.getExecutionHistory().join("|") !== "first prompt|second prompt"
     || wizard.root.dataset.krea2ExecutionCount !== "2") {
   throw new Error("Live execution evidence must retain recent prompt outputs.");
+}
+
+/* --- Visual Character Creator (opt-in) -------------------------------------- */
+const visualProbe = JSON.parse(stateWidget.value);
+visualProbe.character_creator = "visual";
+wizard.setState(visualProbe);
+if (!findByClass(wizard.root, "krea2-visual-creator").length) {
+  throw new Error("The Visual Character Creator must render when enabled in settings.");
+}
+if (findByClass(wizard.root, "krea2-v2-appearance-grid").length !== 0) {
+  throw new Error("The Visual Creator must replace the dropdown appearance grid.");
+}
+if (findByClass(wizard.root, "krea2-character-card-header")[0]
+  .className.split(/\s+/).some(() => false)) {
+  // header still present
+}
+const cardHeaderEl = findByClass(wizard.root, "krea2-character-card-header")[0];
+const headerAvatarHidden = findByClass(cardHeaderEl, "krea2-avatar").length === 0;
+const visualAvatar = findByClass(wizard.root, "krea2-visual-preview")[0]
+  ? findByClass(findByClass(wizard.root, "krea2-visual-preview")[0], "krea2-avatar")
+  : [];
+if (headerAvatarHidden !== true || visualAvatar.length !== 1) {
+  throw new Error("The Visual Creator must hide the header Mii and show its own live preview.");
+}
+if (findByClass(wizard.root, "krea2-visual-category").length !== 15) {
+  throw new Error("The Visual Creator must expose all fifteen category buttons.");
+}
+const firstCategoryBtn = findByClass(wizard.root, "krea2-visual-category")[0];
+firstCategoryBtn.listeners.click({});
+const creatorState = JSON.parse(stateWidget.value);
+if (!creatorState.characters[0].visual_category) {
+  throw new Error("Clicking a Visual Creator category must select it.");
+}
+visualProbe.character_creator = "legacy";
+wizard.setState(visualProbe);
+if (findByClass(wizard.root, "krea2-visual-creator").length !== 0
+    || findByClass(wizard.root, "krea2-v2-appearance-grid").length !== 1) {
+  throw new Error("Switching back to Legacy must restore the dropdown appearance grid.");
 }
 
 console.log("frontend smoke: v2 tabbed editor checks passed");
