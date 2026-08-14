@@ -3981,7 +3981,9 @@ function buildGroupPresetPicker(group) {
               ? K.materialize.materializeRegional(node)
               : null;
             showToast(
-              result ? "Regional LoRA node created \u2014 connect a CLIP to it and route its conditioning to the sampler" : "Could not create the regional LoRA node",
+              result
+                ? "Regional LoRA node created \u2014 connect your CLIP and the Krea2 Prompt Weight conditioning to it, then route its conditioning to the sampler"
+                : "Could not create the regional LoRA node",
               result ? "info" : "warning",
             );
           },
