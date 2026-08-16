@@ -3157,3 +3157,78 @@ body.krea2-ns-resize * { cursor: ns-resize !important; }
   min-width: 0;
   color: var(--krea2-text);
 }
+
+/* ---------------------------------------------------------------------------
+ * v1.3.1 CAST layout layer — the appearance wall exactly as it looked on
+ * 2026-08-09: labels above each field, per-field dice + shuffle beside the
+ * combobox, three labelled columns. Direction panels stay bordered cards.
+ * --------------------------------------------------------------------------- */
+.krea2-character-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  align-items: start;
+}
+
+.krea2-character-column {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.krea2-character-column-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--krea2-accent-strong);
+  border-bottom: 1px solid var(--krea2-border);
+  padding-bottom: 3px;
+  margin-bottom: 2px;
+}
+
+.krea2-character-field {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px;
+  font-size: 10px;
+  color: var(--krea2-text-dim);
+  min-width: 0;
+}
+
+.krea2-character-field.krea2-field-wide { grid-column: 1 / -1; }
+
+.krea2-field-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.krea2-field-row .krea2-combobox {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.krea2-field-row .krea2-wizard-btn {
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0;
+}
+
+.krea2-character-card-header .krea2-avatar {
+  width: 56px;
+  height: 80px;
+  border-radius: 9px;
+}
+
+.krea2-character-card-header .krea2-avatar-art {
+  transform: scale(0.62);
+  transform-origin: top left;
+}
+
+.krea2-character-card-header {
+  grid-template-columns: 56px minmax(0, 1fr) auto auto;
+}

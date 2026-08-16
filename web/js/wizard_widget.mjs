@@ -4188,9 +4188,10 @@ function buildGroupPresetPicker(group) {
       return card;
     }
 
-    /* v1.3.1-style appearance wall: three labelled columns, every field on
-     * its own row with a dice (randomize once) and a shuffle (every queued
-     * job). Colour fields keep their pop-up pickers on the same row. */
+    /* v1.3.1-style appearance wall: three labelled columns, every field as
+     * its own label-above row with a dice (randomize once) and a shuffle
+     * (every queued job) beside the combobox. Colour fields keep their
+     * pop-up pickers on the same row. */
     function renderAppearanceColumns(character) {
       const grid = el("div", { class: "krea2-character-columns" });
       const columns = [
@@ -4206,21 +4207,53 @@ function buildGroupPresetPicker(group) {
         const col = el("div", { class: "krea2-character-column" });
         col.appendChild(el("div", { class: "krea2-character-column-title" }, layout[0]));
         for (const field of fields) {
-          const row = el("label", { class: "krea2-v2-appearance-field" }, [
-            el("span", { class: "krea2-v2-field-label" }, field.label),
+          const fieldEl = el("label", {
+            class: "krea2-character-field" + (field.wide ? " krea2-field-wide" : ""),
+          }, [
+            el("span", null, field.label),
           ]);
           const combobox = comboboxForField(character, field);
-          row.appendChild(combobox.input);
-          row.appendChild(combobox.datalist);
-          row.appendChild(fieldRandomControls(character, field));
+          const fieldRow = el("div", { class: "krea2-field-row" }, [
+            combobox.input,
+            combobox.datalist,
+          ]);
+          const dice = el("button", {
+            type: "button",
+            class: "krea2-wizard-btn krea2-icon-btn krea2-field-random",
+            title: "Roll " + field.label + " once now",
+            "aria-label": "Randomize " + field.label + " once",
+            onClick: function (event) {
+              if (event && typeof event.stopPropagation === "function") event.stopPropagation();
+              randomizeAppearanceField(character, field);
+              markDirty();
+              render();
+            },
+          }, icon("dice", { width: "12", height: "12" }));
+          const eachJobOn = !!(character.randomize_fields || {})[field.key];
+          const shuffle = el("button", {
+            type: "button",
+            class: "krea2-wizard-btn krea2-icon-btn krea2-field-each-job krea2-shuffle" + (eachJobOn ? " is-active" : ""),
+            title: eachJobOn
+              ? field.label + " randomizes for every queued job. Click to keep it fixed."
+              : "Randomize " + field.label + " for every queued job.",
+            "aria-label": "Randomize " + field.label + " every queued job",
+            "aria-pressed": eachJobOn ? "true" : "false",
+            onClick: function (event) {
+              if (event && typeof event.stopPropagation === "function") event.stopPropagation();
+              setAppearanceFieldEachJob(character, field, !eachJobOn);
+              markDirty();
+              render();
+            },
+          }, icon("shuffle", { width: "12", height: "12" }));
+          fieldRow.append(dice, shuffle);
           if (field.colorKey) {
             const palette = field.colorPalette === "light" ? LIGHT_PALETTE : PALETTE_COLORS;
-            row.appendChild(renderColorPopupButton(character, field.colorKey, palette, field.label + " colour"));
+            fieldRow.appendChild(renderColorPopupButton(character, field.colorKey, palette, field.label + " colour"));
             const colorField = { key: field.colorKey, options: palette.map(function (entry) { return entry[0]; }) };
-            row.appendChild(fieldRandomControls(character, colorField));
+            fieldRow.appendChild(fieldRandomControls(character, colorField));
           }
-          if (field.wide) row.classList.add("krea2-v2-appearance-ensemble");
-          col.appendChild(row);
+          fieldEl.appendChild(fieldRow);
+          col.appendChild(fieldEl);
         }
         grid.appendChild(col);
       }
