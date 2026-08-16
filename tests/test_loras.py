@@ -244,6 +244,7 @@ class LoRATests(unittest.TestCase):
             conditioning, _model, log_text = node.encode(FakeModelQ(), FakeClip(), text, manifest, mask_size=8)
 
         self.assertIn("quantized", log_text)
+        self.assertIn("matched but hooks were SKIPPED", log_text)
         self.assertNotIn("hooks", conditioning[0][1])
 
     def test_regional_node_region_selection(self):

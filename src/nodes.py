@@ -1117,34 +1117,39 @@ class Krea2CharacterLoras:
         cast_total = len([1 for seg in segments if seg[1] is not None])
         cast_index = 0
         # Pre-flight: ComfyUI's hook patcher walks the WHOLE model state dict
-        # and resolves each key against module attributes (get_key_patches).
-        # GGUF / quantized Krea2 backends register quantized scale keys
-        # (e.g. "...weight_scale") whose state-dict path does not exist as a
-        # module attribute, which crashes the sampler with
-        # "AttributeError: 'Linear' object has no attribute 'weight_scale'".
-        # Detect that condition and skip hooks with a clear log line.
+        # and resolves each key against module attributes (get_key_patches),
+        # so a single un-resolvable key (e.g. quantized INT8 / GGUF
+        # "...weight_scale" paths that don't exist as module attributes)
+        # crashes the sampler. Mirror that walk here and skip hooks when it
+        # would fail — without guessing whether the model is "GGUF".
         hook_supported = True
         try:
             sd = model.model_state_dict() if hasattr(model, "model_state_dict") else None
-            if isinstance(sd, dict):
+            if isinstance(sd, dict) and sd:
+                from comfy.utils import get_attr as comfy_get_attr  # noqa: PLC0415
                 for key in sd:
                     tail = key.rsplit(".", 1)
-                    if len(tail) == 2 and tail[1] in ("weight_scale", "weight_bias", "scales", "zeros", "bias_scale"):
-                        try:
-                            op = comfy.utils.get_attr(model.model, tail[0])
+                    try:
+                        if len(tail) == 2:
+                            op = comfy_get_attr(model.model, tail[0])
                             if op is None or not hasattr(op, tail[1]):
                                 hook_supported = False
                                 break
-                        except Exception:
-                            hook_supported = False
-                            break
+                        else:
+                            if comfy_get_attr(model.model, key) is None:
+                                hook_supported = False
+                                break
+                    except Exception:
+                        hook_supported = False
+                        break
         except Exception:
             hook_supported = True
         if not hook_supported:
             log_lines.append(
-                "Your model looks quantized (GGUF): ComfyUI's hook LoRA patcher cannot resolve the "
-                "quantized scale keys, so character LoRAs were SKIPPED to avoid a sampler crash. "
-                "Use the unquantized Krea2 .safetensors checkpoint for per-character LoRAs."
+                "This model's weight layout is not compatible with ComfyUI's hook LoRA patcher "
+                "(at least one state-dict key cannot be resolved as a module attribute \u2014 typical of "
+                "quantized INT8 / GGUF weight scales). Character LoRAs were SKIPPED to avoid a sampler "
+                "crash. Try the unquantized Krea2 .safetensors checkpoint for per-character LoRAs."
             )
         # Any base conditioning (e.g. the Krea2 Prompt Weight node's output)
         # stays at the front so its token-weight positions remain valid.
@@ -1179,6 +1184,12 @@ class Krea2CharacterLoras:
                     log_lines.append(f"Character '{char_key}': {', '.join(applied)}")
                 else:
                     log_lines.append(f"Character '{char_key}': no LoRAs were loaded")
+            elif entry and not hook_supported:
+                log_lines.append(
+                    f"Character '{char_key}': {'; '.join(str(l.get('filename')) for l in entry['loras'])} matched "
+                    "but hooks were SKIPPED because this model's weight layout is incompatible with "
+                    "ComfyUI's hook LoRA patcher (see the warning above)"
+                )
             elif char_key is not None:
                 log_lines.append(f"Character '{char_key}': NO MATCH in the Character LoRA manifest (name mismatch or no LoRAs assigned)")
             region = self.region_for(entry["position"] if entry else "", cast_index, cast_total)
