@@ -316,12 +316,12 @@ if (seededRows.length < 3
   throw new Error("Fresh characters must seed the three real library concept rows.");
 }
 
-/* --- Appearance: 16 dropdowns, colour pop-up buttons, per-field dice ----- */
+/* --- Appearance wall (v1.3.1): 17 dropdowns + colour pop-ups + per-field dice */
 const comboboxes = findByClass(wizard.root, "krea2-combobox");
-if (comboboxes.length !== 16) {
-  throw new Error("Each cast card must expose sixteen appearance dropdowns, got " + comboboxes.length);
+if (comboboxes.length !== 17) {
+  throw new Error("Each cast card must expose seventeen appearance dropdowns, got " + comboboxes.length);
 }
-for (const field of ["Hair", "Hair length", "Eye Shape", "Build", "Physique", "Height & Frame", "Age", "Ethnicity", "Makeup", "Nose", "Mouth", "Chin", "Face shape", "Top", "Bottom", "Ensemble (full costume)"]) {
+for (const field of ["Sex", "Age", "Ethnicity", "Hair", "Hair length", "Makeup", "Eye Shape", "Nose", "Mouth", "Chin", "Face shape", "Build", "Physique", "Height & Frame", "Top", "Bottom", "Ensemble (full costume)"]) {
   if (comboboxes.filter((input) => input["aria-label"] === field).length !== 1) {
     throw new Error("Each cast card must expose exactly one " + field + " field.");
   }
@@ -329,8 +329,8 @@ for (const field of ["Hair", "Hair length", "Eye Shape", "Build", "Physique", "H
 if (findByClass(wizard.root, "krea2-v2-color-btn").length !== 3) {
   throw new Error("Hair, eye and skin colour must render as colour pop-up buttons.");
 }
-if (findByClass(wizard.root, "krea2-field-random").length < 16
-    || findByClass(wizard.root, "krea2-field-each-job").length < 16) {
+if (findByClass(wizard.root, "krea2-field-random").length < 17
+    || findByClass(wizard.root, "krea2-field-each-job").length < 17) {
   throw new Error("Every appearance field must carry its own dice and each-job shuffle.");
 }
 /* Age keeps youngest-to-oldest ordering, not alphabetical. */
@@ -372,29 +372,31 @@ if (afterMale !== "male") {
   throw new Error("Gender pills must be single-select (picking one replaces the other).");
 }
 
-/* --- Quick Directions sits ABOVE the Concepts block ------------------------ */
-const cardBody = findByClass(wizard.root, "krea2-v2-character-card")[0]
-  .children.find((child) => child.className.includes("krea2-character-card-body"));
-const bodyOrder = (cardBody.children || []).map((child) => {
-  if (child.className.includes("krea2-v2-quick-block")) return "quick";
-  if (child.className.includes("krea2-v2-concepts-block")) return "concepts";
-  return "";
-}).filter(Boolean);
-if (bodyOrder.join(",") !== "quick,concepts") {
-  throw new Error("Quick Directions must render above the Concepts Applied block, got " + bodyOrder.join(","));
+/* --- Quick Directions chip rail above the Direction blocks ----------------- */
+const quickChipsAll = findByClass(wizard.root, "krea2-emotion-chip");
+if (quickChipsAll.length !== 5) {
+  throw new Error("The Quick Directions rail must expose exactly five chips.");
 }
 
-/* --- Concepts split into three side-by-side groups with dice + shuffle ---- */
-const conceptColumns = findByClass(wizard.root, "krea2-v2-concept-columns");
-if (conceptColumns.length !== 1) {
-  throw new Error("The Concepts block must render the three-column group layout.");
+/* --- Direction: four blocks with dice + shuffle (v1.3.1) ------------------- */
+const directionSections = findByClass(wizard.root, "krea2-wizard-category");
+if (directionSections.length !== 4) {
+  throw new Error("The Direction block must render four concept sections, got " + directionSections.length);
 }
-if (findByClass(conceptColumns[0], "krea2-wizard-category").length !== 3) {
-  throw new Error("The Concepts block must render exactly three concept groups.");
+if (findByClass(wizard.root, "krea2-wizard-category-random").length !== 4
+    || findByClass(wizard.root, "krea2-wizard-category-add").length !== 4
+    || findByClass(wizard.root, "krea2-wizard-category-save").length !== 4) {
+  throw new Error("Each direction section must keep its dice, add and save controls.");
 }
-if (findByClass(conceptColumns[0], "krea2-wizard-category-random").length !== 3
-    || findByClass(conceptColumns[0], "krea2-shuffle").length !== 3) {
-  throw new Error("Each concept group must keep its own dice and each-job shuffle.");
+if (!findByClass(wizard.root, "krea2-direction-position").length) {
+  throw new Error("The Direction block must restore the Position in frame row.");
+}
+
+/* --- LoRA is fully removed ------------------------------------------------ */
+if (findByClass(wizard.root, "krea2-v2-lora-block").length !== 0
+    || findByClass(wizard.root, "krea2-v2-add-lora-select").length !== 0
+    || findByClass(wizard.root, "krea2-v2-lora-row").length !== 0) {
+  throw new Error("The LoRA feature must be removed entirely from the CAST tab.");
 }
 
 /* --- The sticky PROMPT chip near the top is gone ------------------------- */
@@ -452,9 +454,10 @@ if (textOf(findByClass(wizard.root, "krea2-row-value")[0]) !== "+2.5") {
   throw new Error("The typed value must update the displayed value.");
 }
 
-/* --- + Add Concept pill ------------------------------------------------- */
-if (!findByClass(wizard.root, "krea2-v2-add-concept").length) {
-  throw new Error("The concepts block must expose a + Add Concept pill.");
+/* --- + Add Concept buttons on the direction sections ---------------------- */
+if (findByClass(wizard.root, "krea2-v2-add-concept").length !== 0
+    && !findByClass(wizard.root, "krea2-wizard-category-add").length) {
+  throw new Error("The direction sections must keep their add controls.");
 }
 
 /* --- Quick directions rail ------------------------------------------------- */
@@ -474,43 +477,6 @@ if (afterRemoval.includes("emotion.elation")) {
   throw new Error("Clicking an active quick direction must remove its whole set.");
 }
 
-/* --- Per-character LoRA block ------------------------------------------- */
-if (!findByClass(wizard.root, "krea2-v2-lora-block").length
-    || !findByClass(wizard.root, "krea2-v2-add-lora-select").length) {
-  throw new Error("Each cast card must expose the LoRA block with an add-from-loras-folder dropdown.");
-}
-
-/* --- LoRAs are picked from models/loras (subfolders), not a file dialog --- */
-const addLoraSelect = findByClass(wizard.root, "krea2-v2-add-lora-select")[0];
-const addOptgroups = (addLoraSelect.children || []).filter((child) => child.tagName === "optgroup");
-if (addOptgroups.length !== 4) {
-  throw new Error("The add-LoRA dropdown must group files by folder, got " + addOptgroups.length + " groups.");
-}
-addLoraSelect.value = "image_models/char_style.safetensors";
-addLoraSelect.listeners.change({ target: { value: "image_models/char_style.safetensors" } });
-const addedLora = JSON.parse(stateWidget.value).characters[0].loras
-  .find((lora) => lora.filename === "image_models/char_style.safetensors");
-if (!addedLora) {
-  throw new Error("Choosing a LoRA from the dropdown must add it to the character.");
-}
-/* The file icon opens the grouped replace menu. */
-const replaceBtn = findByClass(wizard.root, "krea2-v2-lora-file")[0];
-replaceBtn.listeners.click({});
-const pickerMenu = findByClass(document.body, "krea2-lora-picker-menu")[0];
-if (!pickerMenu) {
-  throw new Error("Clicking the LoRA file icon must open the loras-folder picker.");
-}
-const pickerItems = findByClass(pickerMenu, "krea2-lora-picker-item");
-if (pickerItems.length !== 4) {
-  throw new Error("The loras-folder picker must list every file, got " + pickerItems.length);
-}
-pickerItems.find((item) => textOf(item).includes("motion_v2")).listeners.click({});
-const replacedLora = JSON.parse(stateWidget.value).characters[0].loras
-  .find((lora) => lora.filename === "video_models/motion_v2.safetensors");
-if (!replacedLora) {
-  throw new Error("Picking from the loras-folder menu must replace the LoRA.");
-}
-
 /* --- Header-click toggles (no dedicated collapse buttons) ---------------- */
 if (findByClass(wizard.root, "krea2-character-expand").length !== 0) {
   throw new Error("Cast cards must not render dedicated expand/collapse buttons.");
@@ -522,7 +488,7 @@ if (JSON.parse(stateWidget.value).characters[0].expanded === true) {
 }
 const collapsedCard = findByClass(wizard.root, "krea2-v2-character-card")[0];
 if (collapsedCard.className.includes("is-expanded")
-    || findByClass(collapsedCard, "krea2-v2-appearance-grid").length !== 0) {
+    || findByClass(collapsedCard, "krea2-character-columns").length !== 0) {
   throw new Error("Collapsed cards must hide the appearance grid.");
 }
 cardHeader.listeners.click({ target: cardHeader });
@@ -749,7 +715,7 @@ if (!griefPreset || !joyPreset) {
 }
 
 /* --- Conflict-aware cascading inside the character emotion picker -------- */
-const addConceptBtn = findByClass(wizard.root, "krea2-v2-add-concept")[0];
+const addConceptBtn = findByClass(wizard.root, "krea2-wizard-category-add")[0];
 addConceptBtn.listeners.click({});
 const overlayItems = findByClass(document.body, "krea2-searchable-item");
 if (overlayItems.some((item) => textOf(item).includes("Grief"))) {
@@ -779,7 +745,7 @@ if (!groupChips.some((chip) => textOf(chip).includes("Subject"))) {
 }
 findByClass(document.body, "krea2-searchable-close")[0].listeners.click({});
 
-/* --- Per-character LoRA rows --------------------------------------------- */
+/* --- Per-character LoRAs fully removed ----------------------------------- */
 wizard.setState({
   schema_version: 1,
   characters: [{
@@ -787,55 +753,14 @@ wizard.setState({
     name: "Mara",
     enabled: true,
     rows: [],
-    loras: [
-      { filename: "realism.safetensors", strength: 0.85, trigger: "" },
-      { filename: "char_style.safetensors", strength: -0.5, trigger: "" },
-    ],
   }],
 });
-const loraRows = findByClass(wizard.root, "krea2-v2-lora-row");
-if (loraRows.length !== 2) {
-  throw new Error("Each assigned LoRA must render as its own row.");
+if (findByClass(wizard.root, "krea2-v2-lora-row").length !== 0) {
+  throw new Error("LoRA rows must be removed from the CAST tab.");
 }
-const firstLoraRow = loraRows[0];
-if (!findByClass(firstLoraRow, "krea2-v2-lora-file").length) {
-  throw new Error("Each LoRA row must show a replace-file icon button.");
-}
-if (textOf(firstLoraRow).includes("realism.safetensors")
-    || !textOf(firstLoraRow).includes("realism")) {
-  throw new Error("LoRA rows must show the file name without the extension.");
-}
-if (!findByClass(firstLoraRow, "krea2-v2-lora-controls").length) {
-  throw new Error("Each LoRA row must right-align its stepper cluster.");
-}
-const loraSteppers = findByClass(firstLoraRow, "krea2-row-value");
-if (loraSteppers.length !== 1 || textOf(loraSteppers[0]) !== "+0.85") {
-  throw new Error("LoRA rows must show the [+] [value] [+] stepper with 0.05 steps, got " + textOf(loraSteppers[0]));
-}
-const loraPlus = findByClass(firstLoraRow, "krea2-row-step-plus")[0];
-loraPlus.listeners.mousedown({ button: 0, preventDefault() {} });
-(document._listeners.mouseup || []).forEach((listener) => listener({}));
-const loraPersisted = JSON.parse(stateWidget.value).characters[0].loras[0];
-if (loraPersisted.strength !== 0.9) {
-  throw new Error("The LoRA [+] must raise the strength by 0.05.");
-}
-const loraCompiledNow = window.KREA2.helpers.compilePreview(JSON.parse(stateWidget.value)).final_prompt;
-if (loraCompiledNow.includes("<lora:")) {
-  throw new Error("Character LoRAs must NOT be emitted as text tokens (the regional hook node applies them).");
-}
-if (!findByClass(wizard.root, "krea2-v2-regional-lora").length) {
-  throw new Error("The LoRA block must expose a Create Regional LoRA Node button.");
-}
-const loraValue = findByClass(firstLoraRow, "krea2-row-value")[0];
-loraValue.listeners.click({});
-const loraEditInput = findByClass(firstLoraRow, "krea2-row-value-input")[0];
-if (!loraEditInput) {
-  throw new Error("LoRA values must support click-to-type like the concept rows.");
-}
-loraEditInput.value = "1.05";
-loraEditInput.listeners.keydown({ key: "Enter", stopPropagation() {} });
-if (JSON.parse(stateWidget.value).characters[0].loras[0].strength !== 1.05) {
-  throw new Error("Typing a refined LoRA strength must commit the exact value.");
+const compiledClean = window.KREA2.helpers.compilePreview(JSON.parse(stateWidget.value)).final_prompt;
+if (compiledClean.includes("<lora:")) {
+  throw new Error("The compiled prompt must never contain <lora:> tokens.");
 }
 
 /* --- Cast header actions still present ------------------------------------- */
@@ -907,8 +832,8 @@ if (!creatorState.characters[0].visual_category) {
 visualProbe.character_creator = "legacy";
 wizard.setState(visualProbe);
 if (findByClass(wizard.root, "krea2-visual-creator").length !== 0
-    || findByClass(wizard.root, "krea2-v2-appearance-grid").length !== 1) {
-  throw new Error("Switching back to Legacy must restore the dropdown appearance grid.");
+    || findByClass(wizard.root, "krea2-character-columns").length !== 1) {
+  throw new Error("Switching back to Legacy must restore the dropdown appearance wall.");
 }
 
 console.log("frontend smoke: v2 tabbed editor checks passed");

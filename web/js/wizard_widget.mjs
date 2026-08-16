@@ -213,7 +213,7 @@
 
   /* Build indicator shown in the top bar so it is obvious which wizard
    * build is running. Bump when you ship a new build. */
-  const WIZARD_VERSION = "v2.1.0";
+  const WIZARD_VERSION = "v2.2.0";
 
   const TABS = [
     ["cast", "Cast", "users"],
@@ -1390,6 +1390,7 @@
             categories: group.categories,
             multiSelect: true,
             selectedIds: rows.map(function (row) { return row.preset_id; }),
+            filterPreset: characterConflictFilter(character),
             onToggle: function (preset, shouldSelect) {
               if (shouldSelect) {
                 addCharacterRow(character, preset);
@@ -1499,6 +1500,41 @@
       for (const group of DIRECTION_GROUPS) {
         section.appendChild(renderCharacterDirectionBlock(character, group.id));
       }
+
+      /* Position in frame (v1.3.1): preset select + dice, or free text. */
+      const positionPresets = library.filter(function (preset) {
+        return preset.category === "position" && !preset.disabled;
+      });
+      const positionSelect = el("select", {
+        class: "krea2-compact-select",
+        "aria-label": "Position and placement",
+        onChange: function (event) {
+          const preset = positionPresets.find(function (item) { return item.id === event.target.value; });
+          character.position = preset ? preset.phrase : "";
+          markDirty();
+          render();
+        },
+      });
+      positionSelect.appendChild(el("option", { value: "" }, "Position in frame..."));
+      for (const preset of positionPresets) {
+        positionSelect.appendChild(el("option", { value: preset.id }, preset.label));
+      }
+      const currentPosition = positionPresets.find(function (preset) {
+        return preset.phrase === character.position;
+      });
+      positionSelect.value = currentPosition ? currentPosition.id : "";
+      const positionRow = el("div", { class: "krea2-direction-position" }, [
+        el("span", { class: "krea2-direction-label" }, "Position in frame"),
+        positionSelect,
+        diceButton("Random placement", function () {
+          const preset = randomChoice(positionPresets);
+          if (preset) { character.position = preset.phrase; markDirty(); render(); }
+        }, "krea2-field-random krea2-icon-btn"),
+      ]);
+      if (character.position && !currentPosition) {
+        positionRow.appendChild(el("span", { class: "krea2-direction-custom" }, character.position));
+      }
+      section.appendChild(positionRow);
 
       /* Face guidance free text (advanced, hidden by default) */
       if (state.show_face_guidance) {
@@ -3287,6 +3323,16 @@ function buildGroupPresetPicker(group) {
      * (hair / eyes / skin) carry a colour pop-up button on the same row.
      * Dropdown options are alphabetical, except Age which runs youngest to
      * oldest. */
+    function formatLoraValue(value) {
+      const number = Math.round(Number(value) * 100) / 100;
+      if (number === 0) return "0";
+      return (number > 0 ? "+" : "") + String(number);
+    }
+
+    /* ------------------------------------------------------------------
+     * v1.3.1-style appearance wall: every field on its own row with its
+     * own dice (randomize once) and shuffle (every queued job).
+     * ------------------------------------------------------------------ */
     const V2_APPEARANCE_FIELDS = (function () {
       const byKey = {};
       CHARACTER_APPEARANCE.forEach(function (field) { byKey[field.key] = field; });
@@ -3295,19 +3341,20 @@ function buildGroupPresetPicker(group) {
       });
       const paletteNames = PALETTE_COLORS.map(function (entry) { return entry[0]; });
       return [
-        { key: "hair_style", label: "Hair", options: byKey.hair_style.options, colorKey: "hair_color", colorPalette: "character" },
-        { key: "hair_length", label: "Hair length", options: byKey.hair_length.options },
-        { key: "eyes", label: "Eye Shape", options: eyesShapes, colorKey: "eye_color", colorPalette: "character" },
-        { key: "body_type", label: "Build", options: byKey.body_type.options },
-        { key: "fitness", label: "Physique", options: byKey.fitness.options },
-        { key: "proportions", label: "Height & Frame", options: byKey.proportions.options },
+        { key: "sex", label: "Sex", options: byKey.sex.options },
         { key: "age", label: "Age", options: byKey.age.options, natural: true },
         { key: "ethnicity", label: "Ethnicity", options: byKey.ethnicity.options, colorKey: "skin_color", colorPalette: "character" },
+        { key: "hair_style", label: "Hair", options: byKey.hair_style.options, colorKey: "hair_color", colorPalette: "character" },
+        { key: "hair_length", label: "Hair length", options: byKey.hair_length.options },
         { key: "makeup", label: "Makeup", options: byKey.makeup.options },
+        { key: "eyes", label: "Eye Shape", options: eyesShapes, colorKey: "eye_color", colorPalette: "character" },
         { key: "nose", label: "Nose", options: byKey.nose.options },
         { key: "mouth", label: "Mouth", options: byKey.mouth.options },
         { key: "chin", label: "Chin", options: byKey.chin.options },
         { key: "face_shape", label: "Face shape", options: byKey.face_shape.options },
+        { key: "body_type", label: "Build", options: byKey.body_type.options },
+        { key: "fitness", label: "Physique", options: byKey.fitness.options },
+        { key: "proportions", label: "Height & Frame", options: byKey.proportions.options },
         { key: "clothing_top", label: "Top", options: byKey.clothing_top.options },
         { key: "clothing_bottom", label: "Bottom", options: byKey.clothing_bottom.options },
         { key: "ensemble", label: "Ensemble (full costume)", options: byKey.ensemble.options, wide: true },
@@ -3737,268 +3784,7 @@ function buildGroupPresetPicker(group) {
     /* Per-character LoRA list. Every LoRA emits a <lora:name:strength>
      * token inside this character's prompt block; the first also drives the
      * model-side application (Model input -> Model output). */
-    function syncLoraTextState(character) {
-      const loras = Array.isArray(character.loras) ? character.loras : [];
-      const primary = loras[0];
-      character.lora_name = primary ? String(primary.filename || "") : "";
-      character.lora_strength = primary
-        ? Math.max(0, Math.min(2, Math.round(Number(primary.strength) * 20) / 20))
-        : 0.8;
-      const lines = loras.map(function (lora) {
-        return String(lora.trigger || "").trim();
-      }).filter(Boolean);
-      character.lora_triggers = lines.join("\n");
-    }
 
-    function formatLoraValue(value) {
-      const number = Math.round(Number(value) * 100) / 100;
-      if (number === 0) return "0";
-      return (number > 0 ? "+" : "") + String(number);
-    }
-
-    /* Folder of a loras-folder relative path ("" for the root folder). */
-    function loraFolderOf(name) {
-      const index = String(name || "").lastIndexOf("/");
-      return index > 0 ? String(name).slice(0, index) : "";
-    }
-
-    /* loras-folder names grouped by folder, both sorted alphabetically —
-     * exactly how the built-in ComfyUI LoRA loader dropdowns present them. */
-    function groupedLoraNames() {
-      const groups = new Map();
-      for (const name of loras) {
-        const folder = loraFolderOf(name);
-        if (!groups.has(folder)) groups.set(folder, []);
-        groups.get(folder).push(name);
-      }
-      const folders = Array.from(groups.keys()).sort(function (a, b) {
-        return a.toLowerCase().localeCompare(b.toLowerCase());
-      });
-      const out = [];
-      for (const folder of folders) {
-        const names = groups.get(folder).slice().sort(function (a, b) {
-          return a.toLowerCase().localeCompare(b.toLowerCase());
-        });
-        out.push({ folder: folder, names: names });
-      }
-      return out;
-    }
-
-    function commitLoraEntry(character, entry, finalName) {
-      if (entry) {
-        entry.filename = finalName;
-      } else {
-        if (!Array.isArray(character.loras)) character.loras = [];
-        character.loras.push({
-          filename: finalName,
-          strength: 0.8,
-          trigger: "",
-        });
-      }
-      syncLoraTextState(character);
-      markDirty();
-      render();
-      showToast("LoRA added: " + finalName, "info");
-    }
-
-    /* Add LoRA: the same dropdown the built-in LoRA loaders use — every
-     * file inside models/loras, grouped by folder and subfolder. */
-    function renderAddLoraSelect(character) {
-      const select = el("select", {
-        class: "krea2-compact-select krea2-v2-add-lora-select",
-        "aria-label": "Add a LoRA from the loras folder",
-        onChange: function (event) {
-          const name = event.target.value;
-          select.value = "";
-          if (!name) return;
-          commitLoraEntry(character, null, name);
-        },
-      });
-      if (!loras.length) {
-        select.appendChild(el("option", { value: "" },
-          "No LoRAs found in models/loras — add files to that folder")) ;
-        select.disabled = true;
-        return select;
-      }
-      select.appendChild(el("option", { value: "" }, "Add a LoRA..."));
-      for (const group of groupedLoraNames()) {
-        const optgroup = el("optgroup", { label: group.folder || "root" });
-        for (const name of group.names) {
-          optgroup.appendChild(el("option", { value: name },
-            group.folder ? name.slice(group.folder.length + 1) : name));
-        }
-        select.appendChild(optgroup);
-      }
-      return select;
-    }
-
-    /* Replace a LoRA: popup menu listing the loras folder, grouped like the
-     * built-in loader dropdowns. */
-    function openLoraPicker(character, entry, anchor) {
-      const existing = document.querySelector(".krea2-lora-picker-menu");
-      if (existing) existing.remove();
-      const menu = el("div", { class: "krea2-lora-picker-menu" });
-      const groups = groupedLoraNames();
-      if (!groups.length) {
-        menu.appendChild(el("div", { class: "krea2-lora-picker-empty" },
-          "No LoRAs found in models/loras"));
-      }
-      for (const group of groups) {
-        menu.appendChild(el("div", { class: "krea2-lora-picker-group" },
-          group.folder || "root"));
-        for (const name of group.names) {
-          menu.appendChild(el("button", {
-            type: "button",
-            class: "krea2-lora-picker-item",
-            title: name,
-            onClick: function () {
-              menu.remove();
-              commitLoraEntry(character, entry, name);
-            },
-          }, group.folder ? name.slice(group.folder.length + 1) : name));
-        }
-      }
-      const rect = anchor.getBoundingClientRect();
-      Object.assign(menu.style, {
-        position: "fixed",
-        left: rect.left + "px",
-        top: (rect.bottom + 4) + "px",
-        zIndex: "2147483500",
-      });
-      document.body.appendChild(menu);
-      function onDocClick(e) {
-        if (!menu.contains(e.target)) {
-          menu.remove();
-          document.removeEventListener("click", onDocClick, true);
-        }
-      }
-      setTimeout(() => document.addEventListener("click", onDocClick, true), 0);
-    }
-
-    function renderLoraRow(character, lora) {
-      const row = el("div", { class: "krea2-v2-lora-row" });
-      const fileBtn = el("button", {
-        type: "button",
-        class: "krea2-v2-lora-file",
-        title: lora.filename + " — click to replace this LoRA from the loras folder",
-        "aria-label": "Replace the LoRA file",
-      }, icon("file", { width: "13", height: "13" }));
-      fileBtn.addEventListener("click", function () {
-        openLoraPicker(character, lora, fileBtn);
-      });
-      const name = el("span", { class: "krea2-v2-lora-name" }, K.helpers.loraFileName(lora.filename));
-      const trigger = el("input", {
-        type: "text",
-        class: "krea2-compact-input krea2-v2-lora-trigger",
-        value: String(lora.trigger || ""),
-        placeholder: "trigger phrase (optional)",
-        "aria-label": "LoRA trigger phrase",
-        onInput: function (event) {
-          lora.trigger = event.target.value;
-          syncLoraTextState(character);
-          markDirty();
-        },
-      });
-      const stepper = K.presetRow.makeStepper({
-        value: Number(lora.strength) || 0.8,
-        step: 0.05,
-        min: -10,
-        max: 10,
-        typedMin: -99,
-        typedMax: 99,
-        format: formatLoraValue,
-        label: "LoRA strength",
-        onCommit: function (value) {
-          lora.strength = Math.round(value * 100) / 100;
-          syncLoraTextState(character);
-          markDirty();
-          scheduleAppearanceRender();
-        },
-      });
-      const remove = el("button", {
-        type: "button",
-        class: "krea2-wizard-btn krea2-icon-btn krea2-danger",
-        title: "Remove this LoRA",
-        "aria-label": "Remove this LoRA",
-        onClick: function () {
-          character.loras = (character.loras || []).filter(function (item) { return item !== lora; });
-          syncLoraTextState(character);
-          markDirty();
-          render();
-        },
-      }, icon("trash", { width: "12", height: "12" }));
-      /* Name + trigger phrase take whatever width is available; the
-       * stepper cluster and trash stay right-aligned so every row lines up. */
-      const cluster = el("div", { class: "krea2-v2-lora-controls" }, [
-        stepper.minus,
-        stepper.valueEl,
-        stepper.plus,
-        remove,
-      ]);
-      row.append(fileBtn, name, trigger, cluster);
-      return row;
-    }
-
-    function renderCharacterLoraBlock(character) {
-      const open = character.loras_open !== false;
-      const loras = Array.isArray(character.loras) ? character.loras : [];
-      const block = el("section", {
-        class: "krea2-v2-lora-block" + (open ? " is-open" : ""),
-      });
-      const header = el("div", { class: "krea2-v2-block-head krea2-clickable-head" }, [
-        el("strong", null, "LoRA"),
-        el("span", { class: "krea2-v2-block-hint" },
-          "each LoRA emits <lora:file:strength> inside this character's block"),
-        el("span", { class: "krea2-structured-spacer" }),
-        el("span", { class: "krea2-v2-block-count" },
-          loras.length + (loras.length === 1 ? " LoRA" : " LoRAs")),
-        el("span", { class: "krea2-v2-chevron", "aria-hidden": "true" },
-          icon(open ? "chevron_down" : "chevron_right", { width: "12", height: "12" })),
-      ]);
-      header.addEventListener("click", function () {
-        character.loras_open = character.loras_open === false;
-        markDirty();
-        render();
-      });
-      const body = el("div", { class: "krea2-v2-block-body" });
-      if (open) {
-        for (const lora of loras) {
-          body.appendChild(renderLoraRow(character, lora));
-        }
-        body.appendChild(el("div", { class: "krea2-v2-add-lora-wrap" }, [
-          renderAddLoraSelect(character),
-        ]));
-        body.appendChild(el("div", { class: "krea2-settings-copy" },
-          "LoRAs are picked from ComfyUI's models/loras folder \u2014 subfolders included, exactly like the built-in LoRA loader. " +
-          "Use \u201cCreate Regional LoRA Node\u201d to apply each character's LoRAs only to that character's region (ComfyUI Hook System). " +
-          "Strengths accept negatives and go well beyond 1 for very strong LoRAs."));
-        body.appendChild(el("button", {
-          type: "button",
-          class: "krea2-wizard-btn krea2-v2-regional-lora",
-          title: "Create a Krea2CharacterLoras node that applies each character's LoRAs only to that character's region (ComfyUI Hook System)",
-          onClick: function () {
-            const result = K.materialize && K.materialize.materializeRegional
-              ? K.materialize.materializeRegional(node)
-              : null;
-            showToast(
-              result
-                ? "Regional LoRA node created \u2014 connect your CLIP and the Krea2 Prompt Weight conditioning to it, then route its conditioning to the sampler"
-                : "Could not create the regional LoRA node",
-              result ? "info" : "warning",
-            );
-          },
-        }, "Create Regional LoRA Node"));
-      }
-      block.appendChild(header);
-      block.appendChild(body);
-      return block;
-    }
-
-    /* ------------------------------------------------------------------
-     * Visual Character Creator (experimental, opt-in via node settings).
-     * An avatar-first panel: live preview, tile/swatch/slider controls per
-     * category, category bar at the bottom, undo/redo/reset/randomize.
-     * ------------------------------------------------------------------ */
     const VISUAL_CATEGORIES = [
       { id: "hair_style", label: "Hair style", icon: "palette" },
       { id: "hair_color", label: "Hair color", icon: "dot" },
@@ -4381,33 +4167,121 @@ function buildGroupPresetPicker(group) {
         if (visualCreatorOn) {
           body.appendChild(renderVisualCreator(character));
         } else {
-          const grid = el("div", { class: "krea2-v2-appearance-grid" });
-        V2_APPEARANCE_FIELDS.forEach(function (field) {
-          const fieldEl = el("div", { class: "krea2-v2-appearance-field" }, [
-            el("span", { class: "krea2-v2-field-label" }, field.label),
-          ]);
-          const combobox = comboboxForField(character, field);
-          fieldEl.appendChild(combobox.input);
-          fieldEl.appendChild(combobox.datalist);
-          fieldEl.appendChild(fieldRandomControls(character, field));
-          if (field.colorKey) {
-            const palette = field.colorPalette === "light" ? LIGHT_PALETTE : PALETTE_COLORS;
-            fieldEl.appendChild(renderColorPopupButton(character, field.colorKey, palette, field.label + " colour"));
-            const colorField = { key: field.colorKey, options: palette.map(function (entry) { return entry[0]; }) };
-            fieldEl.appendChild(fieldRandomControls(character, colorField));
-          }
-          if (field.wide) fieldEl.classList.add("krea2-v2-appearance-ensemble");
-          grid.appendChild(fieldEl);
-        });
-        body.appendChild(grid);
-        body.appendChild(renderQuickDirectionsBlock(character));
-        body.appendChild(renderCharacterConceptsBlock(character));
-        body.appendChild(renderCharacterLoraBlock(character));
+          /* v1.3.1 structure: preset row, identity, full appearance wall
+           * (every field with its own dice + each-job shuffle), additional
+           * characteristics, then the Direction block. */
+          body.appendChild(renderCharacterPresetRow(character));
+          body.appendChild(el("textarea", {
+            class: "krea2-compact-textarea krea2-character-identity",
+            rows: "1",
+            "aria-label": "Character identity",
+            placeholder: "Role, background, distinctive features...",
+            onInput: function (event) { character.identity = event.target.value; markDirty(); },
+          }, character.identity || ""));
+          body.appendChild(renderAppearanceColumns(character));
+          body.appendChild(renderAdditionalInfo(character));
+          body.appendChild(renderCharacterDirection(character));
         }
       }
       card.appendChild(header);
       card.appendChild(body);
       return card;
+    }
+
+    /* v1.3.1-style appearance wall: three labelled columns, every field on
+     * its own row with a dice (randomize once) and a shuffle (every queued
+     * job). Colour fields keep their pop-up pickers on the same row. */
+    function renderAppearanceColumns(character) {
+      const grid = el("div", { class: "krea2-character-columns" });
+      const columns = [
+        ["Identity & hair", ["sex", "age", "ethnicity", "hair_style", "hair_length", "makeup"]],
+        ["Face & body", ["eyes", "nose", "mouth", "chin", "face_shape", "body_type", "fitness", "proportions"]],
+        ["Clothing", ["clothing_top", "clothing_bottom", "ensemble"]],
+      ];
+      for (const layout of columns) {
+        const fields = V2_APPEARANCE_FIELDS.filter(function (field) {
+          return layout[1].includes(field.key);
+        });
+        if (!fields.length) continue;
+        const col = el("div", { class: "krea2-character-column" });
+        col.appendChild(el("div", { class: "krea2-character-column-title" }, layout[0]));
+        for (const field of fields) {
+          const row = el("label", { class: "krea2-v2-appearance-field" }, [
+            el("span", { class: "krea2-v2-field-label" }, field.label),
+          ]);
+          const combobox = comboboxForField(character, field);
+          row.appendChild(combobox.input);
+          row.appendChild(combobox.datalist);
+          row.appendChild(fieldRandomControls(character, field));
+          if (field.colorKey) {
+            const palette = field.colorPalette === "light" ? LIGHT_PALETTE : PALETTE_COLORS;
+            row.appendChild(renderColorPopupButton(character, field.colorKey, palette, field.label + " colour"));
+            const colorField = { key: field.colorKey, options: palette.map(function (entry) { return entry[0]; }) };
+            row.appendChild(fieldRandomControls(character, colorField));
+          }
+          if (field.wide) row.classList.add("krea2-v2-appearance-ensemble");
+          col.appendChild(row);
+        }
+        grid.appendChild(col);
+      }
+      return grid;
+    }
+
+    /* v1.3.1 character preset row: built-in / saved / workflow looks. */
+    function renderCharacterPresetRow(character) {
+      const allPresets = availableCharacterPresets();
+      const presetSelect = el("select", { class: "krea2-compact-select", "aria-label": "Character presets" });
+      presetSelect.appendChild(el("option", { value: "" }, "Character presets..."));
+      allPresets.forEach(function (entry, presetIndex) {
+        const prefix = entry.source === "builtin" ? "Built in \u00b7 " : entry.source === "saved" ? "My preset \u00b7 " : "Workflow \u00b7 ";
+        presetSelect.appendChild(el("option", { value: String(presetIndex) }, prefix + (entry.preset.label || "Character")));
+      });
+      const applyPreset = el("button", { type: "button", class: "krea2-wizard-btn", onClick: function () {
+        const entry = allPresets[Number(presetSelect.value)];
+        if (!entry || !entry.preset.character) return;
+        const stored = cloneJson(entry.preset.character);
+        const replacement = Object.assign(newCharacter(), stored, { id: character.id, expanded: character.expanded !== false });
+        if (!stored.name) replacement.name = character.name || entry.preset.label;
+        replacement.position = character.position || "";
+        replacement.face_guidance = character.face_guidance || "";
+        replacement.interaction = character.interaction || "";
+        replacement.rows = Array.isArray(character.rows) ? cloneJson(character.rows) : [];
+        const index = state.characters.indexOf(character);
+        state.characters[index] = replacement;
+        markDirty(); render();
+      } }, "Apply");
+      return el("div", { class: "krea2-character-preset-row" }, [presetSelect, applyPreset]);
+    }
+
+    /* v1.3.1 "Additional info" behind a checkbox, auto-expanding. */
+    function renderAdditionalInfo(character) {
+      const additionalOpen = character.additional_open === true;
+      const check = el("label", { class: "krea2-inline-check krea2-additional-toggle" }, [
+        el("input", {
+          type: "checkbox",
+          checked: additionalOpen,
+          onChange: function (event) {
+            character.additional_open = !!event.target.checked;
+            markDirty();
+            render();
+          },
+        }),
+        el("span", null, "Additional info"),
+      ]);
+      if (!additionalOpen) return check;
+      const ta = el("textarea", {
+        class: "krea2-compact-textarea krea2-additional-info",
+        rows: "2",
+        "aria-label": "Additional characteristics",
+        placeholder: "A mole on her cheek, an eyepatch over one eye, a scar\u2026",
+        onInput: function (event) {
+          character.additional_info = event.target.value;
+          autoExpandTextarea(event);
+          markDirty();
+        },
+      }, character.additional_info || "");
+      autoExpandTextarea({ target: ta });
+      return el("div", { class: "krea2-character-grid-wrap" }, [check, ta]);
     }
 
     /* Conflict-aware cascading (v1 scope: emotion, framing, angle). */

@@ -75,11 +75,11 @@ class FrontendPackagingTests(unittest.TestCase):
     def test_wizard_has_prompt_motion_and_model_outputs(self):
         self.assertEqual(
             Krea2PromptWizard.RETURN_TYPES,
-            ("STRING", "STRING", "MODEL", "STRING"),
+            ("STRING", "STRING", "MODEL"),
         )
         self.assertEqual(
             Krea2PromptWizard.RETURN_NAMES,
-            ("Prompt Output", "Video Motion Prompt", "Model", "Character LoRA"),
+            ("Prompt Output", "Video Motion Prompt", "Model"),
         )
 
     def test_nodes_use_requested_category(self):
@@ -95,7 +95,7 @@ class FrontendPackagingTests(unittest.TestCase):
         result = Krea2PromptWizard().build(json.dumps(state))
         self.assertEqual(
             result["result"],
-            ("portrait of a traveler", "", None, '{"characters": []}'),
+            ("portrait of a traveler", "", None),
         )
         self.assertEqual(json.loads(result["ui"]["krea2_resolved_state"][0])["base_prompt"], "portrait of a traveler")
         self.assertEqual(result["ui"]["krea2_prompt_output"], ["portrait of a traveler"])

@@ -471,14 +471,14 @@ class Krea2PromptWizard:
             },
         }
 
-    RETURN_TYPES = ("STRING", "STRING", "MODEL", "STRING")
+    RETURN_TYPES = ("STRING", "STRING", "MODEL")
     # A wizard with Each job enabled must run for every queue item.  Marking it
     # as an output node prevents ComfyUI from reusing a previous prompt.
     OUTPUT_NODE = True
-    RETURN_NAMES = ("Prompt Output", "Video Motion Prompt", "Model", "Character LoRA")
+    RETURN_NAMES = ("Prompt Output", "Video Motion Prompt", "Model")
     FUNCTION = "build"
     CATEGORY = "_Krea2 Prompt Wizard"
-    DESCRIPTION = "Visual prompt builder for Krea 2. The frontend owns the editor; the backend compiles the state to one prompt, optionally applies per-character LoRAs to a connected model, and emits a video motion prompt for image-to-video models like LTX-2.3. The Character LoRA output feeds Krea2CharacterLoras for per-character (regional) LoRA application."
+    DESCRIPTION = "Visual prompt builder for Krea 2. The frontend owns the editor; the backend compiles the state to one prompt and emits a video motion prompt for image-to-video models like LTX-2.3. The Model output passes the connected model through unchanged."
     SEARCH_ALIASES = ["krea2 wizard", "prompt wizard", "visual prompt builder", "krea2 prompt builder"]
 
     @classmethod
@@ -527,16 +527,11 @@ class Krea2PromptWizard:
                 # and wins when readers load the chunk (PIL: last chunk wins).
                 extra_pnginfo["prompt"] = result.final_prompt
 
-        model_out, lora_warnings = self._apply_character_loras(model, state)
+        # The Model input passes through unchanged; LoRA application was
+        # removed from the wizard (per-character LoRAs were not compatible
+        # with quantized Krea2 backends).
+        model_out = model
         warnings = list(result.warnings)
-        for warning in lora_warnings:
-            warnings.append(
-                {
-                    "code": "lora.apply_warning",
-                    "severity": "warning",
-                    "message": warning,
-                }
-            )
 
         # Return the resolved random choices to the frontend as well as the
         # prompt.  This keeps the visible cards honest after Each job runs.
@@ -550,97 +545,8 @@ class Krea2PromptWizard:
                 result.final_prompt,
                 result.motion_prompt,
                 model_out,
-                _character_lora_json(state),
             ),
         }
-
-    @staticmethod
-    def _apply_character_loras(model, state):
-        """Apply per-character LoRAs to the connected model.
-
-        LoRAs are applied in cast order with the strength chosen in the
-        Cast tab. A LoRA always affects the whole diffusion model — that is
-        how ComfyUI works — so the wizard also keeps the LoRA's trigger
-        words inside the owning character's prompt block to steer its
-        influence toward that character.
-
-        Returns ``(model_out, warnings)``.
-        """
-        characters = state.get("characters")
-        if not isinstance(characters, list):
-            return model, []
-        assignments = [
-            character
-            for character in characters
-            if isinstance(character, dict)
-            and character.get("enabled", True) is not False
-            and (
-                str(character.get("lora_name") or "").strip()
-                or (
-                    isinstance(character.get("loras"), list)
-                    and any(
-                        isinstance(lora, dict)
-                        and str(lora.get("filename") or "").strip()
-                        for lora in character.get("loras")
-                    )
-                )
-            )
-        ]
-        if not assignments:
-            return model, []
-        if model is None:
-            return None, [
-                "Characters have LoRAs assigned, but the Model input is not "
-                "connected. Connect a model to apply them."
-            ]
-        try:
-            from comfy.sd import load_lora_for_models
-            from comfy.utils import get_filename_list, get_full_path
-        except Exception as exc:  # pragma: no cover - comfy runtime only
-            return model, [f"LoRA support requires ComfyUI runtime: {exc}"]
-        available = set(get_filename_list("loras"))
-        warnings = []
-        current = model
-        for character in assignments:
-            assignments_for_character = [
-                (str(lora.get("filename") or "").strip(), lora.get("strength", 0.8))
-                for lora in character.get("loras")
-                if isinstance(lora, dict) and str(lora.get("filename") or "").strip()
-            ]
-            if not assignments_for_character:
-                assignments_for_character = [
-                    (str(character["lora_name"]).strip(), character.get("lora_strength", 0.8))
-                ]
-            for lora_name, raw_strength in assignments_for_character:
-                if lora_name not in available:
-                    warnings.append(
-                        f"LoRA '{lora_name}' was not found in the loras folder."
-                    )
-                    continue
-                try:
-                    strength = float(raw_strength)
-                except (TypeError, ValueError):
-                    strength = 0.8
-                strength = max(0.0, min(2.0, strength))
-                if strength == 0:
-                    continue
-                path = get_full_path("loras", lora_name)
-                try:
-                    current, _clip = load_lora_for_models(
-                        current,
-                        None,
-                        path,
-                        strength,
-                        0,
-                    )
-                except Exception as exc:  # pragma: no cover - comfy runtime only
-                    warnings.append(f"Could not apply LoRA '{lora_name}': {exc}")
-        return current, warnings
-
-
-# ---------------------------------------------------------------------------
-# Krea2 Save Image
-# ---------------------------------------------------------------------------
 
 
 class Krea2SaveImage:
@@ -915,318 +821,10 @@ class Krea2PromptInspector:
 
 
 # ---------------------------------------------------------------------------
-# Krea2 Character LoRAs — per-character LoRA application via ComfyUI's Hook
-# System. Standard model patching makes a LoRA affect the whole image; this
-# node attaches each character's LoRAs as conditioning hooks and masks the
-# character's text segment to its side of the frame, so the sampler applies
-# the LoRA only where that character is drawn.
-# ---------------------------------------------------------------------------
-
-
-def _character_lora_json(state: dict) -> str:
-    """Compact per-character LoRA manifest for Krea2CharacterLoras."""
-    characters = state.get("characters")
-    if not isinstance(characters, list):
-        return json.dumps({"characters": []})
-    out = []
-    for character in characters:
-        if not isinstance(character, dict) or character.get("enabled", True) is False:
-            continue
-        loras = [
-            {
-                "filename": str(lora.get("filename") or "").strip(),
-                "strength": lora.get("strength", 0.8),
-            }
-            for lora in (character.get("loras") or [])
-            if isinstance(lora, dict) and str(lora.get("filename") or "").strip()
-        ]
-        if not loras:
-            name = str(character.get("lora_name") or "").strip()
-            if name:
-                loras = [{"filename": name, "strength": character.get("lora_strength", 0.8)}]
-        if loras:
-            out.append(
-                {
-                    "name": str(character.get("name") or "").strip(),
-                    "position": str(character.get("position") or "").strip(),
-                    "loras": loras,
-                }
-            )
-    return json.dumps({"characters": out}, ensure_ascii=False)
-
-
-class Krea2CharacterLoras:
-    """Regional, per-character LoRA application.
-
-    Parses the wizard's Prompt Output into per-character segments, strips
-    any ``<lora:...>`` tags and ``(phrase:weight)`` weighting syntax from
-    the text, encodes each segment with the CLIP, attaches the character's
-    LoRAs as conditioning hooks, and masks the segment to the character's
-    region of the frame (from the position field when present, otherwise
-    split by cast order). Feed the BASE model (Load Diffusion Model
-    output), the wizard's Prompt Output and its Character LoRA JSON, and a
-    CLIP. Connect the Krea2 Prompt Weight node's conditioning output to the
-    optional ``conditioning`` input to append these regional segments to it
-    — the sampler then receives one combined conditioning.
-    """
-
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {
-                "model": ("MODEL",),
-                "clip": ("CLIP",),
-                "text": (
-                    "STRING",
-                    {
-                        "multiline": True,
-                        "default": "",
-                        "tooltip": "TOP field: connect the wizard's Prompt Output here (the compiled prompt text).",
-                    },
-                ),
-                "lora_state": (
-                    "STRING",
-                    {
-                        "multiline": True,
-                        "default": "{}",
-                        "tooltip": "BOTTOM field: connect the wizard's Character LoRA output here (the JSON manifest).",
-                    },
-                ),
-            },
-            "optional": {
-                "conditioning": (
-                    "CONDITIONING",
-                    {
-                        "tooltip": "Base conditioning to append to — e.g. the Krea2 Prompt Weight node's conditioning output. Kept at the front so its token-weight positions stay valid.",
-                    },
-                ),
-                "mask_size": ("INT", {"default": 1024, "min": 256, "max": 4096, "step": 64}),
-            },
-        }
-
-    RETURN_TYPES = ("CONDITIONING", "MODEL", "STRING")
-    RETURN_NAMES = ("conditioning", "model", "applied_lora_log")
-    FUNCTION = "encode"
-    CATEGORY = "_Krea2 Prompt Wizard"
-    DESCRIPTION = "Applies each character's LoRAs only to that character's region via conditioning hooks and masks. Wiring: top text field = wizard's Prompt Output; bottom text field (shows {}) = wizard's Character LoRA output; model = the BASE model; clip = your CLIP; optional conditioning = the Krea2 Prompt Weight node's conditioning output. The applied_lora_log output explains exactly what was loaded (or what is missing)."
-    SEARCH_ALIASES = ["regional lora", "per character lora", "character lora", "hook lora"]
-
-    @staticmethod
-    def parse_manifest(lora_state: Any) -> Dict[str, list]:
-        """Extract {character_name_lower: [lora dicts]} from the manifest."""
-        payload = lora_state
-        if isinstance(lora_state, str):
-            try:
-                payload = json.loads(lora_state or "{}")
-            except json.JSONDecodeError:
-                payload = {}
-        by_name: Dict[str, list] = {}
-        if not isinstance(payload, dict):
-            return by_name
-        for character in payload.get("characters", []) if isinstance(payload.get("characters"), list) else []:
-            if not isinstance(character, dict):
-                continue
-            loras = [
-                lora
-                for lora in character.get("loras", [])
-                if isinstance(lora, dict) and str(lora.get("filename") or "").strip()
-            ]
-            name = str(character.get("name") or "").strip().lower()
-            position = str(character.get("position") or "").strip()
-            if loras and name:
-                by_name[name] = {"loras": loras, "position": position}
-        return by_name
-
-    @staticmethod
-    def split_segments(text: str):
-        """Split the prompt into (text, character_name_or_None) segments.
-
-        Strips <lora:...> tags and (phrase:weight) weighting syntax (the
-        phrase text is kept) so neither leaks into the encoded text.
-        """
-        cleaned = re.sub(r"<lora:[^>]+>", "", text or "")
-        cleaned = re.sub(r"\(([^():]+):-?\d*\.?\d+\)", r"\1", cleaned)
-        parts = re.split(r"(?=Character )", cleaned)
-        segments = []
-        for part in parts:
-            stripped = part.strip()
-            if not stripped:
-                continue
-            match = re.match(r"Character\s+([^:：(]+)", stripped)
-            segments.append((stripped, match.group(1).strip().lower() if match else None))
-        return segments
-
-    @staticmethod
-    def region_for(position: str, cast_index: int, cast_total: int) -> str:
-        """Left / right / center region for a character."""
-        text = position.lower()
-        if "left" in text:
-            return "left"
-        if "right" in text:
-            return "right"
-        if "centre" in text or "center" in text or "middle" in text or "center of" in text:
-            return "center"
-        if cast_total > 2:
-            thirds = ["left", "center", "right"]
-            return thirds[min(cast_index, 2)]
-        return "left" if cast_index % 2 == 0 else "right"
-
-    def encode(self, model, clip, text, lora_state, conditioning=None, mask_size=1024):
-        import copy
-        import os
-
-        import torch
-
-        import comfy.hooks
-        import comfy.utils
-        import folder_paths
-
-        log_lines = []
-        raw_text = str(text or "")
-        raw_state = str(lora_state or "").strip()
-
-        # Guard against swapping the two STRING inputs: if the JSON landed in
-        # the text field (and vice versa), fix it and say so.
-        text_looks_json = raw_text.lstrip().startswith("{") and '"characters"' in raw_text
-        state_is_json = raw_state.startswith("{")
-        if text_looks_json and not state_is_json:
-            raw_text, raw_state = raw_state, raw_text
-            log_lines.append(
-                "NOTE: the two text inputs looked swapped (the Character LoRA JSON was in the Prompt field) \u2014 fixed automatically"
-            )
-
-        if not raw_text.strip():
-            log_lines.append(
-                "text input is EMPTY \u2014 connect the wizard's Prompt Output to the top text field"
-            )
-        if raw_state == "" or raw_state == "{}":
-            log_lines.append(
-                "character_lora_json input is EMPTY (\u201c{}\u201d) \u2014 connect the wizard's Character LoRA output to the bottom text field"
-            )
-        elif not state_is_json:
-            log_lines.append(
-                "character_lora_json is not valid JSON \u2014 connect the wizard's Character LoRA output to the bottom text field"
-            )
-
-        manifest = self.parse_manifest(raw_state)
-        segments = self.split_segments(raw_text)
-        if not segments:
-            log_lines.append(
-                "No prompt segments found \u2014 the text field must contain the wizard's Prompt Output (with \u201cCharacter \u2026\u201d blocks)"
-            )
-        cast_total = len([1 for seg in segments if seg[1] is not None])
-        cast_index = 0
-        # Pre-flight: ComfyUI's hook patcher walks the WHOLE model state dict
-        # and resolves each key against module attributes (get_key_patches),
-        # so a single un-resolvable key (e.g. quantized INT8 / GGUF
-        # "...weight_scale" paths that don't exist as module attributes)
-        # crashes the sampler. Mirror that walk here and skip hooks when it
-        # would fail — without guessing whether the model is "GGUF".
-        hook_supported = True
-        try:
-            sd = model.model_state_dict() if hasattr(model, "model_state_dict") else None
-            if isinstance(sd, dict) and sd:
-                from comfy.utils import get_attr as comfy_get_attr  # noqa: PLC0415
-                for key in sd:
-                    tail = key.rsplit(".", 1)
-                    try:
-                        if len(tail) == 2:
-                            op = comfy_get_attr(model.model, tail[0])
-                            if op is None or not hasattr(op, tail[1]):
-                                hook_supported = False
-                                break
-                        else:
-                            if comfy_get_attr(model.model, key) is None:
-                                hook_supported = False
-                                break
-                    except Exception:
-                        hook_supported = False
-                        break
-        except Exception:
-            hook_supported = True
-        if not hook_supported:
-            log_lines.append(
-                "This model's weight layout is not compatible with ComfyUI's hook LoRA patcher "
-                "(at least one state-dict key cannot be resolved as a module attribute \u2014 typical of "
-                "quantized INT8 / GGUF weight scales). Character LoRAs were SKIPPED to avoid a sampler "
-                "crash. Try the unquantized Krea2 .safetensors checkpoint for per-character LoRAs."
-            )
-        # Any base conditioning (e.g. the Krea2 Prompt Weight node's output)
-        # stays at the front so its token-weight positions remain valid.
-        conditioning = list(conditioning) if isinstance(conditioning, list) else []
-        for seg_text, char_key in segments:
-            tokens = clip.tokenize(seg_text)
-            cond = clip.encode_from_tokens_scheduled(tokens)
-            entry = manifest.get(char_key) if char_key else None
-            if entry and hook_supported:
-                hooks = comfy.hooks.HookGroup()
-                applied = []
-                for lora in entry["loras"]:
-                    filename = str(lora.get("filename") or "").strip()
-                    path = folder_paths.get_full_path("loras", filename)
-                    if not path or not os.path.exists(path):
-                        log_lines.append(
-                            f"Character '{char_key}': LoRA '{filename}' NOT FOUND in the loras folder \u2014 skipped"
-                        )
-                        continue
-                    try:
-                        strength = float(lora.get("strength", 1.0))
-                    except (TypeError, ValueError):
-                        strength = 1.0
-                    tensors = comfy.utils.load_torch_file(path, safe_load=True)
-                    hooks = hooks.clone_and_combine(
-                        comfy.hooks.create_hook_lora(lora=tensors, strength_model=strength, strength_clip=0.0)
-                    )
-                    applied.append(f"{filename}@{strength:g}")
-                if hooks.hooks:
-                    cond = comfy.hooks.set_hooks_for_conditioning(cond, hooks)
-                if applied:
-                    log_lines.append(f"Character '{char_key}': {', '.join(applied)}")
-                else:
-                    log_lines.append(f"Character '{char_key}': no LoRAs were loaded")
-            elif entry and not hook_supported:
-                log_lines.append(
-                    f"Character '{char_key}': {'; '.join(str(l.get('filename')) for l in entry['loras'])} matched "
-                    "but hooks were SKIPPED because this model's weight layout is incompatible with "
-                    "ComfyUI's hook LoRA patcher (see the warning above)"
-                )
-            elif char_key is not None:
-                log_lines.append(f"Character '{char_key}': NO MATCH in the Character LoRA manifest (name mismatch or no LoRAs assigned)")
-            region = self.region_for(entry["position"] if entry else "", cast_index, cast_total)
-            mask = self._build_mask(region, int(mask_size)) if entry else None
-            if mask is not None:
-                out = copy.deepcopy(cond[0][1])
-                out["mask"] = mask
-                out["set_area_to_bounds"] = False
-                out["mask_strength"] = 1.0
-                cond = [[cond[0][0], out]]
-            conditioning.extend(cond)
-            if char_key:
-                cast_index += 1
-        return (conditioning, model, "\n".join(log_lines))
-
-    @staticmethod
-    def _build_mask(region: str, size: int):
-        """A 1x1xHxW float mask: 1 where the character lives, 0 elsewhere."""
-        import torch
-
-        mask = torch.zeros((1, 1, size, size), dtype=torch.float32)
-        if region == "left":
-            mask[:, :, :, : size // 2] = 1.0
-        elif region == "right":
-            mask[:, :, :, size // 2 :] = 1.0
-        else:  # center band
-            band = size // 2
-            start = (size - band) // 2
-            mask[:, :, :, start : start + band] = 1.0
-        return mask
-
-
 NODE_CLASS_MAPPINGS = {
     "Krea2WeightedPhrase": Krea2WeightedPhrase,
     "Krea2PromptAssembler": Krea2PromptAssembler,
     "Krea2PromptWizard": Krea2PromptWizard,
-    "Krea2CharacterLoras": Krea2CharacterLoras,
     "Krea2SaveImage": Krea2SaveImage,
     "Krea2PromptSaver": Krea2PromptSaver,
     "Krea2PromptInspector": Krea2PromptInspector,
@@ -1236,7 +834,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "Krea2WeightedPhrase": "Krea2 Weighted Phrase",
     "Krea2PromptAssembler": "Krea2 Prompt Assembler",
     "Krea2PromptWizard": "Krea2 Prompt Wizard",
-    "Krea2CharacterLoras": "Krea2 Character LoRAs",
     "Krea2SaveImage": "Krea2 Save Image",
     "Krea2PromptSaver": "Krea2 Prompt Saver",
     "Krea2PromptInspector": "Krea2 Prompt Inspector",
