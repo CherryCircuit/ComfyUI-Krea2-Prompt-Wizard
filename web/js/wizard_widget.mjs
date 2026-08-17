@@ -42,6 +42,8 @@
     CATEGORIES,
     CATEGORY_LABELS,
     PALETTE_COLORS,
+    HAIR_PALETTE,
+    ETHNICITY_SKIN,
     LIGHT_PALETTE,
   } = K.constants;
   const { render: renderRow } = K.presetRow;
@@ -180,7 +182,7 @@
   /* Per-character direction categories. A cast member owns these so two
    * characters in one scene never share the same emotion or body language. */
   const EMOTION_CATEGORIES = ["emotion", "emotion_trigger"];
-  const FACE_CATEGORIES = ["face", "face_trigger", "gaze", "mouth"];
+  const FACE_CATEGORIES = ["face", "gaze", "mouth"];
   const BODY_CATEGORIES = ["body"];
   const POSITION_CATEGORIES = ["position"];
   const LORA_CATEGORIES = ["lora_trigger"];
@@ -197,8 +199,8 @@
    * side-by-side groups, each with its own dice and each-job shuffle. */
   const CHARACTER_CONCEPT_GROUPS = [
     { id: "emotion", icon: "sparkle", label: "Emotion", categories: ["emotion", "emotion_trigger"], emptyHint: "No emotion set." },
-    { id: "expression", icon: "eye", label: "Expression", categories: ["face", "face_trigger", "gaze", "mouth"], emptyHint: "No facial action set." },
-    { id: "pose", icon: "users", label: "Pose & Placement", categories: ["body", "position"], emptyHint: "No pose or placement set." },
+    { id: "expression", icon: "eye", label: "Face", categories: ["face", "gaze", "mouth"], emptyHint: "No facial action set." },
+    { id: "pose", icon: "users", label: "Body", categories: ["body"], emptyHint: "No body language set." },
   ];
 
   /* TV/movie-style multi-concept direction presets shown as chips on each
@@ -213,7 +215,7 @@
 
   /* Build indicator shown in the top bar so it is obvious which wizard
    * build is running. Bump when you ship a new build. */
-  const WIZARD_VERSION = "v2.2.0";
+  const WIZARD_VERSION = "v2.3.0";
 
   const TABS = [
     ["cast", "Cast", "users"],
@@ -1234,9 +1236,8 @@
      * scoped to one cast member. */
     const DIRECTION_GROUPS = [
       { id: "emotion", icon: "sparkle", label: "Emotion", categories: EMOTION_CATEGORIES, emptyHint: "No emotion set." },
-      { id: "face", icon: "eye", label: "Face & gaze", categories: FACE_CATEGORIES, emptyHint: "No facial action set." },
-      { id: "body", icon: "users", label: "Body & movement", categories: BODY_CATEGORIES, emptyHint: "No body language set." },
-      { id: "placement", icon: "compass", label: "Placement", categories: POSITION_CATEGORIES, emptyHint: "No placement set." },
+      { id: "face", icon: "eye", label: "Face", categories: FACE_CATEGORIES, emptyHint: "No facial action set." },
+      { id: "body", icon: "users", label: "Body", categories: BODY_CATEGORIES, emptyHint: "No body language set." },
     ];
 
     function directionGroupPresetId(groupKey) {
@@ -1490,51 +1491,14 @@
     function renderCharacterDirection(character) {
       const section = el("div", { class: "krea2-character-direction" });
       section.appendChild(el("div", { class: "krea2-direction-heading" },
-        "Direction — emotions, face, body and placement for this character only"));
+        "Direction — emotion, face and body for this character only"));
 
-      /* Multi-concept quick directions */
-      section.appendChild(el("div", { class: "krea2-direction-label" }, "Quick directions"));
-      section.appendChild(renderQuickDirectionChips(character));
-
-      /* Concepts-style sections with the full action set */
+      /* Three side-by-side concept sections with the full action set */
+      const grid = el("div", { class: "krea2-direction-columns" });
       for (const group of DIRECTION_GROUPS) {
-        section.appendChild(renderCharacterDirectionBlock(character, group.id));
+        grid.appendChild(renderCharacterDirectionBlock(character, group.id));
       }
-
-      /* Position in frame (v1.3.1): preset select + dice, or free text. */
-      const positionPresets = library.filter(function (preset) {
-        return preset.category === "position" && !preset.disabled;
-      });
-      const positionSelect = el("select", {
-        class: "krea2-compact-select",
-        "aria-label": "Position and placement",
-        onChange: function (event) {
-          const preset = positionPresets.find(function (item) { return item.id === event.target.value; });
-          character.position = preset ? preset.phrase : "";
-          markDirty();
-          render();
-        },
-      });
-      positionSelect.appendChild(el("option", { value: "" }, "Position in frame..."));
-      for (const preset of positionPresets) {
-        positionSelect.appendChild(el("option", { value: preset.id }, preset.label));
-      }
-      const currentPosition = positionPresets.find(function (preset) {
-        return preset.phrase === character.position;
-      });
-      positionSelect.value = currentPosition ? currentPosition.id : "";
-      const positionRow = el("div", { class: "krea2-direction-position" }, [
-        el("span", { class: "krea2-direction-label" }, "Position in frame"),
-        positionSelect,
-        diceButton("Random placement", function () {
-          const preset = randomChoice(positionPresets);
-          if (preset) { character.position = preset.phrase; markDirty(); render(); }
-        }, "krea2-field-random krea2-icon-btn"),
-      ]);
-      if (character.position && !currentPosition) {
-        positionRow.appendChild(el("span", { class: "krea2-direction-custom" }, character.position));
-      }
-      section.appendChild(positionRow);
+      section.appendChild(grid);
 
       /* Face guidance free text (advanced, hidden by default) */
       if (state.show_face_guidance) {
@@ -1813,6 +1777,11 @@
     function applyAppearanceValue(character, field, rawValue) {
       const value = String(rawValue || "").trim();
       character[field.key] = value;
+      if (field.key === "ethnicity" && value && !character.skin_color) {
+        // Picking an ethnicity suggests a matching default skin tone
+        // (still fully editable afterwards).
+        character.skin_color = ETHNICITY_SKIN[value.toLowerCase()] || "";
+      }
       if (field.key === "ensemble" && value) {
         // Choosing an ensemble disables the separates.
         character.clothing_top = "";
@@ -1822,8 +1791,8 @@
         // Using separates disables the ensemble.
         character.ensemble = "";
       }
+      // Typing must never re-render mid-keystroke (that steals focus).
       markDirty();
-      scheduleAppearanceRender();
     }
 
     const scheduleAppearanceRender = debounce(function () { render(); }, 350);
@@ -2530,8 +2499,8 @@
     }
 
     function presetMatchesCreativeMode(preset) {
-      const media = presetMedia(preset);
-      return media === "common" || media === (state.creative_mode || "photo");
+      // Artwork mode was removed; every concept is offered.
+      return true;
     }
 
     function compatibleLibrary() {
@@ -2541,11 +2510,10 @@
     function buildCreativeModeControl() {
       const wrap = el("div", {
         class: "krea2-wizard-creative-mode",
-        title: "Choose concepts suited to photography or artwork",
+        title: "Photography concepts",
       });
       for (const option of [
         { value: "photo", label: "Photography" },
-        { value: "art", label: "Artwork" },
       ]) {
         wrap.appendChild(el("button", {
           type: "button",
@@ -3340,11 +3308,13 @@ function buildGroupPresetPicker(group) {
         return !/(blue|green|hazel|brown|black|grey|amber|violet|heterochromatic)/.test(option);
       });
       const paletteNames = PALETTE_COLORS.map(function (entry) { return entry[0]; });
+      const buildOptions = dedupeOptions(
+        byKey.body_type.options.concat(byKey.fitness.options, byKey.proportions.options),
+      );
       return [
-        { key: "sex", label: "Sex", options: byKey.sex.options },
         { key: "age", label: "Age", options: byKey.age.options, natural: true },
         { key: "ethnicity", label: "Ethnicity", options: byKey.ethnicity.options, colorKey: "skin_color", colorPalette: "character" },
-        { key: "hair_style", label: "Hair", options: byKey.hair_style.options, colorKey: "hair_color", colorPalette: "character" },
+        { key: "hair_style", label: "Hair", options: byKey.hair_style.options, colorKey: "hair_color", colorPalette: "hair" },
         { key: "hair_length", label: "Hair length", options: byKey.hair_length.options },
         { key: "makeup", label: "Makeup", options: byKey.makeup.options },
         { key: "eyes", label: "Eye Shape", options: eyesShapes, colorKey: "eye_color", colorPalette: "character" },
@@ -3352,14 +3322,24 @@ function buildGroupPresetPicker(group) {
         { key: "mouth", label: "Mouth", options: byKey.mouth.options },
         { key: "chin", label: "Chin", options: byKey.chin.options },
         { key: "face_shape", label: "Face shape", options: byKey.face_shape.options },
-        { key: "body_type", label: "Build", options: byKey.body_type.options },
-        { key: "fitness", label: "Physique", options: byKey.fitness.options },
-        { key: "proportions", label: "Height & Frame", options: byKey.proportions.options },
+        { key: "body_type", label: "Build", options: buildOptions },
         { key: "clothing_top", label: "Top", options: byKey.clothing_top.options },
         { key: "clothing_bottom", label: "Bottom", options: byKey.clothing_bottom.options },
         { key: "ensemble", label: "Ensemble (full costume)", options: byKey.ensemble.options, wide: true },
       ];
     })();
+
+    function dedupeOptions(options) {
+      const seen = new Set();
+      const out = [];
+      for (const option of options) {
+        const key = String(option).toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(option);
+      }
+      return out;
+    }
 
     const IDENTITY_GENDER_CYCLE = ["", "female", "male", "unspecified"];
     const IDENTITY_AGE_CYCLE = ["", "child", "teenager", "young adult", "adult", "middle aged", "elderly"];
@@ -4019,9 +3999,6 @@ function buildGroupPresetPicker(group) {
         }, "Randomize"),
       ]);
       const activeCategory = character.visual_category || "hair_style";
-      const previewWrap = el("div", { class: "krea2-visual-preview" }, [
-        buildCharacterAvatar(character),
-      ]);
       const controlsArea = el("div", { class: "krea2-visual-controls-area" }, [
         visualCategoryControls(character, activeCategory),
       ]);
@@ -4062,7 +4039,7 @@ function buildGroupPresetPicker(group) {
           el("span", null, "Lock " + ((VISUAL_CATEGORIES.find(function (c) { return c.id === activeCategory; }) || {}).label || activeCategory) + " for Randomize"),
         ]),
       ]);
-      panel.append(top, actions, previewWrap, controlsArea, lockRow, bar);
+      panel.append(top, actions, controlsArea, lockRow, bar);
       return panel;
     }
 
@@ -4076,7 +4053,8 @@ function buildGroupPresetPicker(group) {
       });
       const header = el("div", { class: "krea2-character-card-header krea2-clickable-head" });
       const visualCreatorOn = state.character_creator === "visual";
-      const avatar = visualCreatorOn ? null : buildCharacterAvatar(character);
+      // The Mii avatar is removed entirely.
+      const avatar = null;
       const name = el("input", {
         type: "text",
         class: "krea2-compact-input krea2-character-name",
@@ -4167,17 +4145,9 @@ function buildGroupPresetPicker(group) {
         if (visualCreatorOn) {
           body.appendChild(renderVisualCreator(character));
         } else {
-          /* v1.3.1 structure: preset row, identity, full appearance wall
-           * (every field with its own dice + each-job shuffle), additional
-           * characteristics, then the Direction block. */
+          /* Appearance wall (every field with its own dice + each-job
+           * shuffle), then the Direction columns. */
           body.appendChild(renderCharacterPresetRow(character));
-          body.appendChild(el("textarea", {
-            class: "krea2-compact-textarea krea2-character-identity",
-            rows: "1",
-            "aria-label": "Character identity",
-            placeholder: "Role, background, distinctive features...",
-            onInput: function (event) { character.identity = event.target.value; markDirty(); },
-          }, character.identity || ""));
           body.appendChild(renderAppearanceColumns(character));
           body.appendChild(renderAdditionalInfo(character));
           body.appendChild(renderCharacterDirection(character));
@@ -4188,15 +4158,111 @@ function buildGroupPresetPicker(group) {
       return card;
     }
 
-    /* v1.3.1-style appearance wall: three labelled columns, every field as
-     * its own label-above row with a dice (randomize once) and a shuffle
-     * (every queued job) beside the combobox. Colour fields keep their
-     * pop-up pickers on the same row. */
+    /* LOAD icon: opens the character preset popup (built-in + saved +
+     * workflow characters), laid out like the concept picker. */
+    function renderCharacterPresetRow(character) {
+      const wrap = el("div", { class: "krea2-character-preset-row" });
+      const loadBtn = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-icon-btn krea2-character-load",
+        title: "Load a character preset",
+        "aria-label": "Load a character preset",
+        onClick: function () { openCharacterPresetPopup(character, loadBtn); },
+      }, icon("download", { width: "12", height: "12" }));
+      wrap.appendChild(loadBtn);
+      return wrap;
+    }
+
+    function openCharacterPresetPopup(character, anchor) {
+      const existing = document.querySelector(".krea2-character-preset-popup");
+      if (existing) existing.remove();
+      const popup = el("div", { class: "krea2-character-preset-popup" });
+      popup.appendChild(el("div", { class: "krea2-searchable-header" }, [
+        el("strong", null, "Load a character"),
+        el("button", {
+          type: "button",
+          class: "krea2-searchable-close",
+          title: "Close",
+          "aria-label": "Close",
+          onClick: function () { popup.remove(); },
+        }, icon("close", { width: "12", height: "12" })),
+      ]));
+      const search = el("input", {
+        type: "text",
+        class: "krea2-searchable-query",
+        placeholder: "Search characters...",
+      });
+      const list = el("div", { class: "krea2-character-preset-list" });
+      const apply = function (entry) {
+        const stored = cloneJson(entry.preset.character || entry.preset);
+        const replacement = Object.assign(newCharacter(), stored, { id: character.id, expanded: character.expanded !== false });
+        if (!stored.name) replacement.name = character.name || entry.preset.label;
+        replacement.position = character.position || "";
+        replacement.face_guidance = character.face_guidance || "";
+        replacement.interaction = character.interaction || "";
+        replacement.rows = Array.isArray(character.rows) ? cloneJson(character.rows) : [];
+        const index = state.characters.indexOf(character);
+        state.characters[index] = replacement;
+        markDirty();
+        render();
+        popup.remove();
+      };
+      const renderList = function () {
+        list.innerHTML = "";
+        const query = (search.value || "").trim().toLowerCase();
+        const entries = [];
+        for (const preset of CHARACTER_PRESETS) {
+          entries.push({ source: "builtin", label: preset.label, preset: preset });
+        }
+        for (const preset of savedPresets.filter(function (item) { return item.scope === "character"; })) {
+          entries.push({ source: "saved", label: preset.label, preset: preset });
+        }
+        for (const preset of (state.character_presets || [])) {
+          entries.push({ source: "workflow", label: preset.label || "Character", preset: preset });
+        }
+        for (const entry of entries) {
+          if (query && !String(entry.label).toLowerCase().includes(query)) continue;
+          const sourceLabel = entry.source === "builtin" ? "Built in"
+            : entry.source === "saved" ? "My preset" : "Workflow";
+          const item = el("div", { class: "krea2-searchable-item", role: "option", tabIndex: "0" }, [
+            el("span", { class: "krea2-searchable-title" }, entry.label),
+            el("span", { class: "krea2-searchable-group" }, sourceLabel),
+          ]);
+          item.addEventListener("click", function () { apply(entry); });
+          list.appendChild(item);
+        }
+      };
+      search.addEventListener("input", renderList);
+      popup.appendChild(search);
+      popup.appendChild(list);
+      const rect = anchor.getBoundingClientRect();
+      Object.assign(popup.style, {
+        position: "fixed",
+        left: rect.left + "px",
+        top: (rect.bottom + 4) + "px",
+        zIndex: "2147483500",
+      });
+      document.body.appendChild(popup);
+      renderList();
+      function onDocClick(e) {
+        if (!popup.contains(e.target)) {
+          popup.remove();
+          document.removeEventListener("click", onDocClick, true);
+        }
+      }
+      setTimeout(() => document.addEventListener("click", onDocClick, true), 0);
+      return popup;
+    }
+
+    /* Appearance wall: three labelled columns; every field keeps its title
+     * and dropdown on ONE horizontal line, with a clear ×, a dice
+     * (randomize once) and a shuffle (every queued job). Colour fields
+     * keep their pop-up pickers on the same row. */
     function renderAppearanceColumns(character) {
       const grid = el("div", { class: "krea2-character-columns" });
       const columns = [
-        ["Identity & hair", ["sex", "age", "ethnicity", "hair_style", "hair_length", "makeup"]],
-        ["Face & body", ["eyes", "nose", "mouth", "chin", "face_shape", "body_type", "fitness", "proportions"]],
+        ["Identity & hair", ["age", "ethnicity", "hair_style", "hair_length", "makeup"]],
+        ["Face & body", ["eyes", "nose", "mouth", "chin", "face_shape", "body_type"]],
         ["Clothing", ["clothing_top", "clothing_bottom", "ensemble"]],
       ];
       for (const layout of columns) {
@@ -4210,13 +4276,21 @@ function buildGroupPresetPicker(group) {
           const fieldEl = el("label", {
             class: "krea2-character-field" + (field.wide ? " krea2-field-wide" : ""),
           }, [
-            el("span", null, field.label),
+            el("span", { class: "krea2-v2-field-label" }, field.label),
           ]);
           const combobox = comboboxForField(character, field);
-          const fieldRow = el("div", { class: "krea2-field-row" }, [
-            combobox.input,
-            combobox.datalist,
-          ]);
+          const clearBtn = el("button", {
+            type: "button",
+            class: "krea2-wizard-btn krea2-icon-btn krea2-field-clear",
+            title: "Clear " + field.label,
+            "aria-label": "Clear " + field.label,
+            onClick: function (event) {
+              if (event && typeof event.stopPropagation === "function") event.stopPropagation();
+              applyAppearanceValue(character, field, "");
+              markDirty();
+              render();
+            },
+          }, "×");
           const dice = el("button", {
             type: "button",
             class: "krea2-wizard-btn krea2-icon-btn krea2-field-random",
@@ -4245,10 +4319,18 @@ function buildGroupPresetPicker(group) {
               render();
             },
           }, icon("shuffle", { width: "12", height: "12" }));
-          fieldRow.append(dice, shuffle);
+          const fieldRow = el("div", { class: "krea2-field-row" }, [
+            combobox.input,
+            combobox.datalist,
+            clearBtn,
+            dice,
+            shuffle,
+          ]);
           if (field.colorKey) {
-            const palette = field.colorPalette === "light" ? LIGHT_PALETTE : PALETTE_COLORS;
-            fieldRow.appendChild(renderColorPopupButton(character, field.colorKey, palette, field.label + " colour"));
+            const palette = field.colorPalette === "light" ? LIGHT_PALETTE
+              : field.colorPalette === "hair" ? HAIR_PALETTE : PALETTE_COLORS;
+            const colourLabel = field.key === "eyes" ? "Eye colour" : field.label + " colour";
+            fieldRow.appendChild(renderColorPopupButton(character, field.colorKey, palette, colourLabel));
             const colorField = { key: field.colorKey, options: palette.map(function (entry) { return entry[0]; }) };
             fieldRow.appendChild(fieldRandomControls(character, colorField));
           }
@@ -4260,31 +4342,6 @@ function buildGroupPresetPicker(group) {
       return grid;
     }
 
-    /* v1.3.1 character preset row: built-in / saved / workflow looks. */
-    function renderCharacterPresetRow(character) {
-      const allPresets = availableCharacterPresets();
-      const presetSelect = el("select", { class: "krea2-compact-select", "aria-label": "Character presets" });
-      presetSelect.appendChild(el("option", { value: "" }, "Character presets..."));
-      allPresets.forEach(function (entry, presetIndex) {
-        const prefix = entry.source === "builtin" ? "Built in \u00b7 " : entry.source === "saved" ? "My preset \u00b7 " : "Workflow \u00b7 ";
-        presetSelect.appendChild(el("option", { value: String(presetIndex) }, prefix + (entry.preset.label || "Character")));
-      });
-      const applyPreset = el("button", { type: "button", class: "krea2-wizard-btn", onClick: function () {
-        const entry = allPresets[Number(presetSelect.value)];
-        if (!entry || !entry.preset.character) return;
-        const stored = cloneJson(entry.preset.character);
-        const replacement = Object.assign(newCharacter(), stored, { id: character.id, expanded: character.expanded !== false });
-        if (!stored.name) replacement.name = character.name || entry.preset.label;
-        replacement.position = character.position || "";
-        replacement.face_guidance = character.face_guidance || "";
-        replacement.interaction = character.interaction || "";
-        replacement.rows = Array.isArray(character.rows) ? cloneJson(character.rows) : [];
-        const index = state.characters.indexOf(character);
-        state.characters[index] = replacement;
-        markDirty(); render();
-      } }, "Apply");
-      return el("div", { class: "krea2-character-preset-row" }, [presetSelect, applyPreset]);
-    }
 
     /* v1.3.1 "Additional info" behind a checkbox, auto-expanding. */
     function renderAdditionalInfo(character) {
@@ -4924,11 +4981,15 @@ function buildGroupPresetPicker(group) {
         const colourDice = el("button", {
           type: "button",
           class: "krea2-wizard-btn krea2-icon-btn krea2-light-colour-dice",
-          title: "Randomize this light's colour once now",
-          "aria-label": "Randomize light " + (index + 1) + " colour",
+          title: "Randomize this light's colour, position and angle",
+          "aria-label": "Randomize light " + (index + 1) + " colour, position and angle",
           onClick: function () {
             const entry = LIGHT_PALETTE[Math.floor(Math.random() * LIGHT_PALETTE.length)];
-            setLightState(light, { color: entry[0] });
+            setLightState(light, {
+              color: entry[0],
+              angleDeg: Math.floor(Math.random() * 360),
+              distance: 0.35 + Math.random() * 0.65,
+            });
           },
         }, icon("dice", { width: "11", height: "11" }));
         const colourShuffleOn = !!(state.randomize_on_job || {}).lighting;
@@ -5054,58 +5115,111 @@ function buildGroupPresetPicker(group) {
     /* Type / Setting / Style on ONE horizontal row. "Style" is the shot
      * preset: it replaces camera, lighting and environment together, so
      * picking one warns first when those sections have content. */
-    function renderSceneTypeRow() {
-      const row = el("div", { class: "krea2-v2-scene-top-row" });
-      row.append(
+    function sceneSettingSelect() {
+      const setting = state.setting && typeof state.setting === "object"
+        ? state.setting
+        : (state.setting = { enabled: false, name: "", description: "" });
+      const select = el("select", {
+        class: "krea2-compact-select krea2-scene-select",
+        "aria-label": "Scene setting",
+        title: "Pick a scene — it fills the description below",
+        onChange: function (event) {
+          const preset = SETTING_PRESETS[Number(event.target.value)];
+          if (!preset) return;
+          setting.enabled = true;
+          setting.name = preset[0];
+          setting.description = preset[1];
+          // The preset text lands in the editable description field.
+          state.base_prompt = preset[1];
+          markDirty();
+          render();
+        },
+      });
+      select.appendChild(el("option", { value: "" },
+        "Selected scene: " + (setting.enabled && setting.name ? setting.name : "— choose one —")));
+      SETTING_PRESETS.slice().sort(function (a, b) {
+        return String(a[0]).toLowerCase().localeCompare(String(b[0]).toLowerCase());
+      }).forEach(function (preset, index) {
+        select.appendChild(el("option", { value: String(SETTING_PRESETS.indexOf(preset)) }, preset[0]));
+      });
+      return select;
+    }
+
+    /* Setting section at the top of the SCENE tab: Type, Setting (with dice
+     * and shuffle) and Style on one line, and the Description field below —
+     * scene presets fill it so it is editable and re-saveable. */
+    function renderSceneSettingSection() {
+      const section = el("section", { class: "krea2-v2-setting-section" });
+      const setting = state.setting && typeof state.setting === "object"
+        ? state.setting
+        : (state.setting = { enabled: false, name: "", description: "" });
+      const settingEachJob = !!(state.randomize_on_job || {}).setting;
+      const topRow = el("div", { class: "krea2-v2-setting-top" }, [
         el("span", { class: "krea2-v2-field-label" }, "Type"),
         creativeModeControl,
         el("span", { class: "krea2-v2-field-label" }, "Setting"),
-        b2BuiltinSceneSelect(),
+        sceneSettingSelect(),
+        diceButton("Randomize the scene", function () {
+          const preset = randomChoice(SETTING_PRESETS);
+          setting.enabled = true;
+          setting.name = preset[0];
+          setting.description = preset[1];
+          state.base_prompt = preset[1];
+          markDirty();
+          render();
+        }, "krea2-icon-btn"),
+        el("button", {
+          type: "button",
+          class: "krea2-wizard-btn krea2-icon-btn krea2-shuffle" + (settingEachJob ? " is-active" : ""),
+          title: settingEachJob
+            ? "Shuffle on: a fresh scene is chosen for every queued job. Click to stop."
+            : "Shuffle off: randomize the scene every queued job.",
+          "aria-label": "Randomize the scene every queued job",
+          "aria-pressed": settingEachJob ? "true" : "false",
+          onClick: function () { toggleSceneShuffle(settingEachJob); },
+        }, icon("shuffle", { width: "12", height: "12" })),
         el("span", { class: "krea2-v2-field-label" }, "Style"),
         masterPresetSelect,
-      );
-      return row;
-    }
-
-    /* Description merges the old "Additional info" field into one editor. */
-    function renderSceneDescriptionBlock() {
-      const open = (state.scene_sections || {}).description !== false;
-      const block = el("section", {
-        class: "krea2-v2-description-block" + (open ? " is-open" : ""),
-      });
-      const header = el("div", { class: "krea2-v2-block-head krea2-clickable-head" }, [
-        el("strong", null, "Description"),
-        el("span", { class: "krea2-v2-block-hint" }, "scene, mood, camera or style notes"),
-        el("span", { class: "krea2-structured-spacer" }),
-        el("span", { class: "krea2-v2-chevron", "aria-hidden": "true" },
-          icon(open ? "chevron_down" : "chevron_right", { width: "12", height: "12" })),
       ]);
-      header.addEventListener("click", function () {
-        state.scene_sections = state.scene_sections || {};
-        state.scene_sections.description = state.scene_sections.description === false ? true : false;
-        markDirty();
-        render();
-      });
-      const body = el("div", { class: "krea2-v2-block-body" });
-      if (open) {
-        const ta = el("textarea", {
-          class: "krea2-compact-textarea krea2-wizard-base",
-          rows: "2",
-          "aria-label": "Scene description",
-          placeholder: "Describe the scene, mood, lighting, camera, or style.",
-          onInput: function (event) {
-            state.base_prompt = event.target.value;
-            autoExpandTextarea(event);
-            markDirty();
-            syncNodeHeight();
-          },
-        }, state.base_prompt || "");
-        autoExpandTextarea({ target: ta });
-        body.appendChild(ta);
-      }
-      block.appendChild(header);
-      block.appendChild(body);
-      return block;
+      const description = el("textarea", {
+        class: "krea2-compact-textarea krea2-wizard-base",
+        rows: "2",
+        "aria-label": "Scene description",
+        placeholder: "Describe the scene, mood, lighting, camera, or style.",
+        onInput: function (event) {
+          state.base_prompt = event.target.value;
+          autoExpandTextarea(event);
+          markDirty();
+          syncNodeHeight();
+        },
+      }, state.base_prompt || "");
+      autoExpandTextarea({ target: description });
+      const descRow = el("div", { class: "krea2-v2-setting-desc" }, [
+        el("span", { class: "krea2-v2-field-label" }, "Description"),
+        description,
+      ]);
+      const save = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn",
+        title: "Save the current scene as a reusable preset",
+        onClick: function () {
+          const label = String(setting.name || "Scene").trim();
+          if (!label) { showToast("Choose or name the scene first", "warning"); return; }
+          const existing = findExistingSavedPreset("setting", label);
+          if (existing && !window.confirm(
+            "A scene preset named \u201c" + label + "\u201d already exists. Overwrite it?",
+          )) return;
+          const payload = { scope: "setting", setting: cloneJson(setting) };
+          if (existing) {
+            Object.assign(existing, payload, { label: label });
+          } else {
+            savedPresets.push(Object.assign({ id: makeSavedPresetId("setting", ""), label: label }, payload));
+          }
+          persistSavedPresets(existing ? "Scene preset overwritten" : "Scene preset saved");
+        },
+      }, "Save scene");
+      section.appendChild(el("div", { class: "krea2-v2-block-body" }, [topRow, descRow, save]));
+      return section;
     }
 
     /* Final Prompt Preview: header bar (click = collapse) above a fully
@@ -5151,7 +5265,9 @@ function buildGroupPresetPicker(group) {
 
     function renderCastTab() {
       structuredHost.innerHTML = "";
-      const section = el("section", { class: "krea2-structured-section krea2-character-section krea2-v2-cast" });
+      // No section chrome (background/border) and no cast-level dice: each
+      // character has its own.
+      const section = el("section", { class: "krea2-character-section krea2-v2-cast" });
       const add = el("button", { type: "button", class: "krea2-wizard-btn", onClick: function () {
         const character = newCharacter();
         state.characters.push(character);
@@ -5162,21 +5278,12 @@ function buildGroupPresetPicker(group) {
       const exportBtn = el("button", { type: "button", class: "krea2-wizard-btn krea2-quiet-btn", onClick: exportStructuredPresets }, "Export");
       const importInput = el("input", { type: "file", accept: "application/json", hidden: true, onChange: importStructuredPresets });
       const importBtn = el("button", { type: "button", class: "krea2-wizard-btn krea2-quiet-btn", onClick: function () { importInput.click(); } }, "Import");
-      const castRandomAll = diceButton("Randomize every character's full look once now", function () {
-        (state.characters || []).forEach(function (character) {
-          CHARACTER_APPEARANCE.forEach(function (field) {
-            randomizeAppearanceField(character, field);
-          });
-        });
-        markDirty();
-        render();
-      }, "krea2-cast-random-all");
       section.appendChild(el("div", { class: "krea2-structured-heading" }, [
         el("strong", null, "Cast"),
         el("span", { class: "krea2-v2-cast-count" },
           (state.characters || []).length + ((state.characters || []).length === 1 ? " character" : " characters")),
         el("span", { class: "krea2-structured-spacer" }),
-        castRandomAll, add, exportBtn, importBtn, importInput,
+        add, exportBtn, importBtn, importInput,
       ]));
       if (!state.characters.length) {
         const starter = el("select", { class: "krea2-compact-select", "aria-label": "Add a preset character" });
@@ -5200,8 +5307,7 @@ function buildGroupPresetPicker(group) {
     }
 
     function renderSceneTab() {
-      sceneHost.appendChild(renderSceneTypeRow());
-      sceneHost.appendChild(renderSceneDescriptionBlock());
+      sceneHost.appendChild(renderSceneSettingSection());
       const grid = el("div", { class: "krea2-v2-scene-grid" });
       grid.appendChild(renderSceneSubsection("camera", "Camera", "camera",
         renderCameraContent));

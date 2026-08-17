@@ -740,7 +740,52 @@
     ["pink", "#e07a9e"],
   ]);
 
-  /* Light colour palette: light tints only — no hair words like blonde. */
+  /* Real hair colour presets: natural tones first, then fashion colours. */
+  const HAIR_PALETTE = Object.freeze([
+    ["black", "#1f1d1f"],
+    ["jet black", "#141316"],
+    ["dark brown", "#3b2a20"],
+    ["chestnut brown", "#5b3d29"],
+    ["auburn", "#7a3b26"],
+    ["copper", "#9c4a26"],
+    ["red", "#b03a2e"],
+    ["ginger", "#c75f3a"],
+    ["strawberry blonde", "#d99a6c"],
+    ["blonde", "#d9b65e"],
+    ["honey blonde", "#cfa34f"],
+    ["platinum blonde", "#e8e0cd"],
+    ["ash blonde", "#b9b3a6"],
+    ["silver", "#aeb6c2"],
+    ["white", "#f2f0ea"],
+    ["grey", "#8a9098"],
+    ["blue", "#367bd6"],
+    ["teal", "#1f8f8f"],
+    ["purple", "#7a5fb8"],
+    ["pink", "#d85b9f"],
+    ["green", "#3e8e54"],
+  ]);
+
+  /* Default skin tones when an ethnicity is chosen (editable afterwards). */
+  const ETHNICITY_SKIN = Object.freeze({
+    "east asian": "white", "chinese": "white", "japanese": "white", "korean": "white",
+    "southeast asian": "white", "vietnamese": "white", "filipino": "white", "thai": "white",
+    "south asian": "brown", "indian": "brown", "pakistani": "brown", "bangladeshi": "brown", "sri lankan": "brown",
+    "middle eastern": "brown", "arab": "brown", "persian": "brown", "turkish": "brown", "israeli": "brown",
+    "mediterranean": "white", "greek": "white", "italian": "white", "spanish": "white", "portuguese": "white",
+    "northern european": "white", "scandinavian": "white", "british": "white", "irish": "white", "french": "white", "german": "white",
+    "slavic": "white", "russian": "white", "polish": "white", "ukrainian": "white", "eastern european": "white",
+    "central asian": "white", "kazakh": "white", "mongolian": "white",
+    "black / african": "dark brown", "african american": "dark brown", "afro-caribbean": "dark brown", "afro-latino": "dark brown",
+    "indigenous american": "brown", "native american": "brown", "first nations": "brown", "inuit": "brown",
+    "pacific islander": "brown", "polynesian": "brown", "hawaiian": "brown", "maori": "brown", "aboriginal australian": "brown",
+    "latin american": "brown", "mexican": "brown", "brazilian": "brown", "colombian": "brown", "puerto rican": "brown", "cuban": "brown",
+    "asari": "blue", "andorian": "blue", "chiss": "blue", "na'vi": "blue", "pantoran": "blue",
+    "mirialan": "green", "rodian": "green", "drell": "green", "silurian": "green", "martian": "green",
+    "ferengi": "orange", "cardassian": "grey", "salarian": "grey", "sontaran": "grey", "krogan": "grey", "ood": "grey", "reman": "grey",
+    "xenomorph": "black", "wookiee": "brown", "togruta": "purple",
+  });
+
+  /* Light colour palette: light tints only. */
   const LIGHT_PALETTE = Object.freeze([
     ["white", "#ffffff"],
     ["red", "#ff5b5b"],
@@ -1356,6 +1401,8 @@
     CATEGORY_GROUPS,
     PROFILES,
     PALETTE_COLORS,
+    HAIR_PALETTE,
+    ETHNICITY_SKIN,
     LIGHT_PALETTE,
   };
   KREA2.helpers = {

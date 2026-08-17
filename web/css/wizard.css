@@ -3232,3 +3232,161 @@ body.krea2-ns-resize * { cursor: ns-resize !important; }
 .krea2-character-card-header {
   grid-template-columns: 56px minmax(0, 1fr) auto auto;
 }
+
+/* ---------------------------------------------------------------------------
+ * Final layout pass (feedback round): flat chrome, 50/50 tabs, no section
+ * boxes, three direction columns, header-style emotion buckets.
+ * --------------------------------------------------------------------------- */
+.krea2-wizard-top {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
+
+.krea2-wizard-tabs {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+
+.krea2-v2-tab {
+  flex: 1 1 50%;
+  max-width: none;
+  width: 50%;
+}
+
+/* Cast section: no background, no border, no box. */
+.krea2-v2-cast {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
+
+/* Scene tab: match the CAST chrome — no brown, no borders. */
+.krea2-scene-tab {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
+
+.krea2-v2-scene-top-row {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+
+/* Setting section at the top of the SCENE tab. */
+.krea2-v2-setting-section {
+  background: var(--krea2-bg);
+  border: 1px solid var(--krea2-border);
+  border-radius: 10px;
+  min-width: 0;
+}
+
+.krea2-v2-setting-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.krea2-v2-setting-top .krea2-scene-select {
+  flex: 1 1 200px;
+  min-width: 120px;
+}
+
+.krea2-v2-setting-desc {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.krea2-v2-setting-desc .krea2-v2-field-label {
+  flex: 0 0 auto;
+  margin-top: 4px;
+}
+
+.krea2-v2-setting-desc .krea2-wizard-base {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Direction columns: Emotion / Face / Body side by side. */
+.krea2-direction-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .krea2-direction-columns { grid-template-columns: 1fr; }
+}
+
+/* Appearance fields: title and dropdown on ONE line. */
+.krea2-character-field {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 5px;
+}
+
+.krea2-character-field .krea2-v2-field-label {
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 86px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.krea2-character-field .krea2-field-row {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.krea2-field-clear {
+  width: 22px !important;
+  min-width: 22px !important;
+  height: 22px !important;
+  font-size: 12px;
+}
+
+/* Emotion sentiment buckets: styled exactly like category headers. */
+.krea2-searchable-bucket-header {
+  grid-column: 1 / -1;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--krea2-text-faint);
+  padding: 6px 8px 2px;
+}
+
+/* Character preset LOAD popup. */
+.krea2-character-preset-popup {
+  min-width: 280px;
+  max-width: 360px;
+  max-height: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: #1c1f25;
+  border: 1px solid var(--krea2-border);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+}
+
+.krea2-character-preset-list {
+  overflow-y: auto;
+  max-height: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}

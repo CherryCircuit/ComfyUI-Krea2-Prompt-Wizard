@@ -316,22 +316,41 @@ if (seededRows.length < 3
   throw new Error("Fresh characters must seed the three real library concept rows.");
 }
 
-/* --- Appearance wall (v1.3.1): 17 dropdowns + colour pop-ups + per-field dice */
+/* --- Appearance wall: 14 dropdowns + colour pop-ups + per-field dice ----- */
 const comboboxes = findByClass(wizard.root, "krea2-combobox");
-if (comboboxes.length !== 17) {
-  throw new Error("Each cast card must expose seventeen appearance dropdowns, got " + comboboxes.length);
+if (comboboxes.length !== 14) {
+  throw new Error("Each cast card must expose fourteen appearance dropdowns, got " + comboboxes.length);
 }
-for (const field of ["Sex", "Age", "Ethnicity", "Hair", "Hair length", "Makeup", "Eye Shape", "Nose", "Mouth", "Chin", "Face shape", "Build", "Physique", "Height & Frame", "Top", "Bottom", "Ensemble (full costume)"]) {
+for (const field of ["Age", "Ethnicity", "Hair", "Hair length", "Makeup", "Eye Shape", "Nose", "Mouth", "Chin", "Face shape", "Build", "Top", "Bottom", "Ensemble (full costume)"]) {
   if (comboboxes.filter((input) => input["aria-label"] === field).length !== 1) {
     throw new Error("Each cast card must expose exactly one " + field + " field.");
   }
 }
+if (comboboxes.some((input) => ["Sex", "Physique", "Height & Frame"].includes(input["aria-label"]))) {
+  throw new Error("Sex, Physique and Height & Frame must be removed (Build absorbs them, gender has pills).");
+}
 if (findByClass(wizard.root, "krea2-v2-color-btn").length !== 3) {
   throw new Error("Hair, eye and skin colour must render as colour pop-up buttons.");
 }
-if (findByClass(wizard.root, "krea2-field-random").length < 17
-    || findByClass(wizard.root, "krea2-field-each-job").length < 17) {
+if (findByClass(wizard.root, "krea2-field-random").length < 14
+    || findByClass(wizard.root, "krea2-field-each-job").length < 14) {
   throw new Error("Every appearance field must carry its own dice and each-job shuffle.");
+}
+/* The Mii avatar is removed. */
+if (findByClass(wizard.root, "krea2-avatar").length !== 0) {
+  throw new Error("The Mii avatar must be removed entirely.");
+}
+/* No identity text box. */
+if (findByClass(wizard.root, "krea2-character-identity").length !== 0) {
+  throw new Error("The identity text box must be removed.");
+}
+/* LOAD icon opens the character preset popup. */
+if (!findByClass(wizard.root, "krea2-character-load").length) {
+  throw new Error("The character preset row must be a LOAD icon button.");
+}
+/* Clear buttons on every field. */
+if (findByClass(wizard.root, "krea2-field-clear").length !== 14) {
+  throw new Error("Every dropdown must expose a clear × button.");
 }
 /* Age keeps youngest-to-oldest ordering, not alphabetical. */
 const ageCombobox = comboboxes.find((input) => input["aria-label"] === "Age");
@@ -372,24 +391,24 @@ if (afterMale !== "male") {
   throw new Error("Gender pills must be single-select (picking one replaces the other).");
 }
 
-/* --- Quick Directions chip rail above the Direction blocks ----------------- */
-const quickChipsAll = findByClass(wizard.root, "krea2-emotion-chip");
-if (quickChipsAll.length !== 5) {
-  throw new Error("The Quick Directions rail must expose exactly five chips.");
+/* --- Quick Directions removed; Direction = 3 columns with dice ------------ */
+if (findByClass(wizard.root, "krea2-emotion-chip").length !== 0) {
+  throw new Error("Quick Directions must be removed.");
 }
-
-/* --- Direction: four blocks with dice + shuffle (v1.3.1) ------------------- */
 const directionSections = findByClass(wizard.root, "krea2-wizard-category");
-if (directionSections.length !== 4) {
-  throw new Error("The Direction block must render four concept sections, got " + directionSections.length);
+if (directionSections.length !== 3) {
+  throw new Error("The Direction block must render three concept sections, got " + directionSections.length);
 }
-if (findByClass(wizard.root, "krea2-wizard-category-random").length !== 4
-    || findByClass(wizard.root, "krea2-wizard-category-add").length !== 4
-    || findByClass(wizard.root, "krea2-wizard-category-save").length !== 4) {
+if (!findByClass(wizard.root, "krea2-direction-columns").length) {
+  throw new Error("Emotion / Face / Body must sit in three side-by-side columns.");
+}
+if (findByClass(wizard.root, "krea2-wizard-category-random").length !== 3
+    || findByClass(wizard.root, "krea2-wizard-category-add").length !== 3
+    || findByClass(wizard.root, "krea2-wizard-category-save").length !== 3) {
   throw new Error("Each direction section must keep its dice, add and save controls.");
 }
-if (!findByClass(wizard.root, "krea2-direction-position").length) {
-  throw new Error("The Direction block must restore the Position in frame row.");
+if (findByClass(wizard.root, "krea2-direction-position").length !== 0) {
+  throw new Error("Placement and the position row must be removed.");
 }
 
 /* --- LoRA is fully removed ------------------------------------------------ */
@@ -460,23 +479,6 @@ if (findByClass(wizard.root, "krea2-v2-add-concept").length !== 0
   throw new Error("The direction sections must keep their add controls.");
 }
 
-/* --- Quick directions rail ------------------------------------------------- */
-const quickChips = findByClass(wizard.root, "krea2-emotion-chip");
-if (quickChips.length !== 5) {
-  throw new Error("The Quick Directions rail must expose exactly five chips.");
-}
-const triumphant = quickChips.find((chip) => textOf(chip) === "Triumphant");
-triumphant.listeners.click({});
-const afterQuick = JSON.parse(stateWidget.value).characters[0].rows.map((row) => row.preset_id);
-if (!afterQuick.includes("emotion.elation") || !afterQuick.includes("mouth.broad_smile")) {
-  throw new Error("Triumphant must apply emotion + face concepts together.");
-}
-triumphant.listeners.click({});
-const afterRemoval = JSON.parse(stateWidget.value).characters[0].rows.map((row) => row.preset_id);
-if (afterRemoval.includes("emotion.elation")) {
-  throw new Error("Clicking an active quick direction must remove its whole set.");
-}
-
 /* --- Header-click toggles (no dedicated collapse buttons) ---------------- */
 if (findByClass(wizard.root, "krea2-character-expand").length !== 0) {
   throw new Error("Cast cards must not render dedicated expand/collapse buttons.");
@@ -522,15 +524,16 @@ if (findByClass(wizard.root, "krea2-v2-tab").find((tab) => textOf(tab).includes(
 } else {
   throw new Error("Switching tabs must activate the SCENE tab.");
 }
-const sceneTopRow = findByClass(wizard.root, "krea2-v2-scene-top-row");
-if (!sceneTopRow.length) {
-  throw new Error("The SCENE tab must render the Type / Setting / Shot row.");
+const settingSection = findByClass(wizard.root, "krea2-v2-setting-section");
+if (!settingSection.length) {
+  throw new Error("The SCENE tab must render the Setting section (Type / Setting / Style).");
 }
-if (findByClass(sceneTopRow[0], "krea2-wizard-creative-option").length !== 2) {
-  throw new Error("The Type control must offer Photography / Artwork.");
+if (findByClass(settingSection[0], "krea2-wizard-creative-option").length !== 1) {
+  throw new Error("The Type control must offer Photography only (Artwork removed).");
 }
-if (!findByClass(wizard.root, "krea2-v2-description-block").length) {
-  throw new Error("The SCENE tab must render the Description block.");
+if (!findByClass(wizard.root, "krea2-scene-select").length
+    || !findByClass(wizard.root, "krea2-shuffle").length) {
+  throw new Error("The Setting section must keep dice and shuffle capabilities.");
 }
 for (const sub of ["camera", "lighting", "environment"]) {
   if (!findByClass(wizard.root, "krea2-v2-subsection-" + sub).length) {
@@ -764,8 +767,8 @@ if (compiledClean.includes("<lora:")) {
 }
 
 /* --- Cast header actions still present ------------------------------------- */
-if (!findByClass(wizard.root, "krea2-cast-random-all").length) {
-  throw new Error("The cast header must keep a cast-level randomization control.");
+if (findByClass(wizard.root, "krea2-cast-random-all").length !== 0) {
+  throw new Error("The cast-level dice must be removed (each character has its own).");
 }
 if (!findByClass(wizard.root, "krea2-save-character").length) {
   throw new Error("Each cast card must keep its Save character preset control.");
@@ -805,20 +808,11 @@ wizard.setState(visualProbe);
 if (!findByClass(wizard.root, "krea2-visual-creator").length) {
   throw new Error("The Visual Character Creator must render when enabled in settings.");
 }
-if (findByClass(wizard.root, "krea2-v2-appearance-grid").length !== 0) {
-  throw new Error("The Visual Creator must replace the dropdown appearance grid.");
+if (findByClass(wizard.root, "krea2-character-columns").length !== 0) {
+  throw new Error("The Visual Creator must replace the dropdown appearance wall.");
 }
-if (findByClass(wizard.root, "krea2-character-card-header")[0]
-  .className.split(/\s+/).some(() => false)) {
-  // header still present
-}
-const cardHeaderEl = findByClass(wizard.root, "krea2-character-card-header")[0];
-const headerAvatarHidden = findByClass(cardHeaderEl, "krea2-avatar").length === 0;
-const visualAvatar = findByClass(wizard.root, "krea2-visual-preview")[0]
-  ? findByClass(findByClass(wizard.root, "krea2-visual-preview")[0], "krea2-avatar")
-  : [];
-if (headerAvatarHidden !== true || visualAvatar.length !== 1) {
-  throw new Error("The Visual Creator must hide the header Mii and show its own live preview.");
+if (findByClass(wizard.root, "krea2-avatar").length !== 0) {
+  throw new Error("The Mii avatar must be gone everywhere, including the Visual Creator.");
 }
 if (findByClass(wizard.root, "krea2-visual-category").length !== 15) {
   throw new Error("The Visual Creator must expose all fifteen category buttons.");
