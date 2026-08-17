@@ -283,6 +283,13 @@
       if (character.face_guidance === undefined) character.face_guidance = "";
       if (character.interaction === undefined) character.interaction = "";
       if (character.character_ref === undefined) character.character_ref = "";
+      if (character.profile_image === undefined) character.profile_image = "";
+      if (character.profile_image_name === undefined) character.profile_image_name = "";
+      if (typeof character.profile_image !== "string"
+          || character.profile_image.length > 3200000
+          || (character.profile_image && !character.profile_image.startsWith("data:image/"))) {
+        character.profile_image = "";
+      }
       if (character.lora_triggers === undefined) character.lora_triggers = "";
       if (character.lora_name === undefined) character.lora_name = "";
       if (character.additional_info === undefined) character.additional_info = "";

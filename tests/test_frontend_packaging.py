@@ -28,8 +28,8 @@ class FrontendPackagingTests(unittest.TestCase):
     def test_entrypoint_loads_helpers_before_registration(self):
         source = (ROOT / "web" / "krea2_prompt_wizard_v3.js").read_text(encoding="utf-8")
         self.assertIn('import { app } from "../../scripts/app.js"', source)
-        self.assertIn('await import("./js/state.mjs?v=18")', source)
-        self.assertIn('await import("./js/wizard_widget.mjs?v=18")', source)
+        self.assertIn('await import("./js/state.mjs?v=19")', source)
+        self.assertIn('await import("./js/wizard_widget.mjs?v=19")', source)
         self.assertLess(source.index("await import"), source.index("app.registerExtension"))
 
     def test_all_entrypoint_helper_modules_exist(self):
@@ -140,6 +140,7 @@ class FrontendPackagingTests(unittest.TestCase):
                 ("GET", "/krea2_prompt_wizard/library"),
                 ("POST", "/krea2_prompt_wizard/library"),
                 ("GET", "/krea2_prompt_wizard/master_presets"),
+                ("GET", "/krea2_prompt_wizard/conflicts"),
                 ("GET", "/krea2_prompt_wizard/saved_presets"),
                 ("POST", "/krea2_prompt_wizard/saved_presets"),
                 ("GET", "/krea2_prompt_wizard/concept_colors"),
@@ -150,8 +151,10 @@ class FrontendPackagingTests(unittest.TestCase):
         )
         library_payload = asyncio.run(handlers[("GET", "/krea2_prompt_wizard/library")](None))
         masters_payload = asyncio.run(handlers[("GET", "/krea2_prompt_wizard/master_presets")](None))
+        conflicts_payload = asyncio.run(handlers[("GET", "/krea2_prompt_wizard/conflicts")](None))
         self.assertGreater(len(library_payload["body"]["presets"]), 500)
         self.assertGreater(len(masters_payload["body"]["master_presets"]), 10)
+        self.assertGreater(len(conflicts_payload["body"]["conflicts"]), 10)
 
         class FakeRequest:
             async def json(self):

@@ -3405,3 +3405,93 @@ body.krea2-ns-resize * { cursor: ns-resize !important; }
   flex-direction: column;
   gap: 2px;
 }
+
+/* Character identity is represented by the user's own render, not a
+ * generated cartoon avatar. The image is intentionally a compact thumbnail
+ * so the full editor remains dense while the cast stays recognizable. */
+.krea2-character-portrait {
+  width: 56px;
+  height: 80px;
+  min-width: 56px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  overflow: hidden;
+  color: var(--krea2-text-faint);
+  background: linear-gradient(160deg, #252b36, #15181d);
+  border: 1px solid var(--krea2-border);
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.krea2-character-portrait:hover,
+.krea2-character-portrait.is-drop-target {
+  color: var(--krea2-text);
+  border-color: var(--krea2-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--krea2-accent) 24%, transparent);
+}
+
+.krea2-character-portrait img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.krea2-character-portrait span {
+  max-width: 50px;
+  font-size: 8px;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.krea2-character-profile-tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border: 1px solid color-mix(in srgb, var(--krea2-border) 75%, transparent);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.krea2-character-profile-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.krea2-character-profile-copy strong {
+  font-size: 10.5px;
+  color: var(--krea2-text);
+}
+
+.krea2-character-profile-copy span {
+  overflow: hidden;
+  color: var(--krea2-text-faint);
+  font-size: 9.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.krea2-character-profile-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.krea2-profile-shot-button {
+  color: #fff !important;
+  background: var(--krea2-accent) !important;
+}
+
+@media (max-width: 900px) {
+  .krea2-character-profile-tools { grid-template-columns: 1fr; }
+  .krea2-character-profile-actions { justify-content: flex-start; }
+}

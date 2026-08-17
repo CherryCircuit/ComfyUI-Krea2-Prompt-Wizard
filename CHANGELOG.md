@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## 1.4.5 — character portrait references and profile-shot setup
+
+- Character cards can now use a JPG, PNG, or WebP render as the character's
+  visual identity reference. Images are resized to a compact JPEG thumbnail
+  and stored with the workflow and character preset.
+- Added drag-and-drop portrait selection and a one-click profile-shot setup
+  that fills Additional info with a consistent portrait composition and the
+  current lighting concepts.
+- Added the conflicts API route used by the frontend and fixed recursive LoRA
+  discovery when ComfyUI returns no top-level LoRA names.
+- Bumped the frontend cache key to `?v=19`.
+
+
 ## 1.4.4 — subgraph blueprint fix, completed randomization, and variant-B2 prompt-craft UI
 
 ### Subgraph blueprint fix (verified against the installed frontend 1.48.7)

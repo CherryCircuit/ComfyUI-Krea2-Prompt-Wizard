@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 import json
+import os
 from typing import Any
 
 from .compiler import compile_state
 from .library import Library, load_library, save_user_library
 from .nodes import reload_library
-from .package_paths import MASTER_PRESETS_PATH
+from .package_paths import CONFLICTS_PATH, MASTER_PRESETS_PATH
 from .saved_presets import load_saved_presets, save_saved_presets
 from .user_paths import atomic_write, user_concept_colors_path
 from .validation import validate_user_library
@@ -100,6 +101,13 @@ def register_routes() -> None:
         with open(MASTER_PRESETS_PATH, "r", encoding="utf-8") as handle:
             payload = json.load(handle)
         return web.json_response(payload)
+
+    @routes.get("/krea2_prompt_wizard/conflicts")
+    async def get_conflicts(_request: Any) -> web.Response:
+        with open(CONFLICTS_PATH, "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+        conflicts = payload.get("conflicts", []) if isinstance(payload, dict) else []
+        return web.json_response({"conflicts": conflicts if isinstance(conflicts, list) else []})
 
     @routes.get("/krea2_prompt_wizard/saved_presets")
     async def get_saved_presets(_request: Any) -> web.Response:

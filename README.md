@@ -239,6 +239,18 @@ open any cast member's *Character presets* picker, choose your saved
 character, and press **Apply** — the appearance is replaced while the
 member's emotion, face guidance, LoRA triggers, and position are kept.
 
+Each character can also have a **portrait reference**. Click the portrait
+placeholder or drag in a JPG render made for that character. The image is
+stored as a compact thumbnail with the workflow, so the Cast tab remains
+recognizable after reopening it. The portrait is a visual identity reference
+for the wizard; the prompt still comes from the character fields.
+
+Use **Use profile-shot setup** to place a ready-to-edit profile portrait recipe
+in **Additional info**. It uses the current character name and appearance
+context, a centered chest-up composition, and the lighting concepts currently
+selected in the Scene tab. The final prompt preview shows the exact prompt that
+will be sent through the wizard.
+
 ### Shot presets and scenes
 
 The **Scene** tab includes a **Shot preset** picker. Each shot is now a

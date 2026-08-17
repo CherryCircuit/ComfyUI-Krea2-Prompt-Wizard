@@ -151,6 +151,13 @@ def coerce_state(raw: Any) -> Dict[str, Any]:
         character.setdefault("face_guidance", "")
         character.setdefault("interaction", "")
         character.setdefault("character_ref", "")
+        character.setdefault("profile_image", "")
+        character.setdefault("profile_image_name", "")
+        profile_image = character.get("profile_image")
+        if not isinstance(profile_image, str) or len(profile_image) > 3_200_000:
+            character["profile_image"] = ""
+        elif profile_image and not profile_image.startswith("data:image/"):
+            character["profile_image"] = ""
         character.setdefault("lora_triggers", "")
         character.setdefault("lora_name", "")
         character.setdefault("additional_info", "")

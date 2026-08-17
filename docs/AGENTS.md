@@ -34,18 +34,19 @@ repo.
 "Prompt" footer (preview + motion + history) sits under every tab.
 Cast members are expandable cards: appearance columns (comboboxes),
 direction sections (Concepts-style, with dice / presets / shuffle),
-LoRA triggers, quick-direction chips, and a Mii-style avatar.
+    LoRA triggers, quick-direction chips, and a user-provided portrait
+    reference thumbnail with profile-shot prompt setup.
 
 ---
 
-## 2. Current status (as of v1.4.1)
+## 2. Current status (as of v1.4.5)
 
-- 222 Python tests + Node-based frontend tests (smoke + state
+- 231 Python tests + Node-based frontend tests (smoke + state
   contract) + golden prompt tests. All green.
 - Latest release notes in `CHANGELOG.md`.
 - The version lives in THREE places that must stay in sync:
   `__init__.py`, `pyproject.toml`, and the frontend cache-busting
-  query (`?v=N` in `web/krea2_prompt_wizard_v3.js`, currently `v=6`).
+  query (`?v=N` in `web/krea2_prompt_wizard_v3.js`, currently `v=19`).
   `pyproject.toml` is easy to forget (it lagged at 1.0.0 for a while;
   fixed in this round).
 
@@ -159,7 +160,7 @@ differences from real browsers:
 ### 4.5 Frontend cache busting — bump `?v=` on every frontend change
 
 `web/krea2_prompt_wizard_v3.js` imports helpers with `?v=N` queries
-(currently `v=6`). Bump N whenever you change any frontend file, and
+(currently `v=19`). Bump N whenever you change any frontend file, and
 update `tests/test_frontend_packaging.py::test_entrypoint_loads_helpers_before_registration`.
 Stale browser caches have repeatedly caused "nothing changed / blank
 node / old UI" reports that were really cached assets.
@@ -232,7 +233,8 @@ State (one JSON object in the `wizard_state_json` widget):
 - `characters` — cast members. Each has appearance fields
   (`sex`, `age`, `ethnicity`, `ensemble` / `clothing_top` /
   `clothing_bottom`, hair/face/body fields, `additional_info`),
-  direction rows (`rows`), `position`, `face_guidance`,
+  `profile_image` / `profile_image_name`, direction rows (`rows`),
+  `position`, `face_guidance`,
   `lora_triggers` + `lora_name` / `lora_strength`, `interaction`,
   `randomize_fields` (appearance each-run pools),
   `randomize_direction_groups` (direction each-run flags),

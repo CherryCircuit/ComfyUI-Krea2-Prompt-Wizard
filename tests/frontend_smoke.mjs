@@ -348,6 +348,15 @@ if (findByClass(wizard.root, "krea2-character-identity").length !== 0) {
 if (!findByClass(wizard.root, "krea2-character-load").length) {
   throw new Error("The character preset row must be a LOAD icon button.");
 }
+if (findByClass(wizard.root, "krea2-character-portrait").length !== 1
+    || findByClass(wizard.root, "krea2-profile-shot-button").length !== 1) {
+  throw new Error("Each cast card must expose a portrait reference and profile-shot setup action.");
+}
+findByClass(wizard.root, "krea2-profile-shot-button")[0].listeners.click({});
+const profileState = JSON.parse(stateWidget.value);
+if (!profileState.base_prompt.includes("professional character profile reference portrait")) {
+  throw new Error("The profile-shot setup must feed a portrait recipe into Additional info.");
+}
 /* Clear buttons on every field. */
 if (findByClass(wizard.root, "krea2-field-clear").length !== 14) {
   throw new Error("Every dropdown must expose a clear × button.");

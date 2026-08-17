@@ -78,10 +78,10 @@ __all__ = [
     "NODE_CLASS_MAPPINGS",
     "NODE_DISPLAY_NAME_MAPPINGS",
     "WEB_DIRECTORY",
-    "_DEFAULT_LIBRARY_PATH",
-    "_MASTER_PRESETS_PATH",
-    "_CONFLICTS_PATH",
+    "DEFAULT_LIBRARY_PATH",
+    "MASTER_PRESETS_PATH",
+    "CONFLICTS_PATH",
 ]
 
 
-__version__ = "1.4.4"
+__version__ = "1.4.5"

@@ -215,7 +215,7 @@
 
   /* Build indicator shown in the top bar so it is obvious which wizard
    * build is running. Bump when you ship a new build. */
-  const WIZARD_VERSION = "v2.3.0";
+  const WIZARD_VERSION = "v2.4.0";
 
   const TABS = [
     ["cast", "Cast", "users"],
@@ -952,6 +952,8 @@
         proportions: "",
         adult_description: "",
         character_ref: "",
+        profile_image: "",
+        profile_image_name: "",
         position: "",
         face_guidance: "",
         interaction: "",
@@ -968,6 +970,164 @@
         randomize_fields: {},
         randomize_direction_groups: {},
       };
+    }
+
+    function profileShotLighting() {
+      const phrases = (state.rows || []).filter(function (row) {
+        return row && row.enabled !== false
+          && ["lighting_setup", "lighting_direction", "lighting_effect", "film_color"].includes(row.category);
+      }).map(function (row) {
+        return String(row.phrase || row.label || "").trim();
+      }).filter(Boolean);
+      if (phrases.length) return phrases.slice(0, 4).join(", ");
+      return "soft diffused studio lighting, a large soft key light at 45 degrees, gentle fill light, subtle rim light";
+    }
+
+    function buildProfileShotPrompt(character) {
+      const name = String(character && character.name || "this character").trim();
+      return [
+        "professional character profile reference portrait of " + name,
+        "chest-up three-quarter portrait, centered composition, looking directly at the camera",
+        "neutral relaxed expression, shoulders visible, consistent facial features and costume details",
+        profileShotLighting(),
+        "plain seamless studio background, clean separation from the background, 85mm portrait lens, shallow depth of field",
+        "high-detail photographic render, no text, no watermark",
+      ].join(", ");
+    }
+
+    function applyProfileShotSetup(character) {
+      const prompt = buildProfileShotPrompt(character);
+      const current = String(state.base_prompt || "").trim();
+      if (current && current !== prompt && !window.confirm(
+        "Replace the current Additional info with the profile-shot setup? You can undo this change.",
+      )) return;
+      state.base_prompt = prompt;
+      state.active_tab = "cast";
+      markDirty();
+      render();
+      showToast("Profile-shot prompt added to Additional info", "info");
+    }
+
+    function imageFileLooksSupported(file) {
+      if (!file) return false;
+      const type = String(file.type || "").toLowerCase();
+      const name = String(file.name || "").toLowerCase();
+      return /^image\/(jpeg|png|webp)$/.test(type) || /\.(jpe?g|png|webp)$/.test(name);
+    }
+
+    function storeProfileImage(character, file) {
+      if (!imageFileLooksSupported(file)) {
+        showToast("Choose a JPG, PNG, or WebP portrait image", "warning");
+        return;
+      }
+      if (Number(file.size || 0) > 12 * 1024 * 1024) {
+        showToast("That image is over 12 MB. Choose a smaller portrait render.", "warning");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function () {
+        const source = String(reader.result || "");
+        const finish = function (dataUrl) {
+          if (!dataUrl || dataUrl.length > 3_200_000) {
+            showToast("That portrait is too large to store in the workflow", "warning");
+            return;
+          }
+          character.profile_image = dataUrl;
+          character.profile_image_name = String(file.name || "portrait.jpg");
+          markDirty();
+          render();
+          showToast("Portrait reference added to " + (character.name || "the character"), "info");
+        };
+        if (!source || typeof window.Image !== "function") {
+          finish(source);
+          return;
+        }
+        const image = new window.Image();
+        image.onload = function () {
+          const maxEdge = 640;
+          const scale = Math.min(1, maxEdge / Math.max(image.naturalWidth || image.width || 1, image.naturalHeight || image.height || 1));
+          const width = Math.max(1, Math.round((image.naturalWidth || image.width || 1) * scale));
+          const height = Math.max(1, Math.round((image.naturalHeight || image.height || 1) * scale));
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const context = canvas.getContext && canvas.getContext("2d");
+          if (!context || typeof canvas.toDataURL !== "function") {
+            finish(source);
+            return;
+          }
+          context.drawImage(image, 0, 0, width, height);
+          finish(canvas.toDataURL("image/jpeg", 0.82));
+        };
+        image.onerror = function () { finish(source); };
+        image.src = source;
+      };
+      reader.onerror = function () { showToast("Could not read that portrait image", "error"); };
+      reader.readAsDataURL(file);
+    }
+
+    function renderCharacterPortrait(character, openPicker) {
+      const source = String(character.profile_image || "").trim();
+      const portrait = el("button", {
+        type: "button",
+        class: "krea2-character-portrait" + (source ? " has-image" : " is-empty"),
+        title: source ? "Replace portrait reference" : "Add a portrait reference",
+        "aria-label": source ? "Replace portrait reference" : "Add a portrait reference",
+        onClick: openPicker,
+        onDragover: function (event) { event.preventDefault(); portrait.classList.add("is-drop-target"); },
+        onDragleave: function () { portrait.classList.remove("is-drop-target"); },
+        onDrop: function (event) {
+          event.preventDefault();
+          portrait.classList.remove("is-drop-target");
+          const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+          storeProfileImage(character, file);
+        },
+      });
+      if (source) {
+        portrait.appendChild(el("img", {
+          src: source,
+          alt: (character.name || "Character") + " portrait reference",
+        }));
+      } else {
+        portrait.append(
+          icon("camera", { width: "18", height: "18" }),
+          el("span", null, "Add portrait"),
+        );
+      }
+      return portrait;
+    }
+
+    function renderCharacterProfileTools(character, openPicker) {
+      const choose = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-quiet-btn",
+        onClick: openPicker,
+      }, [icon("file", { width: "12", height: "12" }), " Choose portrait"]);
+      const clear = character.profile_image ? el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-quiet-btn krea2-profile-clear",
+        onClick: function () {
+          character.profile_image = "";
+          character.profile_image_name = "";
+          markDirty();
+          render();
+        },
+      }, "Clear") : null;
+      const apply = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-profile-shot-button",
+        title: "Fill Additional info with a profile-shot prompt using the current lighting concepts",
+        onClick: function () { applyProfileShotSetup(character); },
+      }, [icon("camera", { width: "12", height: "12" }), " Use profile-shot setup"]);
+      return el("div", { class: "krea2-character-profile-tools" }, [
+        el("div", { class: "krea2-character-profile-copy" }, [
+          el("strong", null, character.profile_image ? "Portrait reference" : "Add a portrait reference"),
+          el("span", null, character.profile_image
+            ? (character.profile_image_name || "Saved in this workflow")
+            : "Use a JPG render to make this character easy to recognize."),
+        ]),
+        el("div", { class: "krea2-character-profile-actions" }, [choose, clear, apply]),
+      ]);
     }
 
     /* Seed a fresh character with the three default concept rows. Rows are
@@ -4046,8 +4206,18 @@ function buildGroupPresetPicker(group) {
       });
       const header = el("div", { class: "krea2-character-card-header krea2-clickable-head" });
       const visualCreatorOn = state.character_creator === "visual";
-      // The Mii avatar is removed entirely.
-      const avatar = null;
+      const portraitInput = el("input", {
+        type: "file",
+        accept: "image/jpeg,image/png,image/webp",
+        hidden: true,
+        onChange: function (event) {
+          const file = event.target.files && event.target.files[0];
+          if (file) storeProfileImage(character, file);
+          event.target.value = "";
+        },
+      });
+      const openPortraitPicker = function () { portraitInput.click(); };
+      const portrait = renderCharacterPortrait(character, openPortraitPicker);
       const name = el("input", {
         type: "text",
         class: "krea2-compact-input krea2-character-name",
@@ -4122,8 +4292,7 @@ function buildGroupPresetPicker(group) {
         save,
         remove,
       ]);
-      if (avatar) header.append(avatar, identity, actions, chevron);
-      else header.append(identity, actions, chevron);
+      header.append(portrait, identity, actions, chevron);
       header.addEventListener("click", function (event) {
         const target = event && event.target;
         if (target && typeof target.closest === "function"
@@ -4135,6 +4304,7 @@ function buildGroupPresetPicker(group) {
 
       const body = el("div", { class: "krea2-character-card-body" });
       if (expanded) {
+        body.appendChild(renderCharacterProfileTools(character, openPortraitPicker));
         if (visualCreatorOn) {
           body.appendChild(renderVisualCreator(character));
         } else {
@@ -4148,6 +4318,7 @@ function buildGroupPresetPicker(group) {
       }
       card.appendChild(header);
       card.appendChild(body);
+      card.appendChild(portraitInput);
       return card;
     }
 

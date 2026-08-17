@@ -11,14 +11,19 @@ every phrase and weight the wizard contributes.
 
 ## Mode tabs
 
-The editor is organised into four tabs so the node stays calm:
+The editor is organised into two primary tabs so the node stays calm:
 
 | Tab | Contents |
 |---|---|
-| 🎬 **Cast** | Saved characters, cast members, and per-character direction. |
-| 🎥 **Scene** | Main prompt, setting, shot presets, and the Subject & Expression / camera / lighting / environment / style concept groups — each with 🎲 roll-once and 🔁 every-job controls. |
-| ✨ **Concepts** | The full concept grid (all groups), the add-concept picker, and per-group presets / randomize / Each job. |
-| 📜 **Prompt** | Live preview (Pretty / Code), video motion prompt, history, copy buttons, and Show Work. |
+| **Cast** | Saved characters, portrait references, cast members, and per-character direction. |
+| **Scene** | Main prompt, setting, shot presets, and the camera / lighting / environment / style concept groups. |
+
+The full concept library and final prompt preview remain available inside the
+editor and its settings. Each character card can use **Use profile-shot setup**
+to fill Additional info with a centered reference-portrait recipe using the
+current lighting concepts. A JPG, PNG, or WebP portrait can be clicked in or
+dragged onto the character portrait thumbnail; it is stored with the workflow
+as a compact reference image.
 
 ## Built-in LoRA support
 

@@ -347,6 +347,8 @@ class CastSchemaTests(unittest.TestCase):
         self.assertEqual(character["face_guidance"], "")
         self.assertEqual(character["interaction"], "")
         self.assertEqual(character["character_ref"], "")
+        self.assertEqual(character["profile_image"], "")
+        self.assertEqual(character["profile_image_name"], "")
         self.assertIn("motion_prompt", state)
         self.assertIn("motion_prompt_enabled", state)
         self.assertIn("active_tab", state)
