@@ -3026,31 +3026,31 @@ function buildGroupPresetPicker(group) {
     }
 
     function renderCodePreview(compiled) {
-      var host = livePreview.codeText;
+      const host = livePreview.codeText;
       host.innerHTML = "";
-      if ((state.characters || []).some(function (character) { return character && character.enabled !== false; })
-          || (state.setting && state.setting.enabled)) {
-        host.textContent = compiled.final_prompt || "";
-        return;
+      const parts = [];
+      /* Reconstruct the final prompt from its fragments so every concept
+       * span is hoverable and clickable, linking back to the row that
+       * produced it (global scene rows and per-character rows alike). */
+      let rest = compiled.final_prompt || "";
+      if (rest.trim() && (state.base_prompt || "").trim()
+          && rest.indexOf((state.base_prompt || "").trim()) === 0) {
+        const base = (state.base_prompt || "").trim();
+        parts.push({ text: base, rowId: "" });
+        rest = rest.slice(base.length).replace(/^,\s*/, "");
       }
-      var parts = [];
-      if ((state.base_prompt || "").trim()) {
-        parts.push({ text: state.base_prompt.trim(), rowId: "" });
-      }
-      var fragmentByRow = new Map((compiled.fragments || []).map(function (fragment) {
-        return [fragment.row_id, fragment];
-      }));
-      for (var ci = 0; ci < CATEGORIES.length; ci++) {
-        var cat = CATEGORIES[ci];
-        for (var ri = 0; ri < state.rows.length; ri++) {
-          var row = state.rows[ri];
-          if (row.category !== cat || row.enabled === false) continue;
-          var fragment = fragmentByRow.get(row.id);
-          if (fragment && fragment.fragment) {
-            parts.push({ text: fragment.fragment, rowId: row.id });
-          }
+      for (const fragment of (compiled.fragments || [])) {
+        if (!fragment || !fragment.fragment) continue;
+        const index = rest.indexOf(fragment.fragment);
+        if (index < 0) continue;
+        if (index > 0) {
+          parts.push({ text: rest.slice(0, index), rowId: "" });
         }
+        parts.push({ text: fragment.fragment, rowId: fragment.row_id });
+        rest = rest.slice(index + fragment.fragment.length);
+        rest = rest.replace(/^,\s*/, "");
       }
+      if (rest.trim()) parts.push({ text: rest, rowId: "" });
       parts.forEach(function (part, index) {
         if (index) host.appendChild(document.createTextNode(", "));
         if (!part.rowId) {
@@ -3075,13 +3075,6 @@ function buildGroupPresetPicker(group) {
     }
 
     function focusRow(rowId) {
-      const row = state.rows.find(function (item) { return item.id === rowId; });
-      if (!row) return;
-      const group = groupForCategory(row.category);
-      state.active_tab = "concepts";
-      state.collapsed = state.collapsed || {};
-      state.collapsed[group] = false;
-      render();
       const schedule = window.requestAnimationFrame || window.setTimeout;
       schedule(function () {
         const card = root.querySelector('.krea2-row[data-row-id="' + rowId + '"]');
@@ -4551,7 +4544,18 @@ function buildGroupPresetPicker(group) {
         "aria-pressed": shuffleOn ? "true" : "false",
         onClick: function () { toggleChipShuffle(category); },
       }, icon("shuffle", { width: "12", height: "12" }));
-      row.appendChild(el("div", { class: "krea2-v2-field-random-controls" }, [dice, shuffle]));
+      const clearRow = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-icon-btn krea2-field-clear",
+        title: "Clear all " + label + " concepts (removes them from the prompt)",
+        "aria-label": "Clear all " + label + " concepts",
+        onClick: function () {
+          state.rows = state.rows.filter(function (row) { return row.category !== category; });
+          markDirty();
+          render();
+        },
+      }, icon("close", { width: "12", height: "12" }));
+      row.appendChild(el("div", { class: "krea2-v2-field-random-controls" }, [dice, shuffle, clearRow]));
       return row;
     }
 
@@ -4625,11 +4629,23 @@ function buildGroupPresetPicker(group) {
         },
       });
       const value = el("span", { class: "krea2-v2-lens-value" }, mm + "mm");
+      const clearLens = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-icon-btn krea2-field-clear",
+        title: "Clear the lens (removes it from the prompt)",
+        "aria-label": "Clear the lens",
+        onClick: function () {
+          state.rows = state.rows.filter(function (row) { return row.category !== "lens"; });
+          markDirty();
+          render();
+        },
+      }, icon("close", { width: "12", height: "12" }));
       const row = el("div", { class: "krea2-v2-chip-row krea2-v2-lens-row" });
       row.append(
         el("span", { class: "krea2-v2-field-label" }, "Lens"),
         slider,
         value,
+        clearLens,
       );
       return row;
     }
@@ -5028,6 +5044,19 @@ function buildGroupPresetPicker(group) {
         class: "krea2-wizard-btn krea2-v2-add-light",
         onClick: addLight,
       }, "+ Add Light"));
+      if ((state.scene_sections && state.scene_sections.lights || []).length) {
+        rows.appendChild(el("button", {
+          type: "button",
+          class: "krea2-wizard-btn krea2-danger krea2-v2-clear-lights",
+          title: "Remove every light from the prompt",
+          onClick: function () {
+            state.scene_sections = state.scene_sections || {};
+            state.scene_sections.lights = [];
+            markDirty();
+            render();
+          },
+        }, "Clear lights"));
+      }
       return rows;
     }
 
@@ -5159,6 +5188,19 @@ function buildGroupPresetPicker(group) {
         creativeModeControl,
         el("span", { class: "krea2-v2-field-label" }, "Setting"),
         sceneSettingSelect(),
+        el("button", {
+          type: "button",
+          class: "krea2-wizard-btn krea2-icon-btn krea2-scene-clear",
+          title: "Clear the scene setting (removes it from the prompt)",
+          "aria-label": "Clear the scene setting",
+          onClick: function () {
+            setting.enabled = false;
+            setting.name = "";
+            setting.description = "";
+            markDirty();
+            render();
+          },
+        }, icon("close", { width: "12", height: "12" })),
         diceButton("Randomize the scene", function () {
           const preset = randomChoice(SETTING_PRESETS);
           setting.enabled = true;
@@ -5218,7 +5260,21 @@ function buildGroupPresetPicker(group) {
           persistSavedPresets(existing ? "Scene preset overwritten" : "Scene preset saved");
         },
       }, "Save scene");
-      section.appendChild(el("div", { class: "krea2-v2-block-body" }, [topRow, descRow, save]));
+      const resetScene = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-danger",
+        title: "Remove every scene concept (camera, lighting, environment, style, lens, lights) from the prompt",
+        onClick: function () {
+          if (!window.confirm("Clear every scene concept (camera, lighting, environment, style) from the prompt?")) return;
+          state.rows = [];
+          state.scene_sections = state.scene_sections || {};
+          state.scene_sections.lights = [];
+          delete state.scene_sections.light_angle;
+          markDirty();
+          render();
+        },
+      }, "Clear scene concepts");
+      section.appendChild(el("div", { class: "krea2-v2-block-body" }, [topRow, descRow, el("div", { class: "krea2-v2-setting-actions" }, [save, resetScene])]));
       return section;
     }
 

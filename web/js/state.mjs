@@ -1366,6 +1366,28 @@
       const text = byCat[c].join(" ").trim();
       if (text) body.push(text);
     }
+    /* Per-character concept fragments, so the preview can highlight the
+     * exact concept rows that produced each prompt span. */
+    for (const character of (state.characters || [])) {
+      if (!character || character.enabled === false) continue;
+      for (const row of (character.rows || [])) {
+        if (!row || row.enabled === false) continue;
+        const phrase = phraseForRow(row);
+        if (!phrase) continue;
+        const weight = defaultWeightForRow(row);
+        const fragment = formatPhrase(phrase, weight);
+        seeFragments.push({
+          category: row.category || "custom",
+          row_id: row.id,
+          preset_id: row.preset_id,
+          label: row.label,
+          phrase: phrase,
+          weight: weight,
+          mode: row.control_mode,
+          fragment: fragment,
+        });
+      }
+    }
     const final = body.join(", ").replace(/\s+/g, " ").trim();
     const plainBody = [];
     if (state.base_prompt && state.base_prompt.trim()) plainBody.push(state.base_prompt.trim());

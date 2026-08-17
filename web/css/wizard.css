@@ -2279,6 +2279,21 @@ body.krea2-ns-resize * { cursor: ns-resize !important; }
 
 .krea2-v2-chip-row .krea2-v2-field-label { flex: 0 0 84px; }
 
+.krea2-v2-chip-row .krea2-field-clear,
+.krea2-v2-lens-row .krea2-field-clear {
+  flex: 0 0 auto;
+}
+
+.krea2-v2-setting-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.krea2-v2-clear-lights {
+  margin-left: 8px;
+}
+
 .krea2-v2-chips {
   display: flex;
   flex-wrap: wrap;

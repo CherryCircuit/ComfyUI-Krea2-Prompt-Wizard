@@ -535,6 +535,17 @@ if (!findByClass(wizard.root, "krea2-scene-select").length
     || !findByClass(wizard.root, "krea2-shuffle").length) {
   throw new Error("The Setting section must keep dice and shuffle capabilities.");
 }
+if (!findByClass(wizard.root, "krea2-scene-clear").length) {
+  throw new Error("The Setting select must have a clear (x) button.");
+}
+if (!findByClass(wizard.root, "krea2-v2-setting-actions").length
+    || textOf(findByClass(wizard.root, "krea2-v2-setting-actions")[0]).indexOf("Clear scene concepts") === -1) {
+  throw new Error("The Setting section must offer a Reset/Clear scene concepts action.");
+}
+if (!findByClass(wizard.root, "krea2-v2-chip-row")[0]
+      || findByClass(findByClass(wizard.root, "krea2-v2-chip-row")[0], "krea2-field-clear").length === 0) {
+  throw new Error("Every chip row must have a clear (x) button removing that category.");
+}
 for (const sub of ["camera", "lighting", "environment"]) {
   if (!findByClass(wizard.root, "krea2-v2-subsection-" + sub).length) {
     throw new Error("The SCENE tab must render the " + sub + " subsection.");
