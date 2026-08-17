@@ -354,7 +354,8 @@ if (findByClass(wizard.root, "krea2-character-portrait").length !== 1
 }
 findByClass(wizard.root, "krea2-profile-shot-button")[0].listeners.click({});
 const profileState = JSON.parse(stateWidget.value);
-if (!profileState.base_prompt.includes("professional character profile reference portrait")) {
+if (!profileState.characters[0].additional_info.includes("professional character profile reference portrait")
+    || profileState.characters[0].additional_open !== true) {
   throw new Error("The profile-shot setup must feed a portrait recipe into Additional info.");
 }
 /* Clear buttons on every field. */

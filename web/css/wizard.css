@@ -3180,9 +3180,11 @@ body.krea2-ns-resize * { cursor: ns-resize !important; }
  * --------------------------------------------------------------------------- */
 .krea2-character-columns {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr));
   gap: 10px;
   align-items: start;
+  width: 100%;
+  min-width: 0;
 }
 
 .krea2-character-column {

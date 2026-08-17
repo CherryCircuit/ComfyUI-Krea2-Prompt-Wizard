@@ -997,11 +997,12 @@
 
     function applyProfileShotSetup(character) {
       const prompt = buildProfileShotPrompt(character);
-      const current = String(state.base_prompt || "").trim();
+      const current = String(character.additional_info || "").trim();
       if (current && current !== prompt && !window.confirm(
         "Replace the current Additional info with the profile-shot setup? You can undo this change.",
       )) return;
-      state.base_prompt = prompt;
+      character.additional_info = prompt;
+      character.additional_open = true;
       state.active_tab = "cast";
       markDirty();
       render();
