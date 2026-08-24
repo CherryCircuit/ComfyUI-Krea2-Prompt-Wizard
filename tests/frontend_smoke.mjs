@@ -272,10 +272,37 @@ function switchTab(tabId) {
   wizard.setTab(tabId);
 }
 
-/* --- v2: the wizard renders the tabbed editor by default ---------------- */
+/* --- v2: the wizard opens as the compact concept card by default -------- */
 const rootClasses = (wizard.root.className || "").split(/\s+/);
-if (!rootClasses.includes("krea2-wizard-expanded")) {
-  throw new Error("The v2 wizard must render in its expanded tabbed editor.");
+if (!rootClasses.includes("krea2-wizard-compact") || rootClasses.includes("krea2-wizard-expanded")) {
+  throw new Error("A fresh wizard must render as the compact quick-edit card.");
+}
+const compactTitle = findByClass(wizard.root, "krea2-b2-title")[0];
+if (!compactTitle || !textOf(compactTitle).includes("Krea2 Prompt Wizard")) {
+  throw new Error("The compact card must show the wizard title header.");
+}
+if (!findByClass(wizard.root, "krea2-b2-avatars").length) {
+  throw new Error("The compact card must render the character faces strip.");
+}
+if (!findByClass(wizard.root, "krea2-b2-generate").length) {
+  throw new Error("The compact card must render the Generate Prompt action.");
+}
+const modeToggle = findByClass(wizard.root, "krea2-wizard-mode-toggle")[0];
+if (!modeToggle || textOf(modeToggle) !== "Advanced") {
+  throw new Error("The mode toggle must start in Advanced (expand) direction.");
+}
+modeToggle.listeners.click({});
+if (!(wizard.root.className || "").includes("krea2-wizard-expanded")) {
+  throw new Error("Clicking the mode toggle must expand the wizard.");
+}
+if (textOf(findByClass(wizard.root, "krea2-wizard-mode-toggle")[0]) !== "Compact") {
+  throw new Error("The expanded wizard must offer the Compact (collapse) direction.");
+}
+
+/* --- v2: the expanded wizard renders the tabbed editor ------------------- */
+const rootClassesExpanded = (wizard.root.className || "").split(/\s+/);
+if (!rootClassesExpanded.includes("krea2-wizard-expanded")) {
+  throw new Error("The expanded wizard must keep the expanded tabbed editor.");
 }
 if (findByClass(wizard.root, "krea2-v2-tab").length !== 2) {
   throw new Error("The v2 wizard must render exactly two tabs: CAST and SCENE.");
@@ -714,6 +741,7 @@ if (!previewCodeEl || previewCodeEl.style.display === "none") {
 switchTab("cast");
 wizard.setState({
   schema_version: 1,
+  wizard_expanded: true,
   characters: [{
     id: "c1",
     name: "Mara",
@@ -772,6 +800,7 @@ findByClass(document.body, "krea2-searchable-close")[0].listeners.click({});
 /* --- Per-character LoRAs fully removed ----------------------------------- */
 wizard.setState({
   schema_version: 1,
+  wizard_expanded: true,
   characters: [{
     id: "c1",
     name: "Mara",

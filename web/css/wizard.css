@@ -3497,3 +3497,268 @@ body.krea2-ns-resize * { cursor: ns-resize !important; }
   .krea2-character-profile-tools { grid-template-columns: 1fr; }
   .krea2-character-profile-actions { justify-content: flex-start; }
 }
+
+/* ---------------------------------------------------------------------------
+ * Compact <-> Advanced mode
+ *
+ * The wizard has two surfaces: a narrow quick-edit card (compact) and the
+ * full editor (advanced). The node size is pinned by the mode switch — the
+ * DOM content always fills the node width, so nothing shrinks on click.
+ * --------------------------------------------------------------------------- */
+.krea2-wizard-mode-toggle {
+  color: var(--krea2-accent-strong) !important;
+  border-color: color-mix(in srgb, var(--krea2-accent) 55%, var(--krea2-border)) !important;
+  font-weight: 700;
+  white-space: nowrap;
+  padding: 4px 10px !important;
+}
+
+.krea2-wizard-mode-toggle:hover {
+  background: color-mix(in srgb, var(--krea2-accent) 22%, transparent) !important;
+}
+
+.krea2-wizard-expanded .krea2-b2-shell { display: none; }
+
+.krea2-wizard-compact .krea2-wizard-editor,
+.krea2-wizard-compact .krea2-wizard-footer { display: none !important; }
+
+.krea2-wizard-compact .krea2-wizard-root { gap: 8px; }
+
+.krea2-wizard-compact .krea2-wizard-top {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+/* --- Compact shell cards --- */
+.krea2-b2-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.krea2-b2-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 9px 10px;
+  background: var(--krea2-bg);
+  border: 1px solid var(--krea2-border);
+  border-radius: 10px;
+  min-width: 0;
+}
+
+.krea2-b2-card-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.krea2-b2-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--krea2-accent-strong);
+  white-space: nowrap;
+}
+
+.krea2-b2-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 2px 2px 0;
+  min-width: 0;
+}
+
+.krea2-b2-title-name {
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--krea2-text);
+}
+
+.krea2-b2-title-meta {
+  font-size: 9.5px;
+  color: var(--krea2-text-faint);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.krea2-b2-prompt {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 7px 9px;
+  background: var(--krea2-bg);
+  border: 1px solid var(--krea2-border);
+  border-radius: 10px;
+}
+
+.krea2-b2-prompt-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--krea2-text-dim);
+  max-height: 74px;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.krea2-b2-prompt-copy { white-space: nowrap; }
+
+.krea2-b2-master-control { flex: 1 1 auto; min-width: 0; }
+.krea2-b2-preset-card .krea2-wizard-master-select,
+.krea2-wizard-compact .krea2-wizard-master-select { width: 100%; }
+
+/* Cast faces strip — each tile is one character, like the concept card. */
+.krea2-b2-avatars {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.krea2-b2-avatar-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 3px;
+  width: 68px;
+  background: transparent;
+  border: 1px solid var(--krea2-border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.krea2-b2-avatar-tile:hover {
+  border-color: var(--krea2-accent);
+}
+
+.krea2-b2-avatar-tile.is-selected {
+  border-color: var(--krea2-accent-strong);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--krea2-accent) 30%, transparent);
+}
+
+.krea2-b2-avatar-tile .krea2-avatar {
+  width: 100%;
+  margin: 0;
+}
+
+.krea2-b2-avatar-tile .krea2-avatar-label {
+  font-size: 8.5px;
+  width: 100%;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.krea2-b2-avatar-add {
+  justify-content: center;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--krea2-text-faint);
+  border-style: dashed;
+  height: 56px;
+}
+
+.krea2-b2-empty-cast {
+  font-size: 10px;
+  color: var(--krea2-text-faint);
+  font-style: italic;
+}
+
+/* Quick look edits for the selected character. */
+.krea2-b2-quick-look {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.krea2-b2-appearance-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  min-width: 0;
+}
+
+.krea2-b2-appearance-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 10px;
+  color: var(--krea2-text-dim);
+  min-width: 0;
+}
+
+.krea2-b2-appearance-field .krea2-combobox {
+  width: 100%;
+  min-width: 0;
+}
+
+.krea2-b2-concept-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.krea2-b2-concept-chips .krea2-character-chips {
+  flex-wrap: wrap;
+}
+
+.krea2-b2-cast-count,
+.krea2-b2-scene-concepts-hint {
+  font-size: 9.5px;
+  color: var(--krea2-text-faint);
+  white-space: nowrap;
+}
+
+/* Scene concept chip rows reused as-is. */
+.krea2-b2-concept-card .krea2-v2-chip-row {
+  flex-wrap: wrap;
+}
+
+/* Conflict banner + Generate action. */
+.krea2-b2-conflicts {
+  font-size: 10.5px;
+  color: var(--krea2-warn);
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--krea2-warn) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--krea2-warn) 40%, transparent);
+}
+
+.krea2-b2-conflicts.is-quiet {
+  color: var(--krea2-low);
+  border-color: color-mix(in srgb, var(--krea2-low) 35%, transparent);
+  background: color-mix(in srgb, var(--krea2-low) 8%, transparent);
+}
+
+.krea2-b2-generate {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(180deg, var(--krea2-accent-strong), var(--krea2-accent));
+  border: 1px solid color-mix(in srgb, var(--krea2-accent-strong) 60%, transparent);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.krea2-b2-generate:hover {
+  filter: brightness(1.12);
+}
+
+.krea2-b2-generate:active {
+  filter: brightness(0.95);
+}

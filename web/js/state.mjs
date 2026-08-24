@@ -203,9 +203,10 @@
       // expands to the full field set. The flag is pure UI state and is
       // preserved across workflow saves/restores and job executions.
       scene_collapsed: true,
-      // v2.0 B2 shell: the wizard opens as a compact glass overview card.
-      // The flag is pure UI state and is preserved across workflow
-      // saves/restores and job executions.
+      // v2.0 B2 shell: the wizard opens as the compact quick-edit card
+      // (concept layout); the Compact <-> Advanced toggle grows it into the
+      // full editor. The flag is pure UI state and is preserved across
+      // workflow saves/restores and job executions.
       wizard_expanded: false,
       // v2 redesign: tabbed editor state.
       pretty_preview: false,

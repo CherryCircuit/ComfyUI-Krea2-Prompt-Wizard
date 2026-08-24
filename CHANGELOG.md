@@ -1,6 +1,24 @@
 # CHANGELOG
 
 
+## Unreleased — compact <-> advanced mode and the click-shrink fix
+
+- Fixed the bug where clicking the node dragged it down to a narrow sliver:
+  the DOM widget no longer reports a custom `computeSize` (the frontend now
+  fills the node with the editor, node width is authoritative) and all
+  auto-resize-on-render/click logic (`syncNodeHeight`) was removed. The node
+  only changes size when you switch mode or drag its resize handle.
+- Added a Compact <-> Advanced toggle near the top-left (next to the version
+  chip). Compact pins the node to 400px and shows the concept card: shot
+  preset + scene dice/shuffle, character faces strip with quick Hair / Eyes
+  / Build / Fit edits, single-select scene concept chips (lighting, framing,
+  atmosphere, style), conflict banner and a Generate Prompt action.
+  Advanced pins the node to 780px and shows the full tabbed editor.
+- The mode is stored per-node in `wizard_expanded`, survives workflow
+  saves/restores and job executions, and defaults to compact on fresh nodes.
+- Bumped the frontend cache key to `?v=25`.
+
+
 ## 1.4.5 — character portrait references and profile-shot setup
 
 - Character cards can now use a JPG, PNG, or WebP render as the character's

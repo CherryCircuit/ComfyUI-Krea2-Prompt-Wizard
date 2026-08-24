@@ -4,17 +4,17 @@ import { app } from "../../scripts/app.js";
 window.app = app;
 
 // These are .mjs so ComfyUI does not auto-import them independently and out of order.
-await import("./js/state.mjs?v=24");
-await import("./js/searchable_selector.mjs?v=24");
-await import("./js/preset_row.mjs?v=24");
-await import("./js/library_editor.mjs?v=24");
-await import("./js/materialize.mjs?v=24");
-await import("./js/inspector.mjs?v=24");
-await import("./js/wizard_widget.mjs?v=24");
+await import("./js/state.mjs?v=25");
+await import("./js/searchable_selector.mjs?v=25");
+await import("./js/preset_row.mjs?v=25");
+await import("./js/library_editor.mjs?v=25");
+await import("./js/materialize.mjs?v=25");
+await import("./js/inspector.mjs?v=25");
+await import("./js/wizard_widget.mjs?v=25");
 
 const stylesheet = document.createElement("link");
 stylesheet.rel = "stylesheet";
-stylesheet.href = new URL("./css/wizard.css?v=24", import.meta.url).href;
+stylesheet.href = new URL("./css/wizard.css?v=25", import.meta.url).href;
 document.head.appendChild(stylesheet);
 
 app.registerExtension({
@@ -99,16 +99,15 @@ app.registerExtension({
           },
         );
         wizard.domWidget = domWidget;
-        domWidget.computeSize = () => {
-          return [
-            Math.max(this.size?.[0] || 700, 700),
-            Math.max(wizard.root.scrollHeight || 0, 96),
-          ];
-        };
         this.resizable = true;
+        /* Mode-pinned sizing: the compact card is 400px, the advanced
+         * editor 780px. No auto-resize is attached to rendering or clicks,
+         * so the node never shrinks itself; the resize handle stays in
+         * charge after the mode switch. */
+        const initialExpanded = !!(wizard.state && wizard.state.wizard_expanded !== false);
         this.setSize([
-          Math.max(this.size?.[0] || 0, 700),
-          Math.max(this.size?.[1] || 0, 420),
+          Math.max(this.size?.[0] || 0, initialExpanded ? 780 : 400),
+          Math.max(this.size?.[1] || 0, initialExpanded ? 540 : 430),
         ]);
       } catch (error) {
         console.error("[Krea2PromptWizard] widget creation failed", error);
