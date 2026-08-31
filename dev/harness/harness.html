@@ -1,0 +1,90 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Krea2 Prompt Wizard — visual harness</title>
+<style>
+  html, body { background: #101215; margin: 0; padding: 12px; font-family: sans-serif; }
+  #host { width: 800px; }
+</style>
+<link rel="stylesheet" href="/css/wizard.css?v=27">
+</head>
+<body>
+<div id="host"></div>
+<script>
+  /* Fake ComfyUI surface: the wizard frontend only needs these hooks. */
+  window.app = {
+    canvas: { canvas: null, processMouseDown() {}, processMouseMove() {}, processMouseUp() {} },
+    api: { apiURL: (u) => u },
+    extensionManager: { toast: { add() {} } },
+    registerExtension() {},
+  };
+  const realFetch = window.fetch.bind(window);
+  window.fetch = (url, opts) => {
+    const p = String(url);
+    if (p.includes("krea2_prompt_wizard/library")) return realFetch("/fixtures/library.json");
+    if (p.includes("krea2_prompt_wizard/master_presets")) return realFetch("/fixtures/master.json");
+    if (p.includes("krea2_prompt_wizard/conflicts")) return realFetch("/fixtures/conflicts.json");
+    if (p.includes("krea2_prompt_wizard/saved_presets")) return Promise.resolve({ ok: true, json: async () => ({ presets: [] }) });
+    if (p.includes("krea2_prompt_wizard/concept_colors")) return Promise.resolve({ ok: true, json: async () => ({ colors: {} }) });
+    if (p.includes("krea2_prompt_wizard/loras")) return Promise.resolve({ ok: true, json: async () => ({ loras: [] }) });
+    if (p.includes("krea2_prompt_wizard/preview")) {
+      try {
+        window.__requestState = JSON.parse(opts && opts.body ? opts.body : "{}").state || {};
+      } catch (e) { /* ignore */ }
+      return Promise.resolve({
+        ok: true,
+        json: async () => {
+          const result = window.KREA2.helpers.compilePreview(window.__requestState || {});
+          return { final_prompt: result.final_prompt, plain_prompt: result.plain_prompt, category_prompts: result.category_prompts, fragments: result.fragments };
+        },
+      });
+    }
+    return realFetch(url, opts);
+  };
+  navigator.clipboard = { writeText: () => Promise.resolve() };
+</script>
+<script type="module">
+  import "/js/state.mjs?v=27";
+  import "/js/searchable_selector.mjs?v=27";
+  import "/js/preset_row.mjs?v=27";
+  import "/js/library_editor.mjs?v=27";
+  import "/js/materialize.mjs?v=27";
+  import "/js/inspector.mjs?v=27";
+  import "/js/wizard_widget.mjs?v=27";
+
+  /* Optional: load a prebuilt wizard state file (see states/). */
+  let presetState = "";
+  const stateParam = new URLSearchParams(window.location.search).get("state");
+  if (stateParam) {
+    const response = await fetch("/states/" + encodeURIComponent(stateParam));
+    if (response.ok) {
+      presetState = JSON.stringify(await response.json());
+    } else {
+      console.warn("harness: state file not found:", stateParam);
+    }
+  }
+
+  const node = {
+    widgets: [{ name: "wizard_state_json", value: presetState }],
+    size: [800, 900],
+    setSize(size) { this.size = size; },
+    setDirtyCanvas() {},
+    refresh() {},
+    addDOMWidget() { return {}; },
+  };
+  window.__node = node;
+  const wizard = window.KREA2.createWizardWidget(node);
+  window.__wizard = wizard;
+  document.getElementById("host").appendChild(wizard.root);
+  window.__ready = false;
+
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  await wait(700); /* allow the async library/master fetches to land */
+  wizard.setTab("scene");
+  await wait(300);
+  document.body.dataset.ready = "1";
+  window.__ready = true;
+</script>
+</body>
+</html>

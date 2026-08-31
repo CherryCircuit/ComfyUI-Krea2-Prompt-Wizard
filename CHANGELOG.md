@@ -1,22 +1,68 @@
 # CHANGELOG
 
 
-## Unreleased — compact <-> advanced mode and the click-shrink fix
+## Unreleased — 3D-ish lighting stage, orbit camera, real light height
 
-- Fixed the bug where clicking the node dragged it down to a narrow sliver:
-  the DOM widget no longer reports a custom `computeSize` (the frontend now
-  fills the node with the editor, node width is authoritative) and all
-  auto-resize-on-render/click logic (`syncNodeHeight`) was removed. The node
-  only changes size when you switch mode or drag its resize handle.
-- Added a Compact <-> Advanced toggle near the top-left (next to the version
-  chip). Compact pins the node to 400px and shows the concept card: shot
-  preset + scene dice/shuffle, character faces strip with quick Hair / Eyes
-  / Build / Fit edits, single-select scene concept chips (lighting, framing,
-  atmosphere, style), conflict banner and a Generate Prompt action.
-  Advanced pins the node to 780px and shows the full tabbed editor.
-- The mode is stored per-node in `wizard_expanded`, survives workflow
-  saves/restores and job executions, and defaults to compact on fresh nodes.
-- Bumped the frontend cache key to `?v=25`.
+- **The lighting stage is now a true perspective-projected 3D scene**
+  (dependency-free SVG): the camera orbits the subject, the ground grid,
+  rings, ticks and N/E/S/W labels are proper 3D projections, and the
+  mannequin turns with the view so its facing is readable.
+  - Drag the background to orbit (azimuth + elevation, clamped 8-85°),
+    scroll to zoom (3.2-11 m dolly), double-click to reset. The camera is
+    stored per node (`scene_sections.stage_camera`) and the footer label
+    shows the live azimuth/elevation.
+  - Drag a bulb to aim that light: the pointer is un-projected onto the
+    ground plane, so azimuth AND distance track the drag correctly at any
+    camera angle (fixed the drag that previously did nothing).
+  - **Heights are real now**: a 90° elevation puts the light directly
+    over the head with its beam pointing straight down; the old "shoulder
+    level" cap is gone. Each bulb still gets a dashed marker down to its
+    ground point.
+  - Turning a light off (the power toggle) now also removes its beam,
+    glow and markers — only an inert grey bulb and its number remain.
+- Bumped the frontend cache key to `?v=27` and the wizard build marker to
+  `v2.6.0`.
+
+## Unreleased — compact mode removal, camera shot-distance, lighting panel v2
+
+- **Compact mode is hidden.** The Compact <-> Advanced toggle is gone and
+  every wizard opens as the full tabbed editor. `wizard_expanded` always
+  coerces to true (frontend and backend).
+- **Camera shot distance.** The Close-up / Medium / Wide / Establishing
+  framing chips are replaced by a single **Shot distance** slider
+  (wide left, tight right) that drives a bipolar concept
+  (`custom.shot_distance`): "face close to the lens" on the tight side and
+  "distant subject framed deep within the environment" on the wide side,
+  with the emphasised weight coming from the slider. Centred = no concept.
+- **Lighting panel redesign** (full-width section under Camera):
+  - Header with bulb icon, subtitle and **Save Lighting Setup**.
+  - Preset rail (Soft / Hard / Three-Point / Rembrandt / Cinematic /
+    High Key / Low Key / More) plus a gallery popup with searchable,
+    categorised cards that show a rendered preview of every preset and a
+    **Save Current Setup as Preset** action. Setups persist through the
+    new `lighting` saved-preset scope.
+  - Pseudo-3D stage: perspective ground, N/E/S/W markers, a humanoid
+    figure, colour-tinted beams, SVG lightbulbs coloured by each light's
+    colour, draggable bulbs (azimuth + distance) and a ground toggle.
+  - Per-light control cards on their own lines with icons: Distance in
+    metres (0.5–4 m — beyond 2 m), Angle dial, Height elevation (0–90°),
+    Colour swatch + hex, Intensity slider, plus enable/duplicate/remove.
+  - Lights compile as "light from the `<side>` at `<m>`m, elevated at
+    `<h>` degrees, in `<colour>`".
+- **Stale concept pruning.** Rows that older wizard versions left behind
+  no longer compile invisibly: rows without a phrase, orphaned
+  `custom.light_*` rows and legacy phrase-styled light rows are dropped
+  on state load (frontend `coerceState` and backend `coerce_state`). The
+  Concepts tab is on by default again so every row stays manageable, and
+  **Clear scene concepts** also resets shot distance, light stage and
+  shot-preset state.
+- **Save/load clarity on the SCENE tab**: the Setting card and the Shot
+  preset card are split. Scene presets save and restore only the
+  description (Saved scenes dropdown sits beside Save scene); Shot
+  presets clearly replace camera, lighting and environment and warn
+  before overwriting hands-tuned setups.
+- Bumped the frontend cache key to `?v=26` and the wizard build marker to
+  `v2.5.0`.
 
 
 ## 1.4.5 — character portrait references and profile-shot setup

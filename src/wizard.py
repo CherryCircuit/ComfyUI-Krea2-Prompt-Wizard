@@ -12,6 +12,7 @@ truth for:
 from __future__ import annotations
 
 import copy
+import re
 import uuid
 from typing import Any, Dict, List, Optional, Sequence
 
@@ -76,7 +77,15 @@ def empty_state() -> Dict[str, Any]:
         "active_tab": "cast",
         "footer_open": False,
         "show_face_guidance": False,
-        "show_concepts_tab": False,
+        "show_concepts_tab": True,
+        "settings_open": False,
+        "final_preview_open": False,
+        "pretty_preview": False,
+        "character_creator": "legacy",
+        # v2.3: the compact quick-edit card is hidden; the editor always
+        # opens as the full tabbed view.
+        "wizard_expanded": True,
+        "scene_sections": {},
     }
 
 
@@ -121,6 +130,12 @@ def coerce_state(raw: Any) -> Dict[str, Any]:
         "show_face_guidance",
         "show_concepts_tab",
         "show_motion_prompt",
+        "settings_open",
+        "final_preview_open",
+        "pretty_preview",
+        "character_creator",
+        "wizard_expanded",
+        "scene_sections",
     ):
         if key in raw:
             state[key] = raw[key]
@@ -207,7 +222,58 @@ def coerce_state(raw: Any) -> Dict[str, Any]:
     state["random_strength_min"] = minimum
     state["random_strength_max"] = maximum
     state["embed_prompt_metadata"] = state.get("embed_prompt_metadata") is not False
+    if not isinstance(state.get("scene_sections"), dict):
+        state["scene_sections"] = {}
+    state["rows"] = prune_stale_rows(
+        state.get("rows", []), state.get("scene_sections", {})
+    )
+    # v2.3: the compact card is hidden; the editor is always full view.
+    state["wizard_expanded"] = True
+    state["show_concepts_tab"] = bool(state.get("show_concepts_tab", True))
     return state
+
+
+def prune_stale_rows(rows: Any, scene_sections: Any) -> List[Dict[str, Any]]:
+    """Drop rows the v2 editor no longer manages.
+
+    * rows without a phrase (they can never compile)
+    * stale custom light rows (``custom.light_*``) that no longer belong to
+      a light in ``scene_sections.lights`` — the lighting panel owns the
+      custom light rows and regenerates them on every change
+    * legacy phrase-styled light rows from older wizard versions
+    * duplicate custom light rows for the same light
+
+    This is the backend twin of the frontend ``pruneStaleRows`` helper so
+    old workflows and headless runs also lose the leftover concepts that
+    compiled into prompts without any visible edit control.
+    """
+    if not isinstance(rows, list):
+        return []
+    light_ids: set = set()
+    lights: Any = (scene_sections or {}).get("lights") if isinstance(scene_sections, dict) else None
+    if isinstance(lights, list):
+        for light in lights:
+            if isinstance(light, dict) and light.get("id"):
+                light_ids.add(str(light["id"]))
+    seen = set()
+    out = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        if not str(row.get("phrase") or "").strip():
+            continue
+        pid = str(row.get("preset_id") or "")
+        if pid.startswith("custom.light_"):
+            light_key = pid[len("custom.light_"):]
+            if light_key not in light_ids or light_key in seen:
+                continue
+            seen.add(light_key)
+        elif row.get("category") == "lighting_direction" and re.match(
+            r"^light from the ", str(row.get("phrase") or ""), re.IGNORECASE
+        ):
+            continue
+        out.append(row)
+    return out
 
 
 def add_row(

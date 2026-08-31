@@ -10,6 +10,7 @@ from src.wizard import (
     duplicate_row,
     empty_state,
     new_row_id,
+    prune_stale_rows,
     remove_row,
     reorder_rows,
     reset_state,
@@ -35,6 +36,40 @@ class StateBuildersTests(unittest.TestCase):
     def test_coerce_state_fills_defaults(self):
         s = coerce_state(None)
         self.assertEqual(s["schema_version"], 1)
+        # v2.3: the compact card is hidden.
+        self.assertIs(s["wizard_expanded"], True)
+        self.assertIs(s["show_concepts_tab"], True)
+
+    def test_coerce_state_wizard_always_expanded(self):
+        s = coerce_state({"wizard_expanded": False})
+        self.assertIs(s["wizard_expanded"], True)
+
+    def test_prune_stale_rows(self):
+        rows = [
+            {"id": "a", "category": "lighting_direction", "preset_id": "custom.light_ghost",
+             "phrase": "light from the left at 1.5m", "control_mode": "scalar"},
+            {"id": "b", "category": "lighting_direction", "preset_id": "custom.light_light_1",
+             "phrase": "light from the left at 1.5m", "control_mode": "scalar"},
+            {"id": "c", "category": "framing", "preset_id": "framing.wide_shot",
+             "phrase": "wide shot", "control_mode": "scalar"},
+            {"id": "d", "category": "composition", "preset_id": "composition.subject_left",
+             "phrase": "", "control_mode": "scalar"},
+            {"id": "e", "category": "lighting_direction", "preset_id": "legacy.side",
+             "phrase": "light from the right at 2m", "control_mode": "scalar"},
+        ]
+        sections = {"lights": [{"id": "light_1", "angleDeg": 0}]}
+        kept = prune_stale_rows(rows, sections)
+        self.assertEqual([r["id"] for r in kept], ["b", "c"])
+
+    def test_coerce_state_prunes_stale_rows(self):
+        state = coerce_state({
+            "rows": [
+                {"id": "a", "category": "lighting_direction", "preset_id": "custom.light_ghost",
+                 "phrase": "light from the left at 1.5m", "control_mode": "scalar"},
+            ],
+            "scene_sections": {"lights": []},
+        })
+        self.assertEqual(state["rows"], [])
 
     def test_add_row(self):
         state = empty_state()

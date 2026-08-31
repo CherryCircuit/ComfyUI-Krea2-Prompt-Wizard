@@ -55,6 +55,37 @@ node tests/frontend_smoke.mjs
 node tests/frontend_state_contract.mjs
 ```
 
+## Visual testing without ComfyUI
+
+The `dev/harness/` folder runs the real frontend in a real browser
+using only the repo's files — no ComfyUI, no Python:
+
+```
+cd dev/harness
+npm install          # once; pulls playwright-core only (no browsers)
+node run_visual.js   # or: node run_visual.js path/to/my_state.json
+```
+
+The runner starts a tiny static server (repurposes the wizard's API
+urls to fixture JSON from `presets/`), opens your installed Edge or
+Chrome headless, and scripted-pass checks: fresh SCENE render,
+three-point setup, camera orbit drag (verifies the persisted
+`stage_camera`), bulb drag, height-90° overhead light, the lighting
+gallery popup and the CAST tab. Screenshots land in
+`dev/harness/shots/`, plus a summary of the persisted lights/camera
+and any page/console errors (exit code 1 on page errors).
+
+- `states/*.json` are ready-made wizard states to load via
+  `?state=<name>`; drop your own state there (or pass any state file
+  as the CLI argument) to reproduce a "compiled prompt is wrong"
+  report without running ComfyUI.
+- Headless browser only via the CLI fallback (no interaction) when
+  `npm install` was skipped; `BROWSER_PATH` overrides browser lookup;
+  `PORT` overrides the server port.
+- The ComfyUI-specific surface is stubbed (`window.app`, clipboard,
+  the four fixture-backed API routes) in `harness.html` — extend the
+  stubs there if the frontend needs a new API route.
+
 ## Validating the library and workflows
 
 To validate the bundled library and the bundled workflows:

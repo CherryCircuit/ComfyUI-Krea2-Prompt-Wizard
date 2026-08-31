@@ -215,13 +215,13 @@
 
   /* Build indicator shown in the top bar so it is obvious which wizard
    * build is running. Bump when you ship a new build. */
-  const WIZARD_VERSION = "v2.4.0";
+  const WIZARD_VERSION = "v2.6.0";
 
   const TABS = [
     ["cast", "Cast", "users"],
     ["scene", "Scene", "clapper"],
   ];
-  const CONCEPTS_TAB = ["concepts", "Concepts"];
+  const CONCEPTS_TAB = ["concepts", "Concepts", "sparkle"];
 
   /* Fresh-node seed: the first character on a brand-new node starts with
    * three visible concept rows so the layout is obvious without clicking.
@@ -321,7 +321,8 @@
     ],
   };
 
-  /* Lighting setups that drive the multi-light compass layout. */
+  /* Lighting setups that drive the multi-light plane: layouts replaced by
+   * the rich LIGHTING_PRESETS catalog (see the lighting panel section). */
   const LIGHT_SETUP_LAYOUTS = {
     "lighting_setup.three_point_lighting": [
       { angle: Math.PI / 4, distance: 0.85 },
@@ -464,6 +465,10 @@
     let previousExpanded = null;
     let contractNextSync = false;
 
+    // v2.3: the compact quick-edit card is hidden. The wizard always
+    // renders the full tabbed editor.
+    state.wizard_expanded = true;
+
     const root = el("div", { class: "krea2-wizard-root" });
     const executionHistory = [];
     root.krea2ExecutionHistory = executionHistory;
@@ -525,23 +530,12 @@
     const creativeModeControl = buildCreativeModeControl();
     const masterPresetSelect = buildMasterPresetControl();
 
-    const modeToggleBtn = el("button", {
-      type: "button",
-      class: "krea2-wizard-btn krea2-wizard-mode-toggle",
-      title: "Switch between compact and advanced view",
-      "aria-label": "Switch between compact and advanced view",
-      onClick: function () {
-        setWizardMode(state.wizard_expanded === false);
-      },
-    });
-
     const topBar = el("div", { class: "krea2-wizard-top" }, [
       el("span", {
         class: "krea2-wizard-version",
         title: "Krea2 Prompt Wizard build " + WIZARD_VERSION,
         "aria-label": "Wizard build " + WIZARD_VERSION,
       }, WIZARD_VERSION),
-      modeToggleBtn,
       savedPresetControl.root,
       el("span", { class: "krea2-structured-spacer" }),
       undoBtn,
@@ -550,20 +544,15 @@
       buildOverflowMenu(),
     ]);
 
-    /* Compact <-> Advanced mode switch (near the top-left, like the
-     * concept): compact is a narrow quick-editing card, advanced is the
-     * full editor at a wider size. The node only never auto-resizes — the
-     * size is pinned here and afterwards the resize handle is in charge. */
-    const COMPACT_WIDTH = 400;
+    /* v2.3: the compact <-> advanced mode switch is removed — the wizard
+     * always renders the full editor at the advanced width. */
     const ADVANCED_WIDTH = 780;
 
     function applyModeSize(advanced) {
       if (!node || typeof node.setSize !== "function") return;
       const current = node.size || [];
-      const targetWidth = advanced
-        ? Math.max(current[0] || 0, ADVANCED_WIDTH)
-        : COMPACT_WIDTH;
-      const targetHeight = Math.max(current[1] || 0, advanced ? 540 : 430);
+      const targetWidth = Math.max(current[0] || 0, ADVANCED_WIDTH);
+      const targetHeight = Math.max(current[1] || 0, 540);
       if (current[0] !== targetWidth || current[1] !== targetHeight) {
         node.setSize([targetWidth, targetHeight]);
       }
@@ -571,10 +560,10 @@
     }
 
     function setWizardMode(advanced) {
-      state.wizard_expanded = !!advanced;
+      state.wizard_expanded = true;
       markDirty();
       render();
-      applyModeSize(state.wizard_expanded !== false);
+      applyModeSize(true);
     }
 
     function buildOverflowMenu() {
@@ -676,7 +665,7 @@
     function renderTabBar() {
       tabBar.innerHTML = "";
       const tabs = TABS.slice();
-      if (false && state.show_concepts_tab) tabs.push(CONCEPTS_TAB);
+      if (state.show_concepts_tab) tabs.push(CONCEPTS_TAB);
       if (!tabs.some(function (tab) { return tab[0] === (state.active_tab || "cast"); })) {
         state.active_tab = tabs[0][0];
       }
@@ -2958,6 +2947,8 @@
         state.randomize_on_job = JSON.parse(JSON.stringify(preset.randomize_on_job || {}));
         state.creative_mode = preset.creative_mode || state.creative_mode || "photo";
         state.rows = cloneRowsWithFreshIds(preset.rows);
+        syncShotDistanceRow();
+        syncLightRows();
       } else {
         state.rows = state.rows.filter(function (row) {
           return groupForCategory(row.category) !== preset.group;
@@ -3043,16 +3034,16 @@ function buildGroupPresetPicker(group) {
     function buildMasterPresetControl() {
       const select = el("select", {
         class: "krea2-wizard-master-select",
-        "aria-label": "Style presets",
+        "aria-label": "Shot presets",
       });
-      select.appendChild(el("option", { value: "" }, "Style presets..."));
+      select.appendChild(el("option", { value: "" }, "Shot presets..."));
       return select;
     }
 
     function refreshMasterPresetSelect() {
       const current = masterPresetSelect.value;
       masterPresetSelect.innerHTML = "";
-      masterPresetSelect.appendChild(el("option", { value: "" }, "Style presets..."));
+      masterPresetSelect.appendChild(el("option", { value: "" }, "Shot presets..."));
       masterPresets.slice().sort(function (a, b) {
         return String(a.label || "").toLowerCase().localeCompare(String(b.label || "").toLowerCase());
       }).forEach(function (preset) {
@@ -3077,7 +3068,7 @@ function buildGroupPresetPicker(group) {
           "lighting_effect", "atmosphere", "environment_movement"].includes(row.category);
       });
       if (replaced && typeof window.confirm === "function"
-          && !window.confirm("This style replaces your camera, lighting and environment setups. Continue?")) {
+          && !window.confirm("This shot preset replaces your camera, lighting and environment setups. Continue?")) {
         return;
       }
       const newRows = [];
@@ -3095,6 +3086,10 @@ function buildGroupPresetPicker(group) {
         return;
       }
       state.rows = newRows;
+      /* The shot-distance mirror and the lighting-panel light mirrors are
+       * regenerated so the applied preset does not strand them. */
+      syncShotDistanceRow();
+      syncLightRows();
       // A shot preset is a full preset: it also names and describes the scene.
       if (preset.setting && typeof preset.setting === "object") {
         state.setting = {
@@ -4863,18 +4858,23 @@ function buildGroupPresetPicker(group) {
       return row;
     }
 
-    /* Multi-light direction plane: every light is a draggable dot whose
-     * angle (0° = front, 90° = the subject's right, 180° = back, 270° =
-     * left) and distance from the subject are set by dragging. Each light
-     * becomes a lighting_direction concept row with its own intensity and
-     * colour. */
-    const LIGHT_DIRECTION_LABELS = {
-      front_lighting: "front lighting",
-      three_quarter_front_lighting: "three-quarter front lighting",
-      side_lighting: "side lighting",
-      rim_lighting: "rim lighting",
-      backlighting: "backlighting",
-    };
+    /* ------------------------------------------------------------------
+     * Lighting panel (v2.3): a full-width section under Camera.
+     * Central pseudo-3D stage + per-light cards. Each light carries
+     * azimuth (degrees, 0 = front), distance in metres (0.5m–4m),
+     * elevation (0–90°), strength (0–3), colour, and an on/off toggle.
+     * Every light compiles into a lighting_direction concept row; the
+     * preset rail and gallery drive whole setups.
+     * ------------------------------------------------------------------ */
+    const LIGHT_METERS_MIN = 0.5;
+    const LIGHT_METERS_MAX = 4.0;
+    const LIGHT_HEIGHT_MAX = 90;
+    const LIGHT_DISTANCE_STEP = 0.1;
+
+    /* Round a metre value to the 0.1 step without float drift. */
+    function roundMetres(value) {
+      return Math.round(Number(value) * 10) / 10;
+    }
 
     function normalizeAngle(rad) {
       let a = rad % (2 * Math.PI);
@@ -4893,60 +4893,235 @@ function buildGroupPresetPicker(group) {
       return ((degrees % 360) + 360) % 360;
     }
 
-    function lightingDirectionForAngle(rad) {
-      const a = normalizeAngle(rad);
-      const span = Math.PI / 8;
-      if (Math.abs(a - Math.PI / 2) <= span) return "front_lighting";
-      if (Math.abs(a - Math.PI / 4) <= span || Math.abs(a - 3 * Math.PI / 4) <= span) {
-        return "three_quarter_front_lighting";
-      }
-      if (Math.abs(a) <= span || Math.abs(Math.abs(a) - Math.PI) <= span) return "side_lighting";
-      if (Math.abs(a + Math.PI / 4) <= span || Math.abs(a + 3 * Math.PI / 4) <= span) {
-        return "rim_lighting";
-      }
-      return "backlighting";
-    }
-
-    function lightDistanceMetres(distance) {
-      const d = Math.max(0.25, Math.min(1, Number(distance) || 0.85));
-      return Math.round((0.5 + ((d - 0.25) / 0.75) * 1.5) * 2) / 2;
-    }
-
     function lightSideLabel(deg) {
       const a = ((Math.round(Number(deg) || 0) % 360) + 360) % 360;
       const sides = ["front", "front right", "right", "back right", "back", "back left", "left", "front left"];
       return sides[Math.round(a / 45) % 8];
     }
 
+    /* Legacy compass distance (0.25–1) -> metres (0.5–2). */
+    function lightDistanceMetres(distance) {
+      const d = Math.max(0.25, Math.min(1, Number(distance) || 0.85));
+      return Math.round((0.5 + ((d - 0.25) / 0.75) * 1.5) * 2) / 2;
+    }
+
+    function formatMetres(value) {
+      const v = Math.round(Number(value) * 100) / 100;
+      return v.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+    }
+
+    function formatLightStrength(value) {
+      const v = Math.round(Number(value) * 100) / 100;
+      return String(v);
+    }
+
     function lightPhrase(light) {
       const side = lightSideLabel(light.angleDeg);
-      const metres = lightDistanceMetres(light.distance);
+      const metres = formatMetres(light.distanceM);
+      const height = Math.round(Number(light.heightDeg) || 0);
       const colour = String(light.color || "").trim();
-      return "light from the " + side + " at " + metres + "m" + (colour ? " in " + colour : "");
+      let phrase = "light from the " + side + " at " + metres + "m";
+      if (height > 0) phrase += ", elevated at " + height + " degrees";
+      if (colour && colour !== "white") phrase += ", in " + colour;
+      return phrase;
     }
+
+    function lightHex(name) {
+      const entry = LIGHT_PALETTE.find(function (item) {
+        return item[0] === String(name || "");
+      });
+      if (entry) return entry[1];
+      return "#ffffff";
+    }
+
+    function normalizeLight(raw, index) {
+      const light = raw && typeof raw === "object" ? raw : {};
+      const id = String(light.id || "light_" + (index + 1));
+      let angleDeg = Number(light.angleDeg);
+      if (!Number.isFinite(angleDeg)) {
+        angleDeg = Number.isFinite(Number(light.angle))
+          ? Math.round(radToDegrees(Number(light.angle)))
+          : 0;
+      }
+      angleDeg = ((Math.round(angleDeg) % 360) + 360) % 360;
+      let distanceM = Number(light.distanceM);
+      if (!Number.isFinite(distanceM)) {
+        const legacy = Number(light.distance);
+        distanceM = Number.isFinite(legacy) ? lightDistanceMetres(legacy) : 1.5;
+      }
+      distanceM = Math.max(LIGHT_METERS_MIN, Math.min(LIGHT_METERS_MAX, roundMetres(distanceM)));
+      let heightDeg = Number(light.heightDeg);
+      if (!Number.isFinite(heightDeg)) {
+        const defaults = [25, 15, 55];
+        heightDeg = defaults[index % defaults.length];
+      }
+      heightDeg = Math.max(0, Math.min(LIGHT_HEIGHT_MAX, Math.round(heightDeg)));
+      let strength = Number(light.strength);
+      if (!Number.isFinite(strength)) strength = 1.5;
+      strength = Math.max(0, Math.min(3, Math.round(strength * 20) / 20));
+      return {
+        id: id,
+        label: String(light.label || ("Light " + (index + 1))),
+        angleDeg: angleDeg,
+        distanceM: distanceM,
+        heightDeg: heightDeg,
+        strength: strength,
+        color: String(light.color || ""),
+        enabled: light.enabled !== false,
+      };
+    }
+
+    /* Built-in lighting setups. Every light is described by its final
+     * stage geometry; the phrase compiles from the same fields. */
+    const LIGHTING_PRESETS = [
+      {
+        id: "lighting_setup.soft_diffused_lighting",
+        label: "Soft", category: "Portrait",
+        description: "Soft, flattering light with smooth shadows",
+        lights: [{ label: "Soft Key (Front)", angleDeg: 0, distanceM: 1.8, heightDeg: 25, strength: 1.5, color: "" }],
+      },
+      {
+        id: "lighting_setup.hard_directional_lighting",
+        label: "Hard", category: "Studio",
+        description: "Strong, directional light with crisp shadows",
+        lights: [{ label: "Hard Key (Front-Right)", angleDeg: 45, distanceM: 1.5, heightDeg: 35, strength: 2.0, color: "" }],
+      },
+      {
+        id: "lighting_setup.three_point_lighting",
+        label: "Three-Point", category: "Studio",
+        description: "Classic key, fill & backlight setup",
+        lights: [
+          { label: "Key Light (Front-Left)", angleDeg: 325, distanceM: 1.8, heightDeg: 25, strength: 1.4, color: "blue" },
+          { label: "Fill Light (Front-Right)", angleDeg: 45, distanceM: 1.8, heightDeg: 15, strength: 0.6, color: "orange" },
+          { label: "Rim Light (Back-Left)", angleDeg: 235, distanceM: 2.2, heightDeg: 55, strength: 1.2, color: "pink" },
+        ],
+      },
+      {
+        id: "lighting_setup.rembrandt_lighting",
+        label: "Rembrandt", category: "Portrait",
+        description: "Dramatic triangle of light on the face",
+        lights: [{ label: "Rembrandt Key (Front-Right)", angleDeg: 45, distanceM: 2.0, heightDeg: 30, strength: 1.4, color: "" }],
+      },
+      {
+        id: "lighting_setup.chiaroscuro",
+        label: "Cinematic", category: "Cinematic",
+        description: "Atmospheric, filmic lighting style",
+        lights: [
+          { label: "Key (Front-Left)", angleDeg: 30, distanceM: 2.2, heightDeg: 28, strength: 1.3, color: "orange" },
+          { label: "Rim (Back-Left)", angleDeg: 160, distanceM: 1.8, heightDeg: 50, strength: 1.1, color: "cyan" },
+        ],
+      },
+      {
+        id: "lighting_setup.high_key_lighting",
+        label: "High Key", category: "Portrait",
+        description: "Bright, low-contrast, minimal shadows",
+        lights: [
+          { label: "Key (Front)", angleDeg: 0, distanceM: 1.8, heightDeg: 16, strength: 2.4, color: "" },
+          { label: "Fill (Front-Right)", angleDeg: 45, distanceM: 2.2, heightDeg: 10, strength: 1.5, color: "" },
+          { label: "Background (Front-Left)", angleDeg: 315, distanceM: 2.6, heightDeg: 12, strength: 1.4, color: "" },
+        ],
+      },
+      {
+        id: "lighting_setup.low_key_lighting",
+        label: "Low Key", category: "Cinematic",
+        description: "Dark, moody with strong shadows",
+        lights: [{ label: "Key (Front-Left)", angleDeg: 30, distanceM: 2.4, heightDeg: 35, strength: 1.6, color: "blue" }],
+      },
+      {
+        id: "lighting_setup.butterfly_lighting",
+        label: "Butterfly", category: "Portrait",
+        description: "Paramount-style light with shadow under nose",
+        lights: [{ label: "Butterfly Key (Front, high)", angleDeg: 0, distanceM: 1.8, heightDeg: 58, strength: 1.5, color: "" }],
+      },
+      {
+        id: "lighting_setup.split_lighting",
+        label: "Split", category: "Dramatic",
+        description: "Half-face fill, half shadow",
+        lights: [{ label: "Split Key (Left)", angleDeg: 270, distanceM: 1.6, heightDeg: 25, strength: 1.8, color: "" }],
+      },
+      {
+        id: "lighting_setup.beauty_dish_lighting",
+        label: "Beauty Dish", category: "Portrait",
+        description: "Soft-wrap light with distinctive falloff",
+        lights: [{ label: "Beauty Dish (Front, high)", angleDeg: 0, distanceM: 2.0, heightDeg: 45, strength: 1.4, color: "" }],
+      },
+      {
+        id: "lighting_setup.golden_hour_lighting",
+        label: "Golden Hour", category: "Cinematic",
+        description: "Low warm key, long soft shadows",
+        lights: [{ label: "Sun (Front-Left)", angleDeg: 30, distanceM: 2.6, heightDeg: 12, strength: 1.4, color: "orange" }],
+      },
+      {
+        id: "lighting_setup.candlelight",
+        label: "Candlelight", category: "Utility",
+        description: "Warm flickering single-source lighting",
+        lights: [{ label: "Candle (Front-Left)", angleDeg: 10, distanceM: 1.2, heightDeg: 8, strength: 1.2, color: "yellow" }],
+      },
+      {
+        id: "lighting_setup.neon_lighting",
+        label: "Neon", category: "Utility",
+        description: "Colourful synthetic neon glow",
+        lights: [
+          { label: "Neon Key (Left)", angleDeg: 270, distanceM: 1.6, heightDeg: 20, strength: 1.5, color: "magenta" },
+          { label: "Neon Fill (Right)", angleDeg: 90, distanceM: 1.8, heightDeg: 10, strength: 0.9, color: "cyan" },
+        ],
+      },
+      {
+        id: "lighting_setup.window_lighting",
+        label: "Window", category: "Studio",
+        description: "Soft directional light from one side",
+        lights: [{ label: "Window (Left)", angleDeg: 270, distanceM: 2.4, heightDeg: 20, strength: 1.3, color: "" }],
+      },
+      {
+        id: "lighting_setup.moonlight",
+        label: "Moonlight", category: "Cinematic",
+        description: "Cool pale steering light",
+        lights: [{ label: "Moon (Back-Right)", angleDeg: 135, distanceM: 2.8, heightDeg: 50, strength: 1.1, color: "blue" }],
+      },
+    ];
+
+    /* Gallery categories offered next to the rail's More button. */
+    const LIGHTING_GALLERY_CATEGORIES = ["All", "Portrait", "Studio", "Cinematic", "Dramatic", "Utility"];
+    const LIGHTING_PILLS = LIGHTING_PRESETS.slice(0, 7);
+    const LIGHTING_RAIL_LIMIT = 7;
 
     function sceneLights() {
       state.scene_sections = state.scene_sections || {};
       if (!Array.isArray(state.scene_sections.lights)) state.scene_sections.lights = [];
+      const stored = state.scene_sections.light_angle;
+      if (!state.scene_sections.lights.length && Number.isFinite(stored)) {
+        state.scene_sections.lights.push({ id: "light_1", angle: stored });
+      }
       if (!state.scene_sections.lights.length) {
-        const stored = state.scene_sections.light_angle;
-        state.scene_sections.lights.push({
-          id: "light_1",
-          angleDeg: Number.isFinite(stored) ? Math.round(radToDegrees(stored)) : 0,
-          distance: 0.85,
-          strength: 1.5,
-          color: "",
+        /* A lighting_setup row applied by a shot preset (without the
+         * lighting panel) seeds the stage from its known layout. */
+        const setupRow = (state.rows || []).find(function (row) {
+          return row.category === "lighting_setup" && row.enabled !== false;
         });
-      }
-      // Migrate legacy radian-angle lights to degrees.
-      for (const light of state.scene_sections.lights) {
-        if (!Number.isFinite(Number(light.angleDeg)) && Number.isFinite(Number(light.angle))) {
-          light.angleDeg = Math.round(radToDegrees(Number(light.angle)));
+        const setup = setupRow && LIGHTING_PRESETS.find(function (item) {
+          return item.id === setupRow.preset_id;
+        });
+        if (setup) {
+          state.scene_sections.lights = setup.lights.map(normalizeLight);
+        } else {
+          state.scene_sections.lights.push({ id: "light_1" });
         }
-        if (!Number.isFinite(Number(light.angleDeg))) light.angleDeg = 0;
-        if (!Number.isFinite(Number(light.strength))) light.strength = 1.5;
-        if (!light.color) light.color = "";
+        /* Persist the seeded stage so a fresh node keeps its light. */
+        persistedState = JSON.stringify(state);
+        persist();
       }
+      /* IMPORTANT: keep object identity. The stage/compass drag mutates
+       * light objects in place, and repaints happen per mousemove — a
+       * normalise-on-every-call would clone them and break drags. */
+      state.scene_sections.lights = state.scene_sections.lights.map(function (light, index) {
+        if (!light || typeof light !== "object") {
+          return normalizeLight({}, index);
+        }
+        if (Number.isFinite(Number(light.distanceM)) || Number.isFinite(Number(light.angle))) {
+          return light;
+        }
+        return normalizeLight(light, index);
+      });
       return state.scene_sections.lights;
     }
 
@@ -4956,12 +5131,14 @@ function buildGroupPresetPicker(group) {
         return !(row.category === "lighting_direction" && String(row.preset_id || "").indexOf("custom.light_") === 0);
       });
       lights.forEach(function (light, index) {
+        if (light.enabled === false) return;
+        const phrase = lightPhrase(light);
         state.rows.push({
           id: uniqueRowId(state),
           category: "lighting_direction",
-          preset_id: "custom.light_" + (light.id || index),
-          label: "Light " + (index + 1) + " \u2014 " + lightPhrase(light),
-          phrase: lightPhrase(light),
+          preset_id: "custom.light_" + light.id,
+          label: light.label + " \u2014 " + phrase,
+          phrase: phrase,
           control_mode: "scalar",
           intensity: 0,
           strength: Number(light.strength) || 1.5,
@@ -4974,10 +5151,24 @@ function buildGroupPresetPicker(group) {
     }
 
     function setLightState(light, changes) {
-      if (Number.isFinite(Number(changes.angleDeg))) light.angleDeg = ((Math.round(Number(changes.angleDeg)) % 360) + 360) % 360;
-      if (Number.isFinite(Number(changes.distance))) light.distance = Math.max(0.25, Math.min(1, Number(changes.distance)));
-      if (Number.isFinite(Number(changes.strength))) light.strength = Number(changes.strength);
+      if (Number.isFinite(Number(changes.angleDeg))) {
+        light.angleDeg = ((Math.round(Number(changes.angleDeg)) % 360) + 360) % 360;
+      }
+      if (Number.isFinite(Number(changes.distanceM))) {
+        light.distanceM = Math.max(
+          LIGHT_METERS_MIN,
+          Math.min(LIGHT_METERS_MAX, roundMetres(Number(changes.distanceM))),
+        );
+      }
+      if (Number.isFinite(Number(changes.heightDeg))) {
+        light.heightDeg = Math.max(0, Math.min(LIGHT_HEIGHT_MAX, Math.round(Number(changes.heightDeg))));
+      }
+      if (Number.isFinite(Number(changes.strength))) {
+        light.strength = Math.max(0, Math.min(3, Math.round(Number(changes.strength) * 20) / 20));
+      }
       if (changes.color !== undefined) light.color = String(changes.color || "");
+      if (changes.label !== undefined) light.label = String(changes.label || "");
+      if (changes.enabled !== undefined) light.enabled = !!changes.enabled;
       syncLightRows();
       markDirty();
       render();
@@ -4985,13 +5176,7 @@ function buildGroupPresetPicker(group) {
 
     function addLight() {
       const lights = sceneLights();
-      lights.push({
-        id: "light_" + Date.now().toString(36),
-        angleDeg: 0,
-        distance: 0.85,
-        strength: 1.5,
-        color: "",
-      });
+      lights.push(normalizeLight({}, lights.length));
       syncLightRows();
       markDirty();
       render();
@@ -5005,20 +5190,39 @@ function buildGroupPresetPicker(group) {
       render();
     }
 
-    function applyLightingSetupLayout(presetId) {
-      const layout = LIGHT_SETUP_LAYOUTS[presetId];
-      if (!layout) return;
+    function duplicateLight(light) {
+      const lights = sceneLights();
+      const copy = normalizeLight(light, lights.length);
+      copy.id = "light_" + Date.now().toString(36);
+      copy.label = light.label || "Light";
+      lights.splice(lights.indexOf(light) + 1, 0, copy);
+      syncLightRows();
+      markDirty();
+      render();
+    }
+
+    function applyLightingSetup(presetId) {
+      const setup = LIGHTING_PRESETS.find(function (item) { return item.id === presetId; });
+      if (!setup) return;
       state.scene_sections = state.scene_sections || {};
-      state.scene_sections.lights = layout.map(function (entry, index) {
-        return {
-          id: "light_" + (index + 1) + "_" + Date.now().toString(36),
-          angleDeg: Math.round(radToDegrees(entry.angle)),
-          distance: entry.distance,
-          strength: 1.5,
-          color: "",
-        };
+      state.scene_sections.lights = setup.lights.map(function (entry, index) {
+        return normalizeLight(entry, index);
       });
       syncLightRows();
+      const libPreset = library.find(function (item) { return item.id === presetId; });
+      if (libPreset) {
+        state.rows = state.rows.filter(function (row) { return row.category !== "lighting_setup"; });
+        const row = presetToRow(libPreset, state);
+        row.strength = 1.2;
+        state.rows.push(row);
+      }
+      markDirty();
+      render();
+    }
+
+    /* Compatibility wrapper: legacy chip paths call this. */
+    function applyLightingSetupLayout(presetId) {
+      applyLightingSetup(presetId);
     }
 
     function svgEl(tag, attrs) {
@@ -5033,255 +5237,878 @@ function buildGroupPresetPicker(group) {
       return node;
     }
 
-    function renderCompassRose() {
-      const SIZE = 132;
-      const C = SIZE / 2;
-      const R = 50;
+    function svgText(x, y, text, className) {
+      const node = svgEl("text", { x: String(x), y: String(y), class: className || "" });
+      node.textContent = text;
+      return node;
+    }
+
+    /* Stage geometry: the figure stands at the centre of a perspective
+     * ellipse. angleDeg 0 (front) is toward the bottom of the stage. */
+    /* ------------------------------------------------------------------
+     * 3D stage (v2.6): a real perspective-projected scene rendered with
+     * SVG so it stays dependency-free. The camera orbits the subject:
+     * drag the background to rotate azimuth/elevation, use the wheel to
+     * dolly, double-click to reset. Lights live in world space
+     * (azimuth / distance / elevation) and each is drawn as a bulb,
+     * a colour beam into the subject and an azimuth marker.
+     * ------------------------------------------------------------------ */
+    const STAGE = { w: 460, h: 300 };
+
+    /* Live stage context shared between renderLightStage and the drag
+     * handlers so a drag can repaint only the SVG (not the whole editor). */
+    let stageDrag = null;
+
+    function stageCamera() {
+      const stored = (state.scene_sections || {}).stage_camera || {};
+      const azim = Number.isFinite(Number(stored.azim)) ? Number(stored.azim) : 0;
+      const elev = Math.max(8, Math.min(85, Number.isFinite(Number(stored.elev)) ? Number(stored.elev) : 25));
+      const radius = Number.isFinite(Number(stored.radius)) ? Math.max(3.2, Math.min(11, Number(stored.radius))) : 6.4;
+      return {
+        azim: ((Math.round(azim) % 360) + 360) % 360,
+        elev: Math.round(elev),
+        radius: Math.abs(radius),
+      };
+    }
+
+    function sub3(a, b) { return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z }; }
+    function cross3(a, b) {
+      return {
+        x: a.y * b.z - a.z * b.y,
+        y: a.z * b.x - a.x * b.z,
+        z: a.x * b.y - a.y * b.x,
+      };
+    }
+    function normalize3(v) {
+      const len = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z) || 1;
+      return { x: v.x / len, y: v.y / len, z: v.z / len };
+    }
+
+    /* World space: the subject stands at the origin facing +z (toward the
+     * default camera). x = right, y = up, z = front. */
+    function lightWorldPos(light) {
+      const alpha = (Number(light.angleDeg) || 0) * Math.PI / 180;
+      const eps = (Number(light.heightDeg) || 0) * Math.PI / 180;
+      const d = Math.max(0.1, Number(light.distanceM) || 1.5);
+      const h = d * Math.cos(eps);
+      return { x: h * Math.sin(alpha), y: d * Math.sin(eps), z: h * Math.cos(alpha) };
+    }
+
+    function stageProjector(camera) {
+      const phi = camera.azim * Math.PI / 180;
+      const lambda = camera.elev * Math.PI / 180;
+      const R = camera.radius;
+      const target = { x: 0, y: 1.02, z: 0 };
+      const eye = {
+        x: R * Math.cos(lambda) * Math.sin(phi),
+        y: R * Math.sin(lambda) + target.y,
+        z: R * Math.cos(lambda) * Math.cos(phi),
+      };
+      const fwd = normalize3(sub3(target, eye));
+      const right = normalize3(cross3(fwd, { x: 0, y: 1, z: 0 }));
+      const up = cross3(right, fwd);
+      const k = (STAGE.h / 2) / Math.tan((46 * Math.PI) / 360);
+      return function (p) {
+        const v = sub3(p, eye);
+        const cz = v.x * fwd.x + v.y * fwd.y + v.z * fwd.z;
+        const cx = v.x * right.x + v.y * right.y + v.z * right.z;
+        const cy = v.x * up.x + v.y * up.y + v.z * up.z;
+        return {
+          x: STAGE.w / 2 + (cx * k) / cz,
+          y: STAGE.h / 2 - (cy * k) / cz,
+          z: cz,
+        };
+      };
+    }
+
+    /* The mannequin is drawn in metres (y-up) and transformed by the
+     * projected figure size; it turns with the camera so its facing is
+     * implied by the view and the beams. */
+    function stageFigure(project, camera) {
+      const feet = project({ x: 0, y: 0, z: 0 });
+      const head = project({ x: 0, y: 1.78, z: 0 });
+      const pxPerM = Math.max(8, (feet.y - head.y) / 1.78);
+      let turnCos = Math.cos(camera.azim * Math.PI / 180);
+      let flipX = false;
+      if (turnCos < 0) { turnCos = -turnCos; flipX = true; }
+      return {
+        feet: feet,
+        pxPerM: pxPerM,
+        sx: pxPerM * Math.max(0.08, turnCos) * (flipX ? -1 : 1),
+        sy: -pxPerM,
+        shadowRy: pxPerM * 0.42 * Math.max(0.12, Math.sin(camera.elev * Math.PI / 180)),
+      };
+    }
+
+    function stageFigurePaths(shadowRy) {
+      const r2 = function (v) { return Math.round(v * 100) / 100; };
+      return [
+        { el: "ellipse", attrs: { cx: "0", cy: r2(0.03), rx: r2(0.42), ry: "1", class: "krea2-v2-lt-shadow" }, meta: { ry: shadowRy } },
+        { el: "path", attrs: { d: "M" + r2(-0.17) + " 0 C" + r2(-0.16) + " " + r2(0.88) + " " + r2(-0.14) + " " + r2(0.9) + " " + r2(-0.03) + " " + r2(0.9) + " L" + r2(0.01) + " 0 Z", class: "krea2-v2-lt-leg" } },
+        { el: "path", attrs: { d: "M" + r2(0.01) + " 0 L" + r2(0.03) + " " + r2(0.9) + " " + r2(0.14) + " " + r2(0.88) + " " + r2(0.17) + " 0 Z", class: "krea2-v2-lt-leg" } },
+        { el: "path", attrs: { d: "M" + r2(-0.24) + " " + r2(0.9) + " C" + r2(-0.32) + " " + r2(1.4) + " " + r2(-0.26) + " " + r2(1.55) + " 0 " + r2(1.6) + " C" + r2(0.26) + " " + r2(1.55) + " " + r2(0.32) + " " + r2(1.4) + " " + r2(0.24) + " " + r2(0.9) + " Z", class: "krea2-v2-lt-torso" } },
+        { el: "path", attrs: { d: "M" + r2(-0.27) + " " + r2(1.02) + " C" + r2(-0.43) + " " + r2(1.18) + " " + r2(-0.41) + " " + r2(1.38) + " " + r2(-0.31) + " " + r2(1.26) + " C" + r2(-0.25) + " " + r2(1.12) + " " + r2(-0.24) + " " + r2(1.04) + " " + r2(-0.22) + " " + r2(1.02) + " Z", class: "krea2-v2-lt-arm" } },
+        { el: "path", attrs: { d: "M" + r2(0.27) + " " + r2(1.02) + " C" + r2(0.43) + " " + r2(1.18) + " " + r2(0.41) + " " + r2(1.38) + " " + r2(0.31) + " " + r2(1.26) + " C" + r2(0.25) + " " + r2(1.12) + " " + r2(0.24) + " " + r2(1.04) + " " + r2(0.22) + " " + r2(1.02) + " Z", class: "krea2-v2-lt-arm" } },
+        { el: "path", attrs: { d: "M" + r2(-0.05) + " " + r2(1.56) + " L" + r2(-0.05) + " " + r2(1.64) + " L" + r2(0.05) + " " + r2(1.64) + " L" + r2(0.05) + " " + r2(1.56) + " Z", class: "krea2-v2-lt-neck" } },
+        { el: "circle", attrs: { cx: "0", cy: r2(1.73), r: r2(0.15), class: "krea2-v2-lt-head" } },
+      ];
+    }
+
+    function renderLightStage() {
+      const camera = (stageDrag && stageDrag.camera) || stageCamera();
+      const project = stageProjector(camera);
       const lights = sceneLights();
+      const showFloor = (state.scene_sections || {}).stage_ground !== "hidden";
+
       const svg = svgEl("svg", {
-        viewBox: "0 0 " + SIZE + " " + SIZE,
-        width: String(SIZE),
-        height: String(SIZE),
-        class: "krea2-v2-compass",
-        "aria-label": "Lighting plane: drag each light around the subject; drag toward or away from the centre to change distance",
+        viewBox: "0 0 " + STAGE.w + " " + STAGE.h,
+        width: "100%",
+        class: "krea2-v2-light-stage",
+        "aria-label": "Lighting stage: drag the background to orbit the camera; drag a bulb to move a light; scroll to zoom; double-click to reset the view",
       });
-      svg.appendChild(svgEl("circle", { cx: C, cy: C, r: R, class: "krea2-v2-compass-ring" }));
-      for (let i = 0; i < 8; i += 1) {
-        const a = (i * Math.PI) / 4;
-        const x1 = C + Math.cos(a) * (R - 10);
-        const y1 = C + Math.sin(a) * (R - 10);
-        const x2 = C + Math.cos(a) * R;
-        const y2 = C + Math.sin(a) * R;
-        svg.appendChild(svgEl("line", {
-          x1: x1, y1: y1, x2: x2, y2: y2,
-          class: "krea2-v2-compass-tick",
-        }));
+      const defs = svgEl("defs");
+      const bgRadial = svgEl("radialGradient", { id: "krea2-lt-bg" });
+      bgRadial.appendChild(svgEl("stop", { offset: "0%", "stop-color": "#2b3440" }));
+      bgRadial.appendChild(svgEl("stop", { offset: "100%", "stop-color": "#14191f" }));
+      defs.appendChild(bgRadial);
+      const floorGrad = svgEl("radialGradient", { id: "krea2-lt-floor" });
+      floorGrad.appendChild(svgEl("stop", { offset: "0%", "stop-color": "#39434f" }));
+      floorGrad.appendChild(svgEl("stop", { offset: "78%", "stop-color": "#252d36" }));
+      floorGrad.appendChild(svgEl("stop", { offset: "100%", "stop-color": "#1c232b" }));
+      defs.appendChild(floorGrad);
+      const figGrad = svgEl("linearGradient", { id: "krea2-lt-fig", x1: "0", y1: "0", x2: "0", y2: "1" });
+      figGrad.appendChild(svgEl("stop", { offset: "0%", "stop-color": "#99a3ae" }));
+      figGrad.appendChild(svgEl("stop", { offset: "100%", "stop-color": "#59646f" }));
+      defs.appendChild(figGrad);
+      const glowF = svgEl("filter", { id: "krea2-lt-bloom", x: "-120%", y: "-120%", width: "340%", height: "340%" });
+      glowF.appendChild(svgEl("feGaussianBlur", { stdDeviation: "4" }));
+      defs.appendChild(glowF);
+      const softF = svgEl("filter", { id: "krea2-lt-soft", x: "-60%", y: "-60%", width: "220%", height: "220%" });
+      softF.appendChild(svgEl("feGaussianBlur", { stdDeviation: "2.2" }));
+      defs.appendChild(softF);
+      svg.appendChild(defs);
+
+      svg.appendChild(svgEl("rect", {
+        x: "0", y: "0", width: String(STAGE.w), height: String(STAGE.h),
+        rx: "10", fill: "url(#krea2-lt-bg)",
+      }));
+
+      const r2 = function (v) { return Math.round(v * 100) / 100; };
+      const figure = stageFigure(project, camera);
+
+      /* --- Ground: projected circles, ticks and N/E/S/W ---------------- */
+      if (showFloor) {
+        const circlePath = function (radius, points) {
+          let d = "";
+          for (let i = 0; i <= points; i += 1) {
+            const a = (i / points) * Math.PI * 2;
+            const p = project({ x: Math.sin(a) * radius, y: 0, z: Math.cos(a) * radius });
+            d += (i === 0 ? "M" : "L") + r2(p.x) + " " + r2(p.y);
+          }
+          return d + " Z";
+        };
+        svg.appendChild(svgEl("path", { d: circlePath(4.1, 72), fill: "url(#krea2-lt-floor)" }));
+        for (let ring = 1; ring <= 4; ring += 1) {
+          svg.appendChild(svgEl("path", {
+            d: circlePath(ring, 60),
+            class: "krea2-v2-lt-ring" + (ring === 4 ? " is-outer" : ""),
+          }));
+        }
+        for (let i = 0; i < 12; i += 1) {
+          const a = (i * Math.PI) / 6;
+          const p1 = project({ x: Math.sin(a) * 3.72, y: 0, z: Math.cos(a) * 3.72 });
+          const p2 = project({ x: Math.sin(a) * 4.1, y: 0, z: Math.cos(a) * 4.1 });
+          svg.appendChild(svgEl("line", {
+            x1: r2(p1.x), y1: r2(p1.y), x2: r2(p2.x), y2: r2(p2.y),
+            class: "krea2-v2-lt-tick",
+          }));
+        }
+        const dirLabel = function (label, x, z) {
+          const p = project({ x: x, y: 0.02, z: z });
+          return svgText(r2(p.x), r2(p.y), label, "krea2-v2-lt-dir");
+        };
+        svg.appendChild(dirLabel("W", -3.55, 0));
+        svg.appendChild(dirLabel("E", 3.55, 0));
+        svg.appendChild(dirLabel("N", 0, -3.55));
+        svg.appendChild(dirLabel("S", 0, 3.55));
       }
-      svg.appendChild(svgEl("circle", { cx: C, cy: C, r: 9, class: "krea2-v2-compass-subject" }));
 
-      const lightDots = [];
+      /* --- Lights: bulbs + beams sorted around the figure's depth ------ */
+      const target = { x: 0, y: 1.12, z: 0 };
+      const figDepth = project({ x: 0, y: 1.05, z: 0 }).z;
+      const iconsets = [];
       lights.forEach(function (light, index) {
-        const rad = degreesToRad(Number(light.angleDeg) || 0);
-        const radius = (R - 8) * (Number(light.distance) || 0.85);
-        const dx = Math.cos(rad) * radius;
-        const dy = Math.sin(rad) * radius;
-        const group = svgEl("g", { class: "krea2-v2-compass-light" });
-        const colourHex = colourHexFor(String(light.color || ""), LIGHT_PALETTE);
-        group.appendChild(svgEl("line", {
-          x1: C, y1: C, x2: C + dx, y2: C + dy,
-          class: "krea2-v2-compass-ray",
-          style: colourHex ? "stroke: " + colourHex + ";" : "",
-        }));
-        const dot = svgEl("circle", {
-          cx: C + dx,
-          cy: C + dy,
-          r: 7,
-          class: "krea2-v2-compass-handle",
-          "data-light-index": String(index),
-          style: colourHex ? "fill: " + colourHex + ";" : "",
+        const world = lightWorldPos(light);
+        iconsets.push({
+          light: light,
+          index: index,
+          world: world,
+          p: project(world),
+          depth: project(world).z,
+          on: light.enabled !== false,
+          hex: lightHex(light.color),
+          strength: Math.max(0.2, Math.min(3, Number(light.strength) || 1.5)),
         });
-        group.appendChild(dot);
-        dot.addEventListener("mouseenter", function () {
-          highlightLightRow(index, true);
-        });
-        dot.addEventListener("mouseleave", function () {
-          highlightLightRow(index, false);
-        });
-        const num = svgEl("text", {
-          x: C + dx + 9,
-          y: C + dy + 3,
-          class: "krea2-v2-compass-num",
-        });
-        num.textContent = String(index + 1);
-        group.appendChild(num);
-        svg.appendChild(group);
-        lightDots.push({ light: light, dot: dot });
       });
+      iconsets.sort(function (a, b) { return a.depth - b.depth; });
 
-      const drag = function (light, event) {
-        // The SVG rect is resolved on demand: it is only valid once the
-        // element is laid out in the document.
-        const bounds = svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
-        const cx = bounds ? bounds.left + bounds.width / 2 : C;
-        const cy = bounds ? bounds.top + bounds.height / 2 : C;
-        const dx = event.clientX - cx;
-        const dy = event.clientY - cy;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 6) return;
-        const rad = normalizeAngle(Math.atan2(dy, dx));
-        const radius = R - 8;
-        light.angleDeg = Math.round(radToDegrees(rad));
-        light.distance = Math.max(0.25, Math.min(1, dist / radius));
-        const group = event.target && event.target.parentNode;
-        const line = group && group.children && group.children[0];
-        const label = group && group.children && group.children[2];
-        const moveX = C + Math.cos(rad) * radius * light.distance;
-        const moveY = C + Math.sin(rad) * radius * light.distance;
-        if (line) {
-          line.setAttribute("x2", String(moveX));
-          line.setAttribute("y2", String(moveY));
+      const bulbRegistry = [];
+      const drawLight = function (entry) {
+        const p = entry.p;
+        const g = svgEl("g", { class: "krea2-v2-lt-light" });
+        if (entry.on) {
+          /* Screen-space beam quad from the bulb to the torso. Widths
+           * scale with the projected figure so the beam looks anchored. */
+          const tp = project(target);
+          const dx = tp.x - p.x;
+          const dy = tp.y - p.y;
+          const len = Math.sqrt(dx * dx + dy * dy) || 1;
+          const nx = -dy / len;
+          const ny = dx / len;
+          const wP = Math.max(2, figure.pxPerM * 0.05);
+          const wT = Math.max(9, figure.pxPerM * 0.3);
+          const alpha = Math.min(0.55, 0.16 + entry.strength * 0.1);
+          g.appendChild(svgEl("path", {
+            d: "M" + r2(p.x + nx * wP) + " " + r2(p.y + ny * wP)
+              + " L" + r2(tp.x + nx * wT) + " " + r2(tp.y + ny * wT)
+              + " L" + r2(tp.x - nx * wT) + " " + r2(tp.y - ny * wT)
+              + " L" + r2(p.x - nx * wP) + " " + r2(p.y - ny * wP) + " Z",
+            class: "krea2-v2-lt-beam",
+            style: "fill: " + entry.hex + "; opacity: " + alpha.toFixed(3) + ";",
+          }));
+          g.appendChild(svgEl("ellipse", {
+            cx: r2(p.x), cy: r2(p.y),
+            rx: r2(figure.pxPerM * 0.42), ry: r2(figure.pxPerM * 0.19),
+            class: "krea2-v2-lt-glow",
+            filter: "url(#krea2-lt-bloom)",
+            style: "fill: " + entry.hex + "; opacity: " + Math.min(0.75, 0.16 + entry.strength * 0.15) + ";",
+          }));
+          /* Azimuth marker: ground point straight beneath the bulb. */
+          const gp = project({ x: entry.world.x, y: 0.01, z: entry.world.z });
+          g.appendChild(svgEl("line", {
+            x1: r2(gp.x), y1: r2(gp.y), x2: r2(p.x), y2: r2(p.y),
+            class: "krea2-v2-lt-centerline",
+            style: "stroke: " + entry.hex + "; opacity: 0.28;",
+          }));
         }
-        if (label) {
-          label.setAttribute("x", String(moveX + 9));
-          label.setAttribute("y", String(moveY + 3));
+        /* Lightbulb: coloured when on; inert grey when off (no beam). */
+        const bulb = svgEl("g", { class: "krea2-v2-lt-bulb", "data-light-index": String(entry.index) });
+        const bulbColour = entry.on ? entry.hex : "#525a63";
+        const r = Math.max(4.2, figure.pxPerM * 0.14);
+        bulb.appendChild(svgEl("circle", { cx: r2(p.x), cy: r2(p.y), r: r2(r), class: "krea2-v2-lt-bulb-glass", style: "fill: " + bulbColour + ";" }));
+        bulb.appendChild(svgEl("rect", { x: r2(p.x - r * 0.45), y: r2(p.y + r * 0.85), width: r2(r * 0.9), height: r2(r * 0.72), rx: r2(r * 0.2), class: "krea2-v2-lt-bulb-base", style: "fill: " + bulbColour + ";" }));
+        bulb.appendChild(svgEl("line", { x1: r2(p.x - r * 0.3), y1: r2(p.y + r * 1.62), x2: r2(p.x + r * 0.3), y2: r2(p.y + r * 1.62), stroke: "#c3cad4", "stroke-width": "1.4", "stroke-linecap": "round" }));
+        if (entry.on) {
+          bulb.appendChild(svgEl("circle", { cx: r2(p.x), cy: r2(p.y - r * 0.15), r: r2(r * 0.52), class: "krea2-v2-lt-bulb-filament", fill: "#eef2f7", style: "filter: url(#krea2-lt-soft);" }));
         }
-        if (event.target) {
-          event.target.setAttribute("cx", String(moveX));
-          event.target.setAttribute("cy", String(moveY));
-        }
+        g.appendChild(bulb);
+        bulbRegistry.push({ node: bulb, entry: entry });
+        const badge = svgEl("g", { class: "krea2-v2-lt-num" });
+        badge.appendChild(svgEl("circle", { cx: r2(p.x + r + 9), cy: r2(p.y - r - 9), r: "8", class: "krea2-v2-lt-num-ring" }));
+        g.appendChild(badge);
+        g.appendChild(svgText(r2(p.x + r + 9), r2(p.y - r - 5.5), String(entry.index + 1), "krea2-v2-lt-num-text"));
+        return g;
       };
 
-      for (const entry of lightDots) {
-        const start = function (event) {
+      const behind = iconsets.filter(function (e) { return e.depth < figDepth; });
+      const inFront = iconsets.filter(function (e) { return e.depth >= figDepth; });
+      behind.forEach(function (entry) { svg.appendChild(drawLight(entry)); });
+
+      /* --- The mannequin (turns with the camera) ------------------------ */
+      const figureEl = svgEl("g", {
+        class: "krea2-v2-lt-figure",
+        transform: "translate(" + r2(figure.feet.x) + " " + r2(figure.feet.y) + ") scale(" + r2(figure.sx) + " " + r2(figure.sy) + ")",
+      });
+      for (const piece of stageFigurePaths(figure.shadowRy)) {
+        const node = svgEl(piece.el, piece.attrs);
+        if (piece.meta && piece.meta.ry !== undefined && Number.isFinite(Number(piece.meta.ry))) {
+          node.setAttribute("ry", String(r2(Number(piece.meta.ry) / figure.pxPerM)));
+        }
+        figureEl.appendChild(node);
+      }
+      svg.appendChild(figureEl);
+
+      inFront.forEach(function (entry) { svg.appendChild(drawLight(entry)); });
+
+      /* --- Stage context: live camera + repaint-only-refresh ------------ */
+      stageDrag = {
+        svg: svg,
+        camera: camera,
+        host: (stageDrag && stageDrag.host) || null,
+        viewLabel: (stageDrag && stageDrag.viewLabel) || null,
+        refresh: function () {
+          if (!stageDrag || !stageDrag.camera) return;
+          const host = stageDrag.host;
+          if (!host) return;
+          host.innerHTML = "";
+          host.appendChild(renderLightStage());
+          const label = stageDrag.viewLabel;
+          if (label) {
+            label.textContent = "Azimuth " + Math.round(((stageDrag.camera.azim % 360) + 360) % 360)
+              + "\u00b0 \u00b7 Elevation " + Math.round(stageDrag.camera.elev) + "\u00b0 \u2014 drag to orbit \u00b7 scroll to zoom \u00b7 double-click to reset";
+          }
+        },
+      };
+
+      const commitCamera = function () {
+        if (!stageDrag || !stageDrag.camera) return;
+        state.scene_sections = state.scene_sections || {};
+        state.scene_sections.stage_camera = {
+          azim: ((Math.round(stageDrag.camera.azim) % 360) + 360) % 360,
+          elev: Math.round(stageDrag.camera.elev),
+          radius: Math.round(stageDrag.camera.radius * 10) / 10,
+        };
+        markDirty();
+        render();
+      };
+
+      /* Background drag: orbit the camera. */
+      const orbitStart = function (event) {
+        if (event.button !== 0) return;
+        const classes = (typeof event.target.getAttribute === "function")
+          ? String(event.target.getAttribute("class") || "")
+          : String(event.target.className || "");
+        if (classes.indexOf("krea2-v2-lt-bulb") !== -1) return;
+        event.preventDefault();
+        if (event && typeof event.stopPropagation === "function") event.stopPropagation();
+        const onMove = function (moveEvent) {
+          stageDrag.camera.azim -= ((moveEvent.movementX || 0) / 0.44) * 0.22;
+          stageDrag.camera.elev = Math.max(8, Math.min(85, stageDrag.camera.elev + ((moveEvent.movementY || 0) / 0.44) * 0.15));
+          stageDrag.refresh();
+        };
+        const onUp = function () {
+          document.removeEventListener("mousemove", onMove);
+          document.removeEventListener("mouseup", onUp);
+          commitCamera();
+        };
+        document.addEventListener("mousemove", onMove);
+        document.addEventListener("mouseup", onUp);
+      };
+      svg.addEventListener("mousedown", orbitStart);
+      svg.addEventListener("dblclick", function (event) {
+        if (event && typeof event.stopPropagation === "function") event.stopPropagation();
+        state.scene_sections = state.scene_sections || {};
+        state.scene_sections.stage_camera = { azim: 0, elev: 25, radius: 6.4 };
+        markDirty();
+        render();
+      });
+      svg.addEventListener("wheel", function (event) {
+        if (event && typeof event.stopPropagation === "function") event.stopPropagation();
+        stageDrag.camera.radius = Math.max(3.2, Math.min(11, stageDrag.camera.radius * (1 + (event.deltaY || 0) * 0.0012)));
+        stageDrag.refresh();
+      }, { passive: false });
+
+      /* Bulb dragging: un-project the pointer back to the ground plane. */
+      /* Bulb dragging: un-project the pointer back to the ground plane and
+       * move the light's azimuth/distance. */
+      const dragBulb = function (event, entry) {
+        const bounds = svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
+        const sx = bounds && bounds.width ? STAGE.w / bounds.width : 1;
+        const sy = bounds && bounds.height ? STAGE.h / bounds.height : 1;
+        const mx = (event.clientX - (bounds ? bounds.left : 0)) * sx;
+        const my = (event.clientY - (bounds ? bounds.top : 0)) * sy;
+        const pz = 6;
+        const focal = (STAGE.h / 2) / Math.tan((46 * Math.PI) / 360);
+        const px = ((mx - STAGE.w / 2) * pz) / focal;
+        const py = ((STAGE.h / 2 - my) * pz) / focal;
+        const phi = stageDrag.camera.azim * Math.PI / 180;
+        const lambda = stageDrag.camera.elev * Math.PI / 180;
+        const R = stageDrag.camera.radius;
+        const tgt = { x: 0, y: 1.02, z: 0 };
+        const eye = {
+          x: R * Math.cos(lambda) * Math.sin(phi),
+          y: R * Math.sin(lambda) + tgt.y,
+          z: R * Math.cos(lambda) * Math.cos(phi),
+        };
+        const fwd = normalize3(sub3(tgt, eye));
+        const right = normalize3(cross3(fwd, { x: 0, y: 1, z: 0 }));
+        const up = cross3(right, fwd);
+        const dir = normalize3({
+          x: fwd.x * pz + right.x * px + up.x * py,
+          y: fwd.y * pz + right.y * px + up.y * py,
+          z: fwd.z * pz + right.z * px + up.z * py,
+        });
+        if (dir.y >= -0.001) return;
+        const t = -eye.y / dir.y;
+        const gx = eye.x + t * dir.x;
+        const gz = eye.z + t * dir.z;
+        const horiz = Math.sqrt(gx * gx + gz * gz);
+        if (horiz < 0.05) return;
+        entry.light.angleDeg = ((Math.round(Math.atan2(gx, gz) * 180 / Math.PI) % 360) + 360) % 360;
+        const eps = (Number(entry.light.heightDeg) || 0) * Math.PI / 180;
+        entry.light.distanceM = Math.max(
+          LIGHT_METERS_MIN,
+          Math.min(LIGHT_METERS_MAX, horiz / Math.max(0.2, Math.cos(eps))),
+        );
+        stageDrag.refresh();
+      };
+
+      for (const entry of bulbRegistry) {
+        entry.node.addEventListener("mousedown", function (event) {
           if (event.button !== 0) return;
           event.preventDefault();
           if (event && typeof event.stopPropagation === "function") event.stopPropagation();
-          highlightLightRow(lightDots.indexOf(entry), true);
-          drag(entry.light, event);
-          const onMove = function (moveEvent) { drag(entry.light, moveEvent); };
+          highlightLightCard(entry.entry.index, true);
+          dragBulb(event, entry.entry);
+          const onMove = function (moveEvent) { dragBulb(moveEvent, entry.entry); };
           const onUp = function () {
             document.removeEventListener("mousemove", onMove);
             document.removeEventListener("mouseup", onUp);
-            highlightLightRow(lightDots.indexOf(entry), false);
             syncLightRows();
             markDirty();
             render();
           };
           document.addEventListener("mousemove", onMove);
           document.addEventListener("mouseup", onUp);
-        };
-        entry.dot.addEventListener("mousedown", start);
+        });
+        entry.node.addEventListener("mouseenter", function () {
+          highlightLightCard(entry.entry.index, true);
+        });
+        entry.node.addEventListener("mouseleave", function () {
+          highlightLightCard(entry.entry.index, false);
+        });
       }
       return svg;
     }
-
-    /* Cross-highlight: hovering/dragging a light in one spot highlights it
-     * in the other (diagram dot <-> list row). */
-    function highlightLightRow(index, on) {
-      const wrap = document.querySelector(".krea2-v2-compass-wrap");
+    /* Cross-highlight: hovering a light in one spot highlights it in the
+     * other (stage bulb <-> control card). */
+    function highlightLightCard(index, on) {
+      const wrap = document.querySelector(".krea2-v2-lighting-wrap");
       if (!wrap) return;
-      const rows = wrap.querySelectorAll('.krea2-v2-light-row[data-light-index="' + index + '"]');
-      for (const row of rows) row.classList.toggle("is-highlighted", on);
+      const cards = wrap.querySelectorAll('.krea2-v2-lt-card[data-light-index="' + index + '"]');
+      for (const card of cards) card.classList.toggle("is-highlighted", on);
+      const bulbs = wrap.querySelectorAll('.krea2-v2-lt-bulb[data-light-index="' + index + '"]');
+      for (const bulb of bulbs) bulb.classList.toggle("is-highlighted", on);
+    }
+    function highlightLightRow(index, on) { highlightLightCard(index, on); }
+    function highlightLightDot(index, on) { highlightLightCard(index, on); }
+
+    /* Dial: a small circle with a needle pointing at the light's azimuth
+     * (0° up, 90° right, 180° down, 270° left). Dragging rotates it. */
+    function renderAngleDial(light) {
+      const wrapOuter = el("div", { class: "krea2-v2-lt-dial", title: "Drag around the dial to aim the light" });
+      const R = 17;
+      const svg = svgEl("svg", {
+        viewBox: "0 0 40 40",
+        width: "40", height: "40",
+        class: "krea2-v2-lt-dial-svg",
+        "aria-label": "Light angle dial",
+      });
+      svg.appendChild(svgEl("circle", { cx: "20", cy: "20", r: "16", class: "krea2-v2-lt-dial-ring" }));
+      const needle = svgEl("line", { x1: "20", y1: "20", x2: "20", y2: "7", class: "krea2-v2-lt-dial-needle" });
+      const dot = svgEl("circle", { cx: "20", cy: "20", r: "1.6", class: "krea2-v2-lt-dial-pivot" });
+      svg.appendChild(needle);
+      svg.appendChild(dot);
+      wrapOuter.appendChild(svg);
+
+      function paint() {
+        const theta = (Number(light.angleDeg) || 0) * Math.PI / 180;
+        const nx = 20 + Math.sin(theta) * 11;
+        const ny = 20 - Math.cos(theta) * 11;
+        needle.setAttribute("x2", String(nx));
+        needle.setAttribute("y2", String(ny));
+      }
+      paint();
+
+      const doDrag = function (event) {
+        const bounds = svg.getBoundingClientRect ? svg.getBoundingClientRect() : null;
+        const cx = bounds ? bounds.left + bounds.width / 2 : 20;
+        const cy = bounds ? bounds.top + bounds.height / 2 : 20;
+        const dx = event.clientX - cx;
+        const dy = event.clientY - cy;
+        if (Math.sqrt(dx * dx + dy * dy) < 3) return;
+        const theta = Math.atan2(dx, -dy);
+        light.angleDeg = ((Math.round(theta * 180 / Math.PI) % 360) + 360) % 360;
+        paint();
+      };
+      svg.addEventListener("mousedown", function (event) {
+        event.preventDefault();
+        if (event && typeof event.stopPropagation === "function") event.stopPropagation();
+        doDrag(event);
+        const onMove = function (moveEvent) { doDrag(moveEvent); };
+        const onUp = function () {
+          document.removeEventListener("mousemove", onMove);
+          document.removeEventListener("mouseup", onUp);
+          setLightState(light, { angleDeg: light.angleDeg });
+        };
+        document.addEventListener("mousemove", onMove);
+        document.addEventListener("mouseup", onUp);
+      });
+      return wrapOuter;
     }
 
-    function highlightLightDot(index, on) {
-      const wrap = document.querySelector(".krea2-v2-compass-wrap");
-      if (!wrap) return;
-      const dots = wrap.querySelectorAll('.krea2-v2-compass-handle[data-light-index="' + index + '"]');
-      for (const dot of dots) dot.classList.toggle("is-highlighted", on);
+    function renderLightControlRow(iconName, labelText, controlEl, valueEl) {
+      return el("div", { class: "krea2-v2-lt-row" }, [
+        el("span", { class: "krea2-v2-lt-row-icon" }, icon(iconName, { width: "12", height: "12" })),
+        el("span", { class: "krea2-v2-lt-row-label" }, labelText),
+        controlEl,
+        valueEl || "",
+      ]);
     }
 
-    function renderLightRows() {
-      const rows = el("div", { class: "krea2-v2-light-rows" });
+    function renderLightSlider(attrs, onCommit) {
+      const slider = el("input", { type: "range", class: "krea2-v2-lt-slider", ...attrs });
+      slider.addEventListener("change", function (event) {
+        onCommit(Number(event.target.value));
+      });
+      return slider;
+    }
+
+    function renderLightCards() {
+      const cards = el("div", { class: "krea2-v2-lt-cards" });
       sceneLights().forEach(function (light, index) {
-        const row = el("div", {
-          class: "krea2-v2-light-row",
+        const card = el("div", {
+          class: "krea2-v2-lt-card" + (light.enabled === false ? " is-disabled" : ""),
           dataset: { lightIndex: String(index) },
         });
-        row.addEventListener("mouseenter", function () { highlightLightDot(index, true); });
-        row.addEventListener("mouseleave", function () { highlightLightDot(index, false); });
-        const label = el("span", {
-          class: "krea2-v2-light-label",
-          title: lightPhrase(light),
-        }, "Light " + (index + 1) + " \u00b7 " + lightPhrase(light));
-        const angleStepper = K.presetRow.makeStepper({
-          value: Number(light.angleDeg) || 0,
-          step: 5,
-          min: 0,
-          max: 360,
-          format: function (v) { return Math.round(v) % 360 + "\u00b0"; },
-          label: "Light " + (index + 1) + " angle",
-          onCommit: function (value) {
-            setLightState(light, { angleDeg: value });
-          },
-        });
-        const intensityStepper = K.presetRow.makeStepper({
-          value: Number(light.strength) || 1.5,
-          step: 0.25,
-          min: -3,
-          max: 3,
-          format: formatLoraValue,
-          label: "Light " + (index + 1) + " intensity",
-          onCommit: function (value) {
-            setLightState(light, { strength: Math.round(value * 100) / 100 });
-          },
-        });
-        const colour = renderLightColorButton(light, index);
-        const colourDice = el("button", {
+        card.addEventListener("mouseenter", function () { highlightLightCard(index, true); });
+        card.addEventListener("mouseleave", function () { highlightLightCard(index, false); });
+
+        const switchBtn = el("button", {
           type: "button",
-          class: "krea2-wizard-btn krea2-icon-btn krea2-light-colour-dice",
-          title: "Randomize this light's colour, position and angle",
-          "aria-label": "Randomize light " + (index + 1) + " colour, position and angle",
-          onClick: function () {
-            const entry = LIGHT_PALETTE[Math.floor(Math.random() * LIGHT_PALETTE.length)];
-            setLightState(light, {
-              color: entry[0],
-              angleDeg: Math.floor(Math.random() * 360),
-              distance: 0.35 + Math.random() * 0.65,
-            });
-          },
-        }, icon("dice", { width: "11", height: "11" }));
-        const colourShuffleOn = !!(state.randomize_on_job || {}).lighting;
-        const colourShuffle = el("button", {
+          class: "krea2-v2-lt-switch" + (light.enabled !== false ? " is-on" : ""),
+          role: "switch",
+          "aria-checked": light.enabled === false ? "false" : "true",
+          title: light.enabled === false ? "Enable this light" : "Disable this light",
+          "aria-label": "Toggle " + light.label,
+          onClick: function () { setLightState(light, { enabled: light.enabled === false }); },
+        }, icon("power", { width: "11", height: "11" }));
+        const copyBtn = el("button", {
           type: "button",
-          class: "krea2-wizard-btn krea2-icon-btn krea2-shuffle" + (colourShuffleOn ? " is-active" : ""),
-          title: colourShuffleOn
-            ? "Shuffle on: light colours randomize every queued job. Click to stop."
-            : "Randomize light colours every queued job.",
-          "aria-label": "Randomize light colours every queued job",
-          "aria-pressed": colourShuffleOn ? "true" : "false",
-          onClick: function () { toggleChipShuffle("lighting_direction"); },
-        }, icon("shuffle", { width: "11", height: "11" }));
-        const remove = el("button", {
+          class: "krea2-wizard-btn krea2-icon-btn",
+          title: "Duplicate this light",
+          "aria-label": "Duplicate " + light.label,
+          onClick: function () { duplicateLight(light); },
+        }, icon("copy", { width: "11", height: "11" }));
+        const trashBtn = el("button", {
           type: "button",
           class: "krea2-wizard-btn krea2-icon-btn krea2-danger",
           title: "Remove this light",
-          "aria-label": "Remove light " + (index + 1),
+          "aria-label": "Remove " + light.label,
           onClick: function () { removeLight(light); },
         }, icon("trash", { width: "11", height: "11" }));
-        const controls = el("div", { class: "krea2-v2-light-controls" }, [
-          el("span", { class: "krea2-v2-light-tag" }, "angle"),
-          angleStepper.minus, angleStepper.valueEl, angleStepper.plus,
-          el("span", { class: "krea2-v2-light-tag" }, "intensity"),
-          intensityStepper.minus, intensityStepper.valueEl, intensityStepper.plus,
-          colour,
-          colourDice,
-          colourShuffle,
-          remove,
-        ]);
-        row.append(label, controls);
-        rows.appendChild(row);
-      });
-      rows.appendChild(el("button", {
-        type: "button",
-        class: "krea2-wizard-btn krea2-v2-add-light",
-        onClick: addLight,
-      }, "+ Add Light"));
-      if ((state.scene_sections && state.scene_sections.lights || []).length) {
-        rows.appendChild(el("button", {
-          type: "button",
-          class: "krea2-wizard-btn krea2-danger krea2-v2-clear-lights",
-          title: "Remove every light from the prompt",
-          onClick: function () {
-            state.scene_sections = state.scene_sections || {};
-            state.scene_sections.lights = [];
-            markDirty();
-            render();
+
+        const nameInput = el("input", {
+          type: "text",
+          class: "krea2-compact-input krea2-v2-lt-name",
+          value: light.label,
+          "aria-label": "Light " + (index + 1) + " name",
+          onInput: function (event) {
+            if (card.classList.contains("is-typing")) card.classList.remove("is-typing");
           },
-        }, "Clear lights"));
-      }
-      return rows;
+          onChange: function (event) {
+            const label = String(event.target.value || "").trim() || ("Light " + (index + 1));
+            event.target.value = label;
+            setLightState(light, { label: label });
+          },
+        });
+        const head = el("div", { class: "krea2-v2-lt-card-head" }, [
+          el("span", {
+            class: "krea2-v2-lt-dot",
+            style: { backgroundColor: lightHex(light.color) },
+          }),
+          nameInput,
+          switchBtn,
+          copyBtn,
+          trashBtn,
+        ]);
+        card.appendChild(head);
+
+        /* Distance (metres): slider + numeric readout, beyond 2m allowed. */
+        const distanceValue = el("input", {
+          type: "number",
+          class: "krea2-compact-input krea2-v2-lt-num",
+          min: String(LIGHT_METERS_MIN),
+          max: String(LIGHT_METERS_MAX),
+          step: String(LIGHT_DISTANCE_STEP),
+          value: String(light.distanceM),
+          "aria-label": "Light " + (index + 1) + " distance in metres",
+          onChange: function (event) {
+            setLightState(light, { distanceM: Number(event.target.value) });
+          },
+        }, String(light.distanceM));
+        const distanceSlider = renderLightSlider({
+          min: String(LIGHT_METERS_MIN), max: String(LIGHT_METERS_MAX),
+          step: String(LIGHT_DISTANCE_STEP), value: String(light.distanceM),
+          "aria-label": "Light " + (index + 1) + " distance",
+        }, function (value) {
+          setLightState(light, { distanceM: value });
+        });
+        card.appendChild(renderLightControlRow("ruler", "Distance", distanceSlider, distanceValue));
+
+        /* Angle: dial plus degree readout. */
+        const angleValue = el("span", { class: "krea2-v2-lt-num-text" }, Math.round(light.angleDeg) + "\u00b0");
+        card.appendChild(renderLightControlRow("dial", "Angle", renderAngleDial(light), angleValue));
+
+        /* Height (elevation degrees). */
+        const heightValue = el("span", { class: "krea2-v2-lt-num-text" }, Math.round(light.heightDeg) + "\u00b0");
+        const heightSlider = renderLightSlider({
+          min: "0", max: String(LIGHT_HEIGHT_MAX), step: "5", value: String(light.heightDeg),
+          "aria-label": "Light " + (index + 1) + " elevation",
+        }, function (value) {
+          setLightState(light, { heightDeg: value });
+        });
+        card.appendChild(renderLightControlRow("height", "Height", heightSlider, heightValue));
+
+        /* Colour: swatch button + hex readout. */
+        const colourBtn = el("button", {
+          type: "button",
+          class: "krea2-v2-color-btn krea2-v2-lt-colour-btn has-color",
+          style: { backgroundColor: lightHex(light.color) },
+          title: String(light.color || "white") + " light \u2014 click to pick a colour",
+          "aria-label": "Light " + (index + 1) + " colour",
+          onClick: function (event) {
+            if (event && typeof event.stopPropagation === "function") event.stopPropagation();
+            openColorPopup(colourBtn, LIGHT_PALETTE, String(light.color || ""), "Light " + (index + 1) + " colour", function (name) {
+              setLightState(light, { color: name });
+            });
+          },
+        }, icon("dot", { width: "13", height: "13", color: "rgba(0,0,0,0.4)" }));
+        const hexText = el("span", { class: "krea2-v2-lt-hex" }, lightHex(light.color).toUpperCase());
+        card.appendChild(renderLightControlRow("palette", "Colour", colourBtn, hexText));
+
+        /* Intensity. */
+        const intensityValue = el("span", { class: "krea2-v2-lt-num-text" }, formatLightStrength(light.strength));
+        const intensitySlider = renderLightSlider({
+          min: "0", max: "3", step: "0.05", value: String(light.strength),
+          "aria-label": "Light " + (index + 1) + " intensity",
+        }, function (value) {
+          setLightState(light, { strength: Math.round(value * 100) / 100 });
+        });
+        card.appendChild(renderLightControlRow("sun", "Intensity", intensitySlider, intensityValue));
+
+        cards.appendChild(card);
+      });
+      return cards;
     }
 
-    /* Light colour: a pop-up palette button (shows the current colour).
-     * The palette is light tints only — no hair words like blonde. */
+    /* Lighting setup rail: pills for the first setups + a More button that
+     * opens the gallery popup with live-rendered preview thumbs. */
+    function renderLightingSetupRail() {
+      const rail = el("div", { class: "krea2-v2-lt-rail" });
+      const activeSetupId = (state.rows || []).filter(function (row) {
+        return row.category === "lighting_setup" && row.enabled !== false;
+      }).map(function (row) { return row.preset_id; })[0] || "";
+      for (const setup of LIGHTING_PILLS) {
+        rail.appendChild(el("button", {
+          type: "button",
+          class: "krea2-v2-lt-pill" + (setup.id === activeSetupId ? " is-active" : ""),
+          title: setup.description,
+          onClick: function () { applyLightingSetup(setup.id); },
+        }, [icon("bulb", { width: "11", height: "11" }), el("span", null, setup.label)]));
+      }
+      rail.appendChild(el("button", {
+        type: "button",
+        class: "krea2-v2-lt-pill krea2-v2-lt-more",
+        title: "Browse every lighting preset",
+        onClick: function () { openLightingPresetGallery(); },
+      }, [icon("image", { width: "11", height: "11" }), el("span", null, "More")]));
+      return rail;
+    }
+
+    /* Gallery thumbnail: a tiny bust rendered from the setup's lights so
+     * each preset shows what its result will look like. */
+    function renderLightingThumb(setup) {
+      const w = 120, h = 76;
+      const svg = svgEl("svg", {
+        viewBox: "0 0 " + w + " " + h,
+        width: String(w), height: String(h),
+        class: "krea2-v2-lt-thumb",
+        "aria-label": setup.label + " lighting preview",
+      });
+      svg.appendChild(svgEl("rect", { x: "0", y: "0", width: String(w), height: String(h), rx: "6", fill: "#232b34" }));
+      const cx = w / 2, headX = cx, headY = 34;
+      svg.appendChild(svgEl("circle", { cx: headX, cy: headY, r: "12", fill: "#3c4650" }));
+      svg.appendChild(svgEl("path", {
+        d: "M" + (headX - 22) + " " + h + " C" + (headX - 20) + " " + (headY + 22) + " " + (headX + 20) + " " + (headY + 22) + " " + (headX + 22) + " " + h + " Z",
+        fill: "#3c4650",
+      }));
+      const lights = setup.lights || [];
+      const maxD = Math.max(1, (LIGHT_METERS_MAX));
+      const r2 = function (value) {
+        return Math.round(Number(value) * 100) / 100;
+      };
+      lights.forEach(function (entry, index) {
+        const theta = (Number(entry.angleDeg) || 0) * Math.PI / 180;
+        const frac = (Number(entry.distanceM) || 1.5) / maxD;
+        const len = 18 + frac * 22;
+        const x1 = headX + Math.sin(theta) * len;
+        const y1 = headY + Math.cos(theta) * len * 0.8 - (Number(entry.heightDeg) || 20) / 90 * 16;
+        const hex = lightHex(entry.color);
+        const alpha = Math.min(0.55, 0.2 + (Number(entry.strength) || 1.2) * 0.12);
+        svg.appendChild(svgEl("path", {
+          d: "M" + r2(x1) + " " + r2(y1) + " C" + r2(x1 * 0.6 + headX * 0.4) + " " + r2(y1 * 0.6 + headY * 0.4) + " "
+            + r2(headX - 8) + " " + r2(headY + 8) + " " + r2(headX - 8) + " " + r2(headY + 8)
+            + " L" + r2(headX + 8) + " " + r2(headY + 8)
+            + " C" + r2(headX * 0.6 + x1 * 0.4) + " " + r2(headY * 0.6 + y1 * 0.4)
+            + " " + r2(headX * 0.78 + x1 * 0.22) + " " + r2(headY * 0.78 + y1 * 0.22)
+            + " " + r2(x1) + " " + r2(y1) + " Z",
+          style: "fill: " + hex + "; opacity: " + alpha.toFixed(3) + ";",
+        }));
+        svg.appendChild(svgEl("circle", { cx: r2(x1), cy: r2(y1), r: "4", fill: hex }));
+      });
+      return svg;
+    }
+
+    function openLightingPresetGallery() {
+      const existing = document.querySelector(".krea2-v2-lt-gallery");
+      if (existing) existing.remove();
+      const overlay = el("div", { class: "krea2-v2-lt-gallery" });
+      const box = el("div", { class: "krea2-v2-lt-gallery-box" });
+
+      const searchInput = el("input", {
+        type: "text",
+        class: "krea2-compact-input krea2-v2-lt-gallery-search",
+        placeholder: "Search presets...",
+        "aria-label": "Search lighting presets",
+        onInput: function () { paint(category || "All", searchInput.value.trim()); },
+      });
+      const saveBtn = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-v2-lt-gallery-save",
+        title: "Store the current stage as a reusable lighting preset",
+        onClick: function () {
+          saveLightingSetup();
+          overlay.remove();
+        },
+      }, [icon("download", { width: "11", height: "11" }), el("span", null, "Save Current Setup as Preset")]);
+      const closeBtn = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-icon-btn",
+        title: "Close",
+        "aria-label": "Close",
+        onClick: function () { overlay.remove(); },
+      }, icon("close", { width: "12", height: "12" }));
+      box.appendChild(el("div", { class: "krea2-structured-heading" }, [
+        el("strong", null, "Choose a Lighting Preset"),
+        el("span", { class: "krea2-structured-spacer" }),
+        saveBtn,
+        closeBtn,
+      ]));
+      box.appendChild(el("div", { class: "krea2-v2-lt-gallery-tools" }, [searchInput]));
+
+      const allSetups = LIGHTING_PRESETS;
+      const savedSetups = savedPresets.filter(function (preset) {
+        return preset.scope === "lighting" && Array.isArray(preset.lights);
+      });
+      let category = "All";
+      let currentSelection = null;
+
+      const categoriesHost = el("div", { class: "krea2-v2-lt-gallery-cats" });
+      const cardsHost = el("div", { class: "krea2-v2-lt-gallery-cards" });
+      box.appendChild(categoriesHost);
+      box.appendChild(cardsHost);
+      const applyRow = el("div", { class: "krea2-v2-lt-gallery-foot" }, [
+        el("span", { class: "krea2-v2-lt-gallery-tip" },
+          "Tip: You can fine-tune any preset after applying it."),
+        el("span", { class: "krea2-structured-spacer" }),
+        el("button", {
+          type: "button",
+          class: "krea2-wizard-btn",
+          onClick: function () { overlay.remove(); },
+        }, "Cancel"),
+        el("button", {
+          type: "button",
+          class: "krea2-wizard-btn krea2-v2-lt-gallery-apply",
+          onClick: function () {
+            if (!currentSelection) return;
+            if (currentSelection.scope === "lighting") {
+              state.scene_sections = state.scene_sections || {};
+              state.scene_sections.lights = currentSelection.lights.map(normalizeLight);
+              state.rows = state.rows.filter(function (row) { return row.category !== "lighting_setup"; });
+              syncLightRows();
+              markDirty();
+              render();
+            } else {
+              applyLightingSetup(currentSelection.id);
+            }
+            overlay.remove();
+            showToast("\u201c" + currentSelection.label + "\u201d lighting applied", "info");
+          },
+        }, "Apply Preset"),
+      ]);
+      box.appendChild(applyRow);
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+      overlay.addEventListener("click", function (event) {
+        if (event.target === overlay) overlay.remove();
+      });
+
+      function paint(cat, query) {
+        category = cat;
+        categoriesHost.innerHTML = "";
+        for (const name of LIGHTING_GALLERY_CATEGORIES) {
+          categoriesHost.appendChild(el("button", {
+            type: "button",
+            class: "krea2-v2-lt-gallery-cat" + (name === cat ? " is-active" : ""),
+            onClick: function () { paint(name, searchInput.value.trim()); },
+          }, name));
+        }
+        cardsHost.innerHTML = "";
+        const needle = String(query || "").toLowerCase();
+        const items = allSetups.concat(savedSetups.map(function (preset) {
+          return {
+            id: preset.id,
+            label: preset.label,
+            category: "Saved",
+            description: "Your saved lighting setup",
+            scope: "lighting",
+            lights: preset.lights,
+            saved: true,
+          };
+        }));
+        for (const setup of items) {
+          if (cat !== "All" && setup.category !== cat) continue;
+          if (needle && String(setup.label + " " + setup.description).toLowerCase().indexOf(needle) < 0) continue;
+          const card = el("button", {
+            type: "button",
+            class: "krea2-v2-lt-gallery-card",
+            onClick: function () {
+              currentSelection = setup;
+              cardsHost.querySelectorAll(".krea2-v2-lt-gallery-card").forEach(function (el) {
+                if (el !== card) el.classList.remove("is-selected");
+              });
+              card.classList.add("is-selected");
+            },
+          }, [
+            renderLightingThumb(setup),
+            el("div", { class: "krea2-v2-lt-gallery-card-meta" }, [
+              el("strong", null, setup.label),
+              el("span", null, setup.description || ""),
+            ]),
+            el("span", { class: "krea2-v2-lt-gallery-check" }, currentSelection === setup ? icon("check", { width: "12", height: "12" }) : ""),
+          ]);
+          cardsHost.appendChild(card);
+        }
+      }
+      paint("All", "");
+    }
+
+    /* Save the current stage as a lighting preset (scope "lighting"). */
+    function saveLightingSetup() {
+      const label = askPresetName("Name this lighting setup");
+      if (!label) return;
+      const existing = findExistingSavedPreset("lighting", label);
+      if (existing && !window.confirm(
+        "A lighting preset named \u201c" + label + "\u201d already exists. Overwrite it?",
+      )) return;
+      const payload = { scope: "lighting", lights: cloneJson(sceneLights()) };
+      if (existing) {
+        Object.assign(existing, payload, { label: label });
+      } else {
+        savedPresets.push(Object.assign({ id: makeSavedPresetId("lighting", ""), label: label }, payload));
+      }
+      persistSavedPresets(existing ? "Lighting preset overwritten" : "Lighting setup saved");
+    }
+
+    /* Lighting colour palette button (used inside the light cards). */
     function renderLightColorButton(light, index) {
       const current = String(light.color || "");
       const btn = el("button", {
         type: "button",
         class: "krea2-v2-color-btn" + (current ? " has-color" : ""),
         style: current ? { background: colourHexFor(current, LIGHT_PALETTE) } : {},
-        title: (current || "white") + " light — click to pick a colour",
+        title: (current || "white") + " light \u2014 click to pick a colour",
         "aria-label": "Light " + (index + 1) + " colour: " + (current || "white"),
         onClick: function (event) {
           if (event && typeof event.stopPropagation === "function") event.stopPropagation();
@@ -5293,9 +6120,110 @@ function buildGroupPresetPicker(group) {
       return btn;
     }
 
+    /* ------------------------------------------------------------------
+     * Camera subsection: shot-distance slider (wide <-> tight), angle,
+     * lens focal length, aperture. The old Close-up / Medium / Wide /
+     * Establishing chips are gone — the shot-distance slider replaces
+     * them with a single concept that moves the camera toward or away
+     * from the subject.
+     * ------------------------------------------------------------------ */
+    const SHOT_DISTANCE_ID = "custom.shot_distance";
+
+    function shotDistanceValue() {
+      if (!state.scene_sections || state.scene_sections.shot_distance === undefined) return 0;
+      const v = Number(state.scene_sections.shot_distance);
+      return Number.isFinite(v) ? Math.max(-100, Math.min(100, Math.round(v))) : 0;
+    }
+
+    function shotDistanceBand(value) {
+      if (value <= -75) return "Very wide";
+      if (value <= -25) return "Wide";
+      if (value < 25) return "Standard";
+      if (value < 75) return "Close-up";
+      return "Very close-up";
+    }
+
+    function syncShotDistanceRow() {
+      state.rows = state.rows.filter(function (row) {
+        return row.preset_id !== SHOT_DISTANCE_ID;
+      });
+      const value = shotDistanceValue();
+      if (!value) return;
+      const tight = value > 0;
+      const strength = Math.round((value / 100) * 3 * 4) / 4;
+      state.rows.push({
+        id: uniqueRowId(state),
+        category: "perspective",
+        preset_id: SHOT_DISTANCE_ID,
+        label: "Shot distance \u2014 " + shotDistanceBand(value),
+        phrase: tight
+          ? "face close to the lens"
+          : "distant subject framed deep within the environment",
+        positive_phrase: "face close to the lens",
+        negative_phrase: "distant subject framed deep within the environment",
+        neutral_phrase: "",
+        control_mode: "bipolar",
+        intensity: value,
+        strength: strength,
+        enabled: true,
+        aliases: [],
+        verification: "general visual vocabulary",
+        source: "custom",
+      });
+    }
+
+    function renderShotDistanceRow() {
+      const value = shotDistanceValue();
+      const bandValue = el("span", { class: "krea2-v2-lens-value krea2-v2-shot-distance-value" },
+        shotDistanceBand(value) + (value ? "" : "\u00b7 default"));
+      const slider = el("input", {
+        type: "range",
+        class: "krea2-v2-shot-distance-slider",
+        min: "-100",
+        max: "100",
+        step: "5",
+        value: String(value),
+        "aria-label": "Shot distance: wide on the left, tight on the right",
+        onInput: function (event) {
+          bandValue.textContent = shotDistanceBand(Math.round(Number(event.target.value)));
+        },
+        onChange: function (event) {
+          const next = Math.round(Number(event.target.value));
+          state.scene_sections = state.scene_sections || {};
+          state.scene_sections.shot_distance = next;
+          syncShotDistanceRow();
+          markDirty();
+          render();
+        },
+      });
+      const wide = el("span", { class: "krea2-v2-shot-distance-end" }, "Wide");
+      const tight = el("span", { class: "krea2-v2-shot-distance-end" }, "Tight");
+      const clearBtn = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-icon-btn krea2-field-clear",
+        title: "Reset the shot distance (no shot-distance concept)",
+        "aria-label": "Reset the shot distance",
+        onClick: function () {
+          state.scene_sections = state.scene_sections || {};
+          state.scene_sections.shot_distance = 0;
+          syncShotDistanceRow();
+          markDirty();
+          render();
+        },
+      }, icon("close", { width: "12", height: "12" }));
+      const row = el("div", { class: "krea2-v2-chip-row krea2-v2-shot-distance-row" });
+      row.append(
+        el("span", { class: "krea2-v2-field-label" }, "Shot distance"),
+        el("span", { class: "krea2-v2-shot-distance-scale" }, [wide, slider, tight]),
+        bandValue,
+        clearBtn,
+      );
+      return row;
+    }
+
     function renderCameraContent() {
       const wrap = el("div", { class: "krea2-v2-subsection-content" });
-      wrap.appendChild(renderChipRow("Framing", "framing", SCENE_CHIPS.framing));
+      wrap.appendChild(renderShotDistanceRow());
       wrap.appendChild(renderChipRow("Angle", "angle", SCENE_CHIPS.angle));
       wrap.appendChild(renderLensRow());
       wrap.appendChild(renderChipRow("Aperture", "aperture", SCENE_CHIPS.aperture));
@@ -5303,16 +6231,78 @@ function buildGroupPresetPicker(group) {
     }
 
     function renderLightingContent() {
-      const wrap = el("div", { class: "krea2-v2-subsection-content" });
-      wrap.appendChild(renderChipRow("PRESETS", "lighting_setup", SCENE_CHIPS.lighting_setup));
-      const dirRow = el("div", { class: "krea2-v2-chip-row krea2-v2-dir-row" });
-      dirRow.append(
-        el("div", { class: "krea2-v2-compass-wrap" }, [
-          renderCompassRose(),
-          renderLightRows(),
+      const wrap = el("div", { class: "krea2-v2-subsection-content krea2-v2-lighting-wrap" });
+      /* Panel header: bulb + title + subtitle + Save Lighting Setup. */
+      const head = el("div", { class: "krea2-v2-lt-head" }, [
+        el("span", { class: "krea2-v2-lt-head-icon" }, icon("bulb", { width: "16", height: "16" })),
+        el("div", { class: "krea2-v2-lt-head-text" }, [
+          el("strong", null, "Lighting"),
+          el("span", null, "Position and control lights to shape your scene."),
         ]),
-      );
-      wrap.appendChild(dirRow);
+        el("span", { class: "krea2-structured-spacer" }),
+        el("button", {
+          type: "button",
+          class: "krea2-wizard-btn krea2-v2-lt-save",
+          title: "Save the current lighting setup as a reusable preset",
+          onClick: function () { saveLightingSetup(); },
+        }, [icon("save", { width: "11", height: "11" }), el("span", null, "Save Lighting Setup")]),
+      ]);
+      wrap.appendChild(head);
+      /* Preset rail. */
+      wrap.appendChild(renderLightingSetupRail());
+      /* Stage + cards. */
+      const row = el("div", { class: "krea2-v2-lt-main" });
+      const stageCol = el("div", { class: "krea2-v2-lt-stage-col" });
+      stageCol.appendChild(renderLightStage());
+      if (stageDrag) stageDrag.host = stageCol;
+      row.appendChild(stageCol);
+      row.appendChild(renderLightCards());
+      wrap.appendChild(row);
+      const stageFoot = el("div", { class: "krea2-v2-lt-stage-foot" });
+      const ground = el("select", {
+        class: "krea2-compact-select",
+        "aria-label": "Ground plane",
+        onChange: function (event) {
+          state.scene_sections = state.scene_sections || {};
+          state.scene_sections.stage_ground = event.target.value;
+          markDirty();
+          render();
+        },
+      });
+      ground.appendChild(el("option", { value: "ground" }, "Ground"));
+      ground.appendChild(el("option", { value: "hidden" }, "Hidden"));
+      ground.value = "hidden" === (state.scene_sections || {}).stage_ground ? "hidden" : "ground";
+      const cam = stageCamera();
+      const view = el("span", {
+        class: "krea2-v2-lt-view-label",
+        title: "Drag the background to orbit the camera; drag a bulb to move a light; scroll to zoom; double-click to reset.",
+      }, "Azimuth " + cam.azim + "\u00b0 \u00b7 Elevation " + cam.elev + "\u00b0 \u2014 drag to orbit \u00b7 scroll to zoom");
+      if (stageDrag) stageDrag.viewLabel = view;
+      stageFoot.append(ground, view);
+      wrap.appendChild(stageFoot);
+      wrap.appendChild(el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-v2-add-light",
+        onClick: addLight,
+      }, "+ Add Light"));
+      if ((state.scene_sections && state.scene_sections.lights || []).length) {
+        wrap.appendChild(el("button", {
+          type: "button",
+          class: "krea2-wizard-btn krea2-danger krea2-v2-clear-lights",
+          title: "Remove every light from the prompt",
+          onClick: function () {
+            state.scene_sections = state.scene_sections || {};
+            state.scene_sections.lights = [];
+            syncLightRows();
+            markDirty();
+            render();
+          },
+        }, "Clear lights"));
+      }
+      wrap.appendChild(el("div", { class: "krea2-v2-lt-tip" }, [
+        icon("bulb", { width: "10", height: "10" }),
+        el("span", null, "Tip: Drag light icons on the stage to reposition. Use the controls to fine-tune each light."),
+      ]));
       return wrap;
     }
 
@@ -5387,38 +6377,61 @@ function buildGroupPresetPicker(group) {
       return select;
     }
 
-    /* Setting section at the top of the SCENE tab: Type, Setting (with dice
-     * and shuffle) and Style on one line, and the Description field below —
-     * scene presets fill it so it is editable and re-saveable. */
+    /* Setting section at the top of the SCENE tab, split into two clearly
+     * separated cards:
+     *  1. Setting — the scene DESCRIPTION only. Scene presets, saved
+     *     scenes, dice, shuffle, Save scene: nothing else. It never
+     *     touches camera or lighting.
+     *  2. Shot preset (the old "Style") — a whole-scene preset that
+     *     REPLACES camera, lighting and environment concepts below it.
+     */
     function renderSceneSettingSection() {
-      const section = el("section", { class: "krea2-v2-setting-section" });
+      const section = el("section", { class: "krea2-v2-setting-section krea2-v2-setting-stack" });
       const setting = state.setting && typeof state.setting === "object"
         ? state.setting
         : (state.setting = { enabled: false, name: "", description: "" });
       const settingEachJob = !!(state.randomize_on_job || {}).setting;
-      const topRow = el("div", { class: "krea2-v2-setting-top" }, [
-        el("span", { class: "krea2-v2-field-label" }, "Type"),
-        creativeModeControl,
-        el("span", { class: "krea2-v2-field-label" }, "Setting"),
-        sceneSettingSelect(),
-        el("button", {
-          type: "button",
-          class: "krea2-wizard-btn krea2-icon-btn krea2-scene-clear",
-          title: "Clear the scene setting (removes it from the prompt)",
-          "aria-label": "Clear the scene setting",
-          onClick: function () {
-            setting.enabled = false;
-            setting.name = "";
-            setting.description = "";
-            markDirty();
-            render();
-          },
-        }, icon("close", { width: "12", height: "12" })),
+
+      const clearSetting = el("button", {
+        type: "button",
+        class: "krea2-wizard-btn krea2-icon-btn krea2-scene-clear",
+        title: "Clear the scene description (removes it from the prompt)",
+        "aria-label": "Clear the scene description",
+        onClick: function () {
+          const current = state.setting;
+          current.enabled = false;
+          current.name = "";
+          current.description = "";
+          state.base_prompt = "";
+          markDirty();
+          render();
+        },
+      }, icon("close", { width: "12", height: "12" }));
+
+      /* --- Card 1: Setting (description only) --------------------------- */
+      const settingHead = el("div", { class: "krea2-v2-block-head krea2-v2-setting-head" }, [
+        icon("globe", { width: "13", height: "13" }),
+        el("strong", null, "Setting"),
+        el("span", { class: "krea2-v2-block-hint" }, "scene description only"),
+        el("span", { class: "krea2-structured-spacer" }),
+        el("label", { class: "krea2-inline-check" }, [
+          el("input", {
+            type: "checkbox",
+            checked: !!setting.enabled,
+            onChange: function (event) {
+              state.setting.enabled = !!event.target.checked;
+              markDirty();
+              render();
+            },
+          }),
+          el("span", null, "Include"),
+        ]),
         diceButton("Randomize the scene", function () {
           const preset = randomChoice(SETTING_PRESETS);
-          setting.enabled = true;
-          setting.name = preset[0];
-          setting.description = preset[1];
+          const current = state.setting;
+          current.enabled = true;
+          current.name = preset[0];
+          current.description = preset[1];
           state.base_prompt = preset[1];
           markDirty();
           render();
@@ -5433,37 +6446,44 @@ function buildGroupPresetPicker(group) {
           "aria-pressed": settingEachJob ? "true" : "false",
           onClick: function () { toggleSceneShuffle(settingEachJob); },
         }, icon("shuffle", { width: "12", height: "12" })),
-        el("span", { class: "krea2-v2-field-label" }, "Style"),
-        masterPresetSelect,
+        clearSetting,
       ]);
-      const description = el("textarea", {
-        class: "krea2-compact-textarea krea2-wizard-base",
-        rows: "2",
-        "aria-label": "Scene description",
-        placeholder: "Describe the scene, mood, lighting, camera, or style.",
-        onInput: function (event) {
-          state.base_prompt = event.target.value;
-          autoExpandTextarea(event);
+
+      /* Saved scene presets: description only (scope "setting"). */
+      const savedSceneSelect = el("select", {
+        class: "krea2-compact-select krea2-scene-select",
+        "aria-label": "Saved scene presets",
+        title: "Load a saved scene description",
+        onChange: function (event) {
+          const preset = savedSettings[Number(event.target.value)];
+          if (!preset) return;
+          state.setting = cloneJson(preset.setting);
+          state.base_prompt = String(state.setting.description || "");
           markDirty();
+          render();
         },
-      }, state.base_prompt || "");
-      autoExpandTextarea({ target: description });
-      const descRow = el("div", { class: "krea2-v2-setting-desc" }, [
-        el("span", { class: "krea2-v2-field-label" }, "Description"),
-        description,
-      ]);
-      const save = el("button", {
+      });
+      savedSceneSelect.appendChild(el("option", { value: "" }, "Saved scenes..."));
+      const savedSettings = savedPresets.filter(function (preset) {
+        return preset.scope === "setting";
+      }).concat(state.setting_presets || []);
+      savedSettings.forEach(function (preset, index) {
+        savedSceneSelect.appendChild(el("option", { value: String(index) }, preset.label || "Scene"));
+      });
+
+      const saveSceneBtn = el("button", {
         type: "button",
         class: "krea2-wizard-btn",
-        title: "Save the current scene as a reusable preset",
+        title: "Save the scene description as a reusable preset (camera & lighting are not included)",
         onClick: function () {
-          const label = String(setting.name || "Scene").trim();
+          const current = state.setting;
+          const label = String(current.name || "Scene").trim();
           if (!label) { showToast("Choose or name the scene first", "warning"); return; }
           const existing = findExistingSavedPreset("setting", label);
           if (existing && !window.confirm(
             "A scene preset named \u201c" + label + "\u201d already exists. Overwrite it?",
           )) return;
-          const payload = { scope: "setting", setting: cloneJson(setting) };
+          const payload = { scope: "setting", setting: cloneJson(current) };
           if (existing) {
             Object.assign(existing, payload, { label: label });
           } else {
@@ -5472,21 +6492,78 @@ function buildGroupPresetPicker(group) {
           persistSavedPresets(existing ? "Scene preset overwritten" : "Scene preset saved");
         },
       }, "Save scene");
-      const resetScene = el("button", {
+
+      const description = el("textarea", {
+        class: "krea2-compact-textarea krea2-wizard-base",
+        rows: "2",
+        "aria-label": "Scene description",
+        placeholder: "Describe the scene, mood, atmosphere... (camera and lighting live below)",
+        onInput: function (event) {
+          state.base_prompt = event.target.value;
+          state.setting.description = event.target.value;
+          autoExpandTextarea(event);
+          markDirty();
+        },
+      }, state.base_prompt || "");
+      autoExpandTextarea({ target: description });
+
+      const settingCard = el("div", { class: "krea2-v2-card-block krea2-v2-setting-card" }, [
+        settingHead,
+        el("div", { class: "krea2-v2-setting-body" }, [
+          el("div", { class: "krea2-v2-setting-top" }, [
+            el("span", { class: "krea2-v2-field-label" }, "Scene preset"),
+            sceneSettingSelect(),
+            savedSceneSelect,
+            saveSceneBtn,
+          ]),
+          el("div", { class: "krea2-v2-setting-top krea2-v2-setting-type-row" }, [
+            el("span", { class: "krea2-v2-field-label" }, "Type"),
+            creativeModeControl,
+          ]),
+          el("div", { class: "krea2-v2-setting-desc" }, [
+            el("span", { class: "krea2-v2-field-label" }, "Description"),
+            description,
+          ]),
+          el("div", { class: "krea2-v2-setting-note" },
+            "Scene presets only store and restore the description \u2014 the camera and lighting sections below keep their own settings."),
+        ]),
+      ]);
+      section.appendChild(settingCard);
+
+      /* --- Card 2: Shot preset (replaces camera/lighting/environment) --- */
+      const shotHead = el("div", { class: "krea2-v2-block-head krea2-v2-setting-head" }, [
+        icon("clapper", { width: "13", height: "13" }),
+        el("strong", null, "Shot preset"),
+        el("span", { class: "krea2-v2-block-hint" }, "replaces camera, lighting & environment below"),
+        el("span", { class: "krea2-structured-spacer" }),
+      ]);
+      const clearShot = el("button", {
         type: "button",
         class: "krea2-wizard-btn krea2-danger",
-        title: "Remove every scene concept (camera, lighting, environment, style, lens, lights) from the prompt",
+        title: "Remove every scene concept (camera, lighting, environment, shot distance, lights) from the prompt",
         onClick: function () {
-          if (!window.confirm("Clear every scene concept (camera, lighting, environment, style) from the prompt?")) return;
+          if (!window.confirm("Clear every scene concept (camera, lighting, environment) from the prompt?")) return;
           state.rows = [];
           state.scene_sections = state.scene_sections || {};
           state.scene_sections.lights = [];
+          state.scene_sections.shot_distance = 0;
+          state.master_preset_id = null;
+          state.master_preset_label = null;
           delete state.scene_sections.light_angle;
           markDirty();
           render();
         },
       }, "Clear scene concepts");
-      section.appendChild(el("div", { class: "krea2-v2-block-body" }, [topRow, descRow, el("div", { class: "krea2-v2-setting-actions" }, [save, resetScene])]));
+      const shotCard = el("div", { class: "krea2-v2-card-block krea2-v2-shot-card" }, [
+        shotHead,
+        el("div", { class: "krea2-v2-setting-top krea2-v2-shot-row" }, [
+          masterPresetSelect,
+          clearShot,
+        ]),
+        el("div", { class: "krea2-v2-setting-note" },
+          "A shot preset fills camera, lighting and environment concepts together. It warns before replacing hands-tuned setups."),
+      ]);
+      section.appendChild(shotCard);
       return section;
     }
 
@@ -5576,14 +6653,16 @@ function buildGroupPresetPicker(group) {
 
     function renderSceneTab() {
       sceneHost.appendChild(renderSceneSettingSection());
-      const grid = el("div", { class: "krea2-v2-scene-grid" });
-      grid.appendChild(renderSceneSubsection("camera", "Camera", "camera",
+      const stack = el("div", { class: "krea2-v2-scene-stack" });
+      /* Camera is full-width; Lighting is its own full-width panel below
+       * it (the stage needs the room); Environment stacks underneath. */
+      stack.appendChild(renderSceneSubsection("camera", "Camera", "camera",
         renderCameraContent));
-      grid.appendChild(renderSceneSubsection("lighting", "Lighting", "bulb",
+      stack.appendChild(renderSceneSubsection("lighting", "Lighting", "bulb",
         renderLightingContent));
-      sceneHost.appendChild(grid);
-      sceneHost.appendChild(renderSceneSubsection("environment", "Environment", "globe",
+      stack.appendChild(renderSceneSubsection("environment", "Environment", "globe",
         renderEnvironmentContent));
+      sceneHost.appendChild(stack);
       sceneHost.appendChild(renderFinalPreview());
     }
 
@@ -6393,15 +7472,11 @@ function buildGroupPresetPicker(group) {
     }
 
     function renderUnsafe() {
-      const advanced = state.wizard_expanded !== false;
+      const advanced = true;  // v2.3: the compact card is hidden
       basePromptControl.input.value = state.base_prompt || "";
       sizeBasePrompt();
       root.classList.remove("krea2-wizard-compact", "krea2-wizard-expanded");
       root.classList.add(advanced ? "krea2-wizard-expanded" : "krea2-wizard-compact");
-      modeToggleBtn.textContent = advanced ? "Compact" : "Advanced";
-      modeToggleBtn.title = advanced
-        ? "Collapse to the compact quick-edit card"
-        : "Open the full editor";
       b2Shell.innerHTML = "";
       if (!advanced) {
         /* Compact: the concept card only — faces + quick edits + prompt.
@@ -6507,7 +7582,7 @@ function buildGroupPresetPicker(group) {
       state.collapsed = {};
       markDirty();
       render();
-      applyModeSize(false);
+      applyModeSize(true);
     }
 
     render();

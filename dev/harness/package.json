@@ -1,0 +1,11 @@
+{
+  "name": "krea2-prompt-wizard-visual-harness",
+  "private": true,
+  "description": "Runs the wizard frontend in a browser without ComfyUI (fixtures from the repo).",
+  "scripts": {
+    "test": "node run_visual.js"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.49.0"
+  }
+}

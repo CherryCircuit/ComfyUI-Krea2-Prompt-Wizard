@@ -272,31 +272,17 @@ function switchTab(tabId) {
   wizard.setTab(tabId);
 }
 
-/* --- v2: the wizard opens as the compact concept card by default -------- */
+/* --- v2.3: the compact card is hidden; the wizard always renders the
+ * full tabbed editor --------------------------------------------------- */
 const rootClasses = (wizard.root.className || "").split(/\s+/);
-if (!rootClasses.includes("krea2-wizard-compact") || rootClasses.includes("krea2-wizard-expanded")) {
-  throw new Error("A fresh wizard must render as the compact quick-edit card.");
+if (!rootClasses.includes("krea2-wizard-expanded") || rootClasses.includes("krea2-wizard-compact")) {
+  throw new Error("A fresh wizard must render as the full tabbed editor (compact is hidden).");
 }
-const compactTitle = findByClass(wizard.root, "krea2-b2-title")[0];
-if (!compactTitle || !textOf(compactTitle).includes("Krea2 Prompt Wizard")) {
-  throw new Error("The compact card must show the wizard title header.");
+if (findByClass(wizard.root, "krea2-wizard-mode-toggle").length !== 0) {
+  throw new Error("The compact mode toggle must be removed.");
 }
-if (!findByClass(wizard.root, "krea2-b2-avatars").length) {
-  throw new Error("The compact card must render the character faces strip.");
-}
-if (!findByClass(wizard.root, "krea2-b2-generate").length) {
-  throw new Error("The compact card must render the Generate Prompt action.");
-}
-const modeToggle = findByClass(wizard.root, "krea2-wizard-mode-toggle")[0];
-if (!modeToggle || textOf(modeToggle) !== "Advanced") {
-  throw new Error("The mode toggle must start in Advanced (expand) direction.");
-}
-modeToggle.listeners.click({});
-if (!(wizard.root.className || "").includes("krea2-wizard-expanded")) {
-  throw new Error("Clicking the mode toggle must expand the wizard.");
-}
-if (textOf(findByClass(wizard.root, "krea2-wizard-mode-toggle")[0]) !== "Compact") {
-  throw new Error("The expanded wizard must offer the Compact (collapse) direction.");
+if (findByClass(wizard.root, "krea2-b2-generate").length !== 0) {
+  throw new Error("The compact card surface must not render (no quick-editing shell).");
 }
 
 /* --- v2: the expanded wizard renders the tabbed editor ------------------- */
@@ -304,12 +290,17 @@ const rootClassesExpanded = (wizard.root.className || "").split(/\s+/);
 if (!rootClassesExpanded.includes("krea2-wizard-expanded")) {
   throw new Error("The expanded wizard must keep the expanded tabbed editor.");
 }
-if (findByClass(wizard.root, "krea2-v2-tab").length !== 2) {
-  throw new Error("The v2 wizard must render exactly two tabs: CAST and SCENE.");
+if (findByClass(wizard.root, "krea2-v2-tab").length !== 3) {
+  throw new Error("The v2 wizard must render three tabs: CAST, SCENE and CONCEPTS.");
 }
 const versionChip = findByClass(wizard.root, "krea2-wizard-version")[0];
 if (!versionChip || !/^v\d+\.\d+\.\d+/.test(textOf(versionChip))) {
   throw new Error("The top bar must show the wizard build version indicator.");
+}
+const conceptTab = findByClass(wizard.root, "krea2-v2-tab")
+  .find((tab) => textOf(tab).includes("Concepts"));
+if (!conceptTab) {
+  throw new Error("The Concepts tab must be available so every concept row is manageable.");
 }
 const castTab = findByClass(wizard.root, "krea2-v2-tab")
   .find((tab) => textOf(tab).includes("Cast"));
@@ -563,7 +554,12 @@ if (findByClass(wizard.root, "krea2-v2-tab").find((tab) => textOf(tab).includes(
 }
 const settingSection = findByClass(wizard.root, "krea2-v2-setting-section");
 if (!settingSection.length) {
-  throw new Error("The SCENE tab must render the Setting section (Type / Setting / Style).");
+  throw new Error("The SCENE tab must render the Setting section.");
+}
+/* Setting and Shot preset must be separate cards now. */
+if (!findByClass(wizard.root, "krea2-v2-setting-card").length
+    || !findByClass(wizard.root, "krea2-v2-shot-card").length) {
+  throw new Error("The Setting (scene description) and Shot preset cards must be clearly separated.");
 }
 if (findByClass(settingSection[0], "krea2-wizard-creative-option").length !== 1) {
   throw new Error("The Type control must offer Photography only (Artwork removed).");
@@ -575,9 +571,8 @@ if (!findByClass(wizard.root, "krea2-scene-select").length
 if (!findByClass(wizard.root, "krea2-scene-clear").length) {
   throw new Error("The Setting select must have a clear (x) button.");
 }
-if (!findByClass(wizard.root, "krea2-v2-setting-actions").length
-    || textOf(findByClass(wizard.root, "krea2-v2-setting-actions")[0]).indexOf("Clear scene concepts") === -1) {
-  throw new Error("The Setting section must offer a Reset/Clear scene concepts action.");
+if (textOf(settingSection[0]).indexOf("Clear scene concepts") === -1) {
+  throw new Error("The Shot preset card must offer the Clear scene concepts action.");
 }
 if (!findByClass(wizard.root, "krea2-v2-chip-row")[0]
       || findByClass(findByClass(wizard.root, "krea2-v2-chip-row")[0], "krea2-field-clear").length === 0) {
@@ -591,15 +586,22 @@ for (const sub of ["camera", "lighting", "environment"]) {
 if (findByClass(wizard.root, "krea2-v2-subsection-style").length !== 0) {
   throw new Error("The standalone Style subsection must be removed (style lives in the Style/Shot dropdown).");
 }
-if (findByClass(wizard.root, "krea2-v2-scene-grid").length !== 1) {
-  throw new Error("Camera and Lighting must share a side-by-side row.");
+if (findByClass(wizard.root, "krea2-v2-scene-grid").length !== 0
+    || findByClass(wizard.root, "krea2-v2-scene-stack").length !== 1) {
+  throw new Error("Camera and Lighting must stack as full-width sections (lighting under camera).");
 }
 const cameraChips = findByClass(wizard.root, "krea2-v2-chip");
-if (cameraChips.length !== 17) {
-  throw new Error("Framing (4) + angle (4) + aperture (5) + setup (4) chips must render, got " + cameraChips.length);
+if (cameraChips.length !== 9) {
+  throw new Error("Angle (4) + aperture (5) chips must render; framing is replaced by the shot-distance slider, got " + cameraChips.length);
 }
-if (!findByClass(wizard.root, "krea2-v2-compass").length) {
-  throw new Error("The Lighting subsection must render the compass rose.");
+if (!findByClass(wizard.root, "krea2-v2-shot-distance-slider").length) {
+  throw new Error("The camera subsection must render the shot-distance slider (wide <-> tight).");
+}
+if (findByClass(wizard.root, "krea2-v2-chip").some((chip) => ["Close-up", "Medium", "Wide", "Establishing"].includes(textOf(chip)))) {
+  throw new Error("The Close-up / Medium / Wide / Establishing chips must be removed in favour of the shot-distance slider.");
+}
+if (!findByClass(wizard.root, "krea2-v2-light-stage").length) {
+  throw new Error("The Lighting panel must render the pseudo-3D stage.");
 }
 if (!findByClass(wizard.root, "krea2-v2-lens-slider").length) {
   throw new Error("The Camera subsection must render the lens slider.");
@@ -633,18 +635,16 @@ if (!atmosphereRows.some((row) => row.preset_id === "atmosphere.fog")
   throw new Error("Environment must allow multiple concepts (fog AND smoke) with per-concept steppers.");
 }
 
-/* --- Scene chips toggle real concept rows ------------------------------- */
-const closeUpChip = findByClass(wizard.root, "krea2-v2-chip")
-  .find((chip) => textOf(chip) === "Close-up");
-closeUpChip.listeners.click({});
-let chipState = JSON.parse(stateWidget.value);
-if (!chipState.rows.some((row) => row.preset_id === "framing.close_up")) {
-  throw new Error("Clicking a framing chip must add the framing concept row.");
+/* --- Shot-distance slider replaces the framing chips --------------------- */
+const shotSlider = findByClass(wizard.root, "krea2-v2-shot-distance-slider")[0];
+shotSlider.listeners.change({ target: { value: "-60" } });
+let shotState = JSON.parse(stateWidget.value);
+let shotRow = shotState.rows.find((row) => row.preset_id === "custom.shot_distance");
+if (!shotRow || shotRow.control_mode !== "bipolar" || shotRow.intensity !== -60) {
+  throw new Error("The shot-distance slider must commit a bipolar shot-distance concept row.");
 }
-const establishingChip = findByClass(wizard.root, "krea2-v2-chip")
-  .find((chip) => textOf(chip) === "Establishing");
-if (!establishingChip.disabled) {
-  throw new Error("Establishing must be disabled while Close-up is active (conflict cascade).");
+if (!String(shotRow.negative_phrase || "").length) {
+  throw new Error("Negative slider values must select the wide (far) phrase.");
 }
 const lowAngleChip = findByClass(wizard.root, "krea2-v2-chip")
   .find((chip) => textOf(chip) === "Low");
@@ -654,9 +654,14 @@ const highAngleChip = findByClass(wizard.root, "krea2-v2-chip")
 if (!highAngleChip.disabled) {
   throw new Error("High angle must be disabled while Low angle is active.");
 }
-chipState = JSON.parse(stateWidget.value);
-if (!chipState.rows.some((row) => row.preset_id === "angle.low_angle")) {
+shotState = JSON.parse(stateWidget.value);
+if (!shotState.rows.some((row) => row.preset_id === "angle.low_angle")) {
   throw new Error("Clicking the Low angle chip must add the angle concept row.");
+}
+shotSlider.listeners.change({ target: { value: "0" } });
+shotState = JSON.parse(stateWidget.value);
+if (shotState.rows.some((row) => row.preset_id === "custom.shot_distance")) {
+  throw new Error("Centring the shot-distance slider must remove the shot-distance concept.");
 }
 
 /* --- Subsection header toggles ------------------------------------------- */
@@ -685,36 +690,45 @@ if (!lensRow || !String(lensRow.preset_id).startsWith("lens.85")) {
   throw new Error("Releasing the lens slider must snap to the 85mm lens preset.");
 }
 
-/* --- Lighting setups drive the multi-light plane --------------------------- */
-const threePointChip = findByClass(wizard.root, "krea2-v2-chip")
-  .find((chip) => textOf(chip) === "Three-point");
-threePointChip.listeners.click({});
+/* --- Lighting presets drive the multi-light stage --------------------------- */
+const threePointPill = findByClass(wizard.root, "krea2-v2-lt-pill")
+  .find((pill) => textOf(pill).includes("Three-Point"));
+threePointPill.listeners.click({});
 let lightsState = JSON.parse(stateWidget.value);
 if (!Array.isArray(lightsState.scene_sections.lights) || lightsState.scene_sections.lights.length !== 3) {
-  throw new Error("Three-point lighting must seed exactly three lights on the compass.");
+  throw new Error("Three-point lighting must seed exactly three lights on the stage.");
 }
 if (!lightsState.rows.some((row) => row.category === "lighting_direction" && String(row.preset_id).startsWith("custom.light_"))) {
-  throw new Error("Each compass light must compile into a lighting_direction prompt row.");
+  throw new Error("Each stage light must compile into a lighting_direction prompt row.");
 }
-if (findByClass(wizard.root, "krea2-v2-light-row").length !== 3
+if (findByClass(wizard.root, "krea2-v2-lt-card").length !== 3
     || !findByClass(wizard.root, "krea2-v2-add-light").length) {
-  throw new Error("Each light must list its own controls with an Add Light button.");
+  throw new Error("Each light must list its own control card with an Add Light button.");
 }
-/* Per-light: angle stepper (degrees) + colour swatches. */
-const lightRow = findByClass(wizard.root, "krea2-v2-light-row")[0];
-const lightAngles = findByClass(lightRow, "krea2-row-value");
-if (lightAngles.length !== 2 || textOf(lightAngles[0]) !== "45°") {
-  throw new Error("Each light must expose an angle stepper in degrees and an intensity stepper, got " + lightAngles.map((v) => textOf(v)).join(","));
+/* Per-light card: distance / angle dial / height / colour / intensity. */
+const lightCard = findByClass(wizard.root, "krea2-v2-lt-card")[0];
+const lightSliders = findByClass(lightCard, "krea2-v2-lt-slider");
+if (lightSliders.length !== 3) {
+  throw new Error("Each light must expose distance, height and intensity sliders, got " + lightSliders.length);
 }
-if (!findByClass(lightRow, "krea2-v2-color-btn").length) {
+if (!findByClass(lightCard, "krea2-v2-lt-dial").length) {
+  throw new Error("Each light must expose an angle dial.");
+}
+if (!findByClass(lightCard, "krea2-v2-lt-colour-btn").length) {
   throw new Error("Each light must expose a colour pop-up button.");
 }
-const softChip = findByClass(wizard.root, "krea2-v2-chip")
-  .find((chip) => textOf(chip) === "Soft");
-softChip.listeners.click({});
+const distanceSlider = lightSliders[0];
+distanceSlider.listeners.change({ target: { value: "2.5" } });
+lightsState = JSON.parse(stateWidget.value);
+if (Number(lightsState.scene_sections.lights[0].distanceM) !== 2.5) {
+  throw new Error("The distance slider must accept metres beyond 2m.");
+}
+const softPill = findByClass(wizard.root, "krea2-v2-lt-pill")
+  .find((pill) => textOf(pill).includes("Soft"));
+softPill.listeners.click({});
 lightsState = JSON.parse(stateWidget.value);
 if (!Array.isArray(lightsState.scene_sections.lights) || lightsState.scene_sections.lights.length !== 1) {
-  throw new Error("Soft lighting must reset the plane to a single front light.");
+  throw new Error("Soft lighting must reset the stage to a single front light.");
 }
 
 /* --- SCENE tab also carries the Final Prompt Preview --------------------- */

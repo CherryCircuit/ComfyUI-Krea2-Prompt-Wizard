@@ -15,7 +15,7 @@ def _clean_preset(item: Any) -> Dict[str, Any] | None:
     preset_id = str(item.get("id") or "").strip()
     label = str(item.get("label") or "").strip()
     scope = str(item.get("scope") or "").strip()
-    if not preset_id or not label or scope not in {"full", "group", "character", "setting"}:
+    if not preset_id or not label or scope not in {"full", "group", "character", "setting", "lighting"}:
         return None
     if scope == "character":
         character = item.get("character")
@@ -36,6 +36,16 @@ def _clean_preset(item: Any) -> Dict[str, Any] | None:
             "label": label,
             "scope": scope,
             "setting": dict(setting),
+        }
+    if scope == "lighting":
+        lights = item.get("lights")
+        if not isinstance(lights, list):
+            return None
+        return {
+            "id": preset_id,
+            "label": label,
+            "scope": scope,
+            "lights": [dict(light) for light in lights if isinstance(light, dict)],
         }
     rows = item.get("rows")
     if not isinstance(rows, list):

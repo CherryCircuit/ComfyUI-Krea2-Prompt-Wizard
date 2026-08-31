@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "base_prompt": "a rainy downtown street at night",
+  "setting": {
+    "enabled": true,
+    "name": "Rainy downtown street",
+    "description": "a rain-soaked downtown street at night with traffic, storefront reflections and glowing signs"
+  },
+  "scene_sections": {
+    "stage_camera": { "azim": 20, "elev": 28, "radius": 6.4 },
+    "shot_distance": -60,
+    "lights": [
+      { "id": "light_1", "label": "Key Light (Front-Left)", "angleDeg": 325, "distanceM": 1.8, "heightDeg": 25, "strength": 1.4, "color": "blue", "enabled": true },
+      { "id": "light_2", "label": "Fill Light (Front-Right)", "angleDeg": 45, "distanceM": 1.8, "heightDeg": 15, "strength": 0.6, "color": "orange", "enabled": true },
+      { "id": "light_3", "label": "Rim Light (Back-Left)", "angleDeg": 235, "distanceM": 2.2, "heightDeg": 55, "strength": 1.2, "color": "pink", "enabled": true }
+    ]
+  },
+  "rows": [
+    {
+      "id": "row_shot_distance",
+      "category": "perspective",
+      "preset_id": "custom.shot_distance",
+      "label": "Shot distance \u2014 Wide",
+      "phrase": "distant subject framed deep within the environment",
+      "positive_phrase": "face close to the lens",
+      "negative_phrase": "distant subject framed deep within the environment",
+      "neutral_phrase": "",
+      "control_mode": "bipolar",
+      "intensity": -60,
+      "strength": -1.5,
+      "enabled": true
+    },
+    {
+      "id": "row_light_1",
+      "category": "lighting_direction",
+      "preset_id": "custom.light_light_1",
+      "label": "Key Light (Front-Left) \u2014 light from the front left at 1.8m, elevated at 25 degrees, in blue",
+      "phrase": "light from the front left at 1.8m, elevated at 25 degrees, in blue",
+      "control_mode": "scalar",
+      "intensity": 0,
+      "strength": 1.4,
+      "enabled": true
+    },
+    {
+      "id": "row_light_2",
+      "category": "lighting_direction",
+      "preset_id": "custom.light_light_2",
+      "label": "Fill Light (Front-Right) \u2014 light from the front right at 1.8m, elevated at 15 degrees, in orange",
+      "phrase": "light from the front right at 1.8m, elevated at 15 degrees, in orange",
+      "control_mode": "scalar",
+      "intensity": 0,
+      "strength": 0.6,
+      "enabled": true
+    },
+    {
+      "id": "row_light_3",
+      "category": "lighting_direction",
+      "preset_id": "custom.light_light_3",
+      "label": "Rim Light (Back-Left) \u2014 light from the back left at 2.2m, elevated at 55 degrees, in pink",
+      "phrase": "light from the back left at 2.2m, elevated at 55 degrees, in pink",
+      "control_mode": "scalar",
+      "intensity": 0,
+      "strength": 1.2,
+      "enabled": true
+    },
+    { "id": "row_atm", "category": "atmosphere", "preset_id": "atmosphere.light_rain", "phrase": "light rain", "control_mode": "scalar", "intensity": 55, "enabled": true }
+  ],
+  "characters": [
+    {
+      "id": "character_example",
+      "name": "Mara",
+      "enabled": true,
+      "expanded": true,
+      "sex": "female",
+      "age": "young adult",
+      "ethnicity": "",
+      "hair_style": "wavy",
+      "hair_length": "shoulder-length",
+      "hair_color": "dark brown",
+      "makeup": "soft glam makeup",
+      "eyes": "almond-shaped eyes",
+      "nose": "",
+      "mouth": "",
+      "chin": "",
+      "face_shape": "oval face",
+      "body_type": "athletic build",
+      "fitness": "fit",
+      "proportions": "natural proportions",
+      "ensemble": "bomber jacket and jeans",
+      "clothing_top": "",
+      "clothing_bottom": "",
+      "position": "",
+      "face_guidance": "",
+      "interaction": "",
+      "lora_triggers": "",
+      "lora_name": "",
+      "lora_strength": 0.8,
+      "loras": [],
+      "additional_info": "",
+      "additional_open": false,
+      "rows": [
+        { "id": "char_row_1", "category": "emotion", "preset_id": "emotion.joy", "label": "Joy", "phrase": "joy", "control_mode": "scalar", "intensity": 0, "strength": 1.5, "enabled": true },
+        { "id": "char_row_2", "category": "body", "preset_id": "body.open_posture", "label": "Open posture", "phrase": "open posture", "control_mode": "scalar", "intensity": 0, "strength": 1.5, "enabled": true }
+      ],
+      "concepts_open": true,
+      "quick_open": true,
+      "loras_open": true,
+      "randomize_fields": {},
+      "randomize_direction_groups": {}
+    }
+  ],
+  "active_tab": "scene",
+  "wizard_expanded": true,
+  "show_concepts_tab": true,
+  "scene_collapsed": false,
+  "final_preview_open": false,
+  "pretty_preview": false,
+  "motion_prompt": "",
+  "motion_prompt_enabled": false,
+  "randomize_on_job": {},
+  "random_strength_min": 0,
+  "random_strength_max": 3
+}

@@ -197,17 +197,16 @@
       active_tab: "cast",
       footer_open: false,
       show_face_guidance: false,
-      show_concepts_tab: false,
+      show_concepts_tab: true,
       show_motion_prompt: false,
       // v1.5.0: the Scene editor opens as a one-line summary card and
       // expands to the full field set. The flag is pure UI state and is
       // preserved across workflow saves/restores and job executions.
       scene_collapsed: true,
-      // v2.0 B2 shell: the wizard opens as the compact quick-edit card
-      // (concept layout); the Compact <-> Advanced toggle grows it into the
-      // full editor. The flag is pure UI state and is preserved across
-      // workflow saves/restores and job executions.
-      wizard_expanded: false,
+      // v2.3: the compact quick-edit card is hidden. The wizard always
+      // opens as the full editor. The flag is retained for legacy
+      // workflows but always coerces to true.
+      wizard_expanded: true,
       // v2 redesign: tabbed editor state.
       pretty_preview: false,
       final_preview_open: false,
@@ -347,9 +346,45 @@
       base.random_strength_max = swap;
     }
     base.settings_open = !!base.settings_open;
-    base.wizard_expanded = !!base.wizard_expanded;
+    // v2.3: the compact card is hidden — the editor is always expanded.
+    base.wizard_expanded = true;
     base.embed_prompt_metadata = base.embed_prompt_metadata !== false;
-    return base;
+    return pruneStaleRows(base);
+  }
+
+  /* Remove rows that the v2 editor no longer manages:
+   * - rows without a phrase (they can never compile)
+   * - stale custom light rows (preset_id custom.light_*) that belong to a
+   *   light no longer in scene_sections.lights (the lighting panel owns
+   *   these; the row list is a mirror of it)
+   * - legacy light rows whose phrase was phrased by an older panel
+   * - duplicate light rows for the same light id */
+  function pruneStaleRows(state) {
+    const lightObjects = ((state.scene_sections && Array.isArray(state.scene_sections.lights))
+      ? state.scene_sections.lights
+      : []);
+    const liveLightIds = new Set(lightObjects.map(function (light) {
+      return String((light && light.id) || "");
+    }).filter(Boolean));
+    const seenLightRows = new Set();
+    state.rows = (state.rows || []).filter(function (row) {
+      if (!row || typeof row !== "object") return false;
+      if (!String(row.phrase || "").trim()) return false;
+      const pid = String(row.preset_id || "");
+      if (pid.indexOf("custom.light_") === 0) {
+        const lightKey = pid.slice("custom.light_".length);
+        if (!liveLightIds.has(lightKey)) return false;
+        if (seenLightRows.has(lightKey)) return false;
+        seenLightRows.add(lightKey);
+        return true;
+      }
+      if (row.category === "lighting_direction"
+          && /^light from the /i.test(String(row.phrase || ""))) {
+        return false;
+      }
+      return true;
+    });
+    return state;
   }
 
   function clampSlider(value) {
@@ -673,6 +708,40 @@
     upload: [
       ["path", { d: "M8 11V2.5M4.5 6L8 2.5L11.5 6" }],
       ["path", { d: "M2.5 13.5h11" }],
+    ],
+    sun: [
+      ["circle", { cx: "8", cy: "8", r: "2.6" }],
+      ["path", { d: "M8 1.8v1.8M8 12.4v1.8M1.8 8h1.8M12.4 8h1.8M3.6 3.6l1.3 1.3M11.1 11.1l1.3 1.3M12.4 3.6l-1.3 1.3M4.9 11.1l-1.3 1.3" }],
+    ],
+    dial: [
+      ["circle", { cx: "8", cy: "8", r: "5.6" }],
+      ["circle", { cx: "8", cy: "8", r: "0.9", fill: "currentColor", stroke: "none" }],
+      ["path", { d: "M8 8V4.2" }],
+    ],
+    ruler: [
+      ["path", { d: "M2.8 11.4l8.6-8.6a1 1 0 0 1 1.4 0l1.4 1.4a1 1 0 0 1 0 1.4l-8.6 8.6a1 1 0 0 1-1.4 0L2.8 12.8a1 1 0 0 1 0-1.4z" }],
+      ["path", { d: "M5.6 8.4l1.2 1.2M7.4 6.6l1.2 1.2M9.2 4.8l1.2 1.2" }],
+    ],
+    height: [
+      ["path", { d: "M4 4.5l2-2 2 2" }],
+      ["path", { d: "M6 2.5v11" }],
+      ["path", { d: "M4 11.5l2 2 2-2" }],
+    ],
+    image: [
+      ["rect", { x: "2", y: "3", width: "12", height: "10", rx: "1.4" }],
+      ["circle", { cx: "5.4", cy: "6.2", r: "1" }],
+      ["path", { d: "M2.6 11.5l3.4-3 2.4 2 2.6-2.6 2.4 2.6" }],
+    ],
+    power: [
+      ["path", { d: "M8 1.8v5.4" }],
+      ["path", { d: "M4.4 3.9a5 5 0 1 0 7.2 0" }],
+    ],
+    search: [
+      ["circle", { cx: "6.8", cy: "6.8", r: "4.2" }],
+      ["path", { d: "M10.2 10.2l3.3 3.3" }],
+    ],
+    expand: [
+      ["path", { d: "M6 2.5H2.5V6M10 2.5h3.5V6M2.5 10v3.5H6M13.5 10v3.5H10" }],
     ],
   });
 
