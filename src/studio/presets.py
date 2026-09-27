@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import threading
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
@@ -36,12 +37,29 @@ CATEGORIES = (
     "camera",
     "style",
     "continuity",
+    "emotion",
     "wardrobe",
     "props",
     "other",
 )
 
 DEFAULT_CATEGORY = "other"
+
+#: Known exclusive groups. Presets sharing a group cannot coexist in a
+#: prompt: inserting one replaces the other (per host for attachments).
+#: "camera", "lighting", "style" and "scene" are global singletons;
+#: "emotion" and the wardrobe slots are per character. Custom group
+#: strings are allowed for user presets.
+EXCLUSIVE_GROUPS = (
+    "camera",
+    "lighting",
+    "style",
+    "scene",
+    "emotion",
+    "wardrobe_full",
+    "wardrobe_top",
+    "wardrobe_bottom",
+)
 
 _REQUIRED_STRING_FIELDS = ("id", "prompt")
 
@@ -59,6 +77,7 @@ class Preset:
     tags: List[str] = field(default_factory=list)
     notes: str = ""
     enabled: bool = True
+    exclusive_group: str = ""
     reference_images: List[Any] = field(default_factory=list)
     origin: str = "bundled"
 
@@ -73,6 +92,7 @@ class Preset:
             "tags": list(self.tags),
             "notes": self.notes,
             "enabled": self.enabled,
+            "exclusive_group": self.exclusive_group,
             "reference_images": list(self.reference_images),
             "origin": self.origin,
         }
@@ -91,6 +111,14 @@ def _coerce_string_list(value: Any) -> List[str]:
         # Tolerate comma-separated strings authored by hand in JSON.
         return [part.strip() for part in value.split(",") if part.strip()]
     return []
+
+
+def _coerce_exclusive_group(value: Any) -> str:
+    """Normalize an exclusive-group string to a lowercase slug."""
+    if not isinstance(value, str):
+        return ""
+    slug = re.sub(r"[^a-z0-9_]+", "_", value.strip().lower()).strip("_")
+    return slug[:60]
 
 
 def preset_from_dict(data: Any, origin: str) -> Optional[Preset]:
@@ -117,6 +145,7 @@ def preset_from_dict(data: Any, origin: str) -> Optional[Preset]:
         tags=_coerce_string_list(data.get("tags")),
         notes=data.get("notes", "") if isinstance(data.get("notes", ""), str) else "",
         enabled=_coerce_bool(data.get("enabled"), True),
+        exclusive_group=_coerce_exclusive_group(data.get("exclusive_group", "")),
         reference_images=data.get("reference_images") if isinstance(data.get("reference_images"), list) else [],
         origin=origin,
     )

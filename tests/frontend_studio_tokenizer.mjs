@@ -125,4 +125,112 @@ assert.equal(tokenizer.cleanSpacing("and then..."), "and then...");
   assert.equal(stats.tokens, 1);
 }
 
+// --- marker grammar v2: labels, @host, ~ ------------------------------------
+
+{
+  const segments = tokenizer.parseDocument(
+    "{{krea2:wardrobe_x|ELF QUEEN OUTFIT|@character_serena|~}}"
+  );
+  assert.equal(segments.length, 1);
+  assert.equal(segments[0].id, "wardrobe_x");
+  assert.equal(segments[0].label, "ELF QUEEN OUTFIT");
+  assert.equal(segments[0].host, "character_serena");
+  assert.equal(segments[0].randomize, true);
+}
+
+{
+  // Flag order is free; label is the first non-flag field.
+  const token = tokenizer.parseDocument("{{krea2:x|~|@host1}}")[0];
+  assert.equal(token.label, "");
+  assert.equal(token.host, "host1");
+  assert.equal(token.randomize, true);
+}
+
+{
+  // v1 markers parse unchanged.
+  const segments = tokenizer.parseDocument("{{krea2:plain|Old Label}} and {{krea2:bare}}");
+  assert.deepEqual(segments.map((s) => s.type), ["token", "text", "token"]);
+  assert.equal(segments[0].label, "Old Label");
+  assert.equal(segments[0].host, "");
+  assert.equal(segments[0].randomize, false);
+  assert.equal(segments[2].id, "bare");
+}
+
+assert.equal(
+  tokenizer.tokenMarkup("w", "OUTFIT", { host: "character_serena", randomize: true }),
+  "{{krea2:w|OUTFIT|@character_serena|~}}"
+);
+assert.equal(
+  tokenizer.tokenMarkup("w", "OUTFIT", { host: "character_serena" }),
+  "{{krea2:w|OUTFIT|@character_serena}}"
+);
+
+{
+  const doc = "A {{krea2:emotion_happy|HAPPY|@character_serena|~}} day.";
+  assert.equal(tokenizer.serializeDocument ? true : true, true); // no serializer export; splice-check instead
+  const parsed = tokenizer.parseDocument(doc);
+  assert.equal(parsed[1].raw, "{{krea2:emotion_happy|HAPPY|@character_serena|~}}");
+}
+
+// --- hasRandomize / hostIds -------------------------------------------------
+
+assert.equal(tokenizer.hasRandomize("{{krea2:a|A}}"), false);
+assert.equal(tokenizer.hasRandomize("{{krea2:a|A|~}}"), true);
+assert.equal(tokenizer.hasRandomize("no tokens"), false);
+assert.deepEqual(
+  tokenizer.hostIds("{{krea2:serena|SERENA}}{{krea2:happy|HAPPY|@serena}} {{krea2:marcus|M}}"),
+  ["serena"]
+);
+
+// --- replaceTokenFields / attachToken / remapHosts ---------------------------
+
+{
+  const doc = "{{krea2:emotion_happy|HAPPY|@character_serena}}";
+  const out = tokenizer.replaceTokenFields(doc, 0, doc.length, { randomize: true });
+  assert.equal(out, "{{krea2:emotion_happy|HAPPY|@character_serena|~}}");
+  const out2 = tokenizer.replaceTokenFields(out, 0, out.length, { host: "character_marcus" });
+  assert.equal(out2, "{{krea2:emotion_happy|HAPPY|@character_marcus|~}}");
+}
+
+{
+  const doc = "{{krea2:character_serena|SERENA}} sits.";
+  const hostEnd = "{{krea2:character_serena|SERENA}}".length;
+  const out = tokenizer.attachToken(doc, { start: 0, end: hostEnd }, "wardrobe_x", "OUTFIT");
+  assert.ok(out.startsWith(
+    "{{krea2:character_serena|SERENA}}{{krea2:wardrobe_x|OUTFIT|@character_serena}}"
+  ));
+  assert.ok(out.endsWith(" sits."));
+}
+
+{
+  const doc = "A {{krea2:happy|HAPPY|@serena}} and {{krea2:calm|CALM|@serena}}.";
+  const out = tokenizer.remapHosts(doc, "serena", "marcus");
+  assert.equal(
+    out,
+    "A {{krea2:happy|HAPPY|@marcus}} and {{krea2:calm|CALM|@marcus}}."
+  );
+}
+
+// --- rawDisplay with attachments ---------------------------------------------
+
+{
+  const doc =
+    "{{krea2:character_serena|SERENA}}" +
+    "{{krea2:wardrobe_x|OUTFIT|@character_serena}}" +
+    "{{krea2:emotion_happy|HAPPY|@character_serena}} sits.";
+  assert.equal(tokenizer.rawDisplay(doc), "[SERENA (OUTFIT) (HAPPY)] sits.");
+}
+
+{
+  // Orphan attachments stand alone; missing hosts render as MISSING.
+  assert.equal(
+    tokenizer.rawDisplay("{{krea2:emotion_happy|HAPPY|@character_ghost}} alone."),
+    "[MISSING: character_ghost] (HAPPY) alone."
+  );
+  assert.equal(
+    tokenizer.rawDisplay("{{krea2:emotion_happy|HAPPY|@character_ghost}} alone.", () => null),
+    "[MISSING: character_ghost] (MISSING: emotion_happy) alone."
+  );
+}
+
 console.log("frontend_studio_tokenizer: all assertions passed");

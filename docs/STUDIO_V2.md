@@ -40,7 +40,7 @@ continuity instructions).
 ## How it works
 
 - The source of truth is a plain string with inline token markers
-  (`{{krea2:<preset_id>|<Label>}}`), stored in the node's hidden
+  (`{{krea2:<preset_id>|<label>|@<host>|~}}`), stored in the node's hidden
   `prompt_doc` widget and saved inside the workflow like any other widget.
 - The frontend renders that string as text + atomic pills (contentEditable
   with input interception); the backend compiles it at execution time by
@@ -49,6 +49,32 @@ continuity instructions).
   fallback hint. If a preset is missing (renamed away, file deleted,
   disabled), the editor shows a red `[MISSING: <id>]` pill and the
   compiled output contains the same marker so nothing silently disappears.
+
+## Slots, attachments and randomization
+
+**Slots (exclusive groups).** Presets carry an optional exclusive group.
+Camera, Lighting, Style and Scene presets are one-per-prompt: inserting a
+second one *replaces* the first in place (a camera can't be a wide
+establishing shot and a close-up at once). Emotion is one-per-character.
+Wardrobe has three slots — full outfit, upper body, lower body — so a top
+and a bottom stack, but two tops do not. Characters, continuity and props
+stack freely. The Preset Manager exposes each preset's slot.
+
+**Attachments.** Emotion and wardrobe presets attach to a character
+token: `{{krea2:character_serena|SERENA}}{{krea2:wardrobe_x|OUTFIT|@character_serena}}`.
+In the editor the attachment renders nested inside the character pill —
+`[(SERENA) (ELF QUEEN OUTFIT)]` — and in the compiled prompt the
+attachment expansion follows the character's block. With multiple
+characters in the prompt, inserting an attachable preset asks which
+character it belongs to. Deleting the host leaves the attachment as a
+dashed "detached" pill you can delete or re-anchor by attaching anew.
+
+**Randomization.** Every pill has a small 🎲 toggle. Flagged tokens are
+swapped for a random preset *of the same slot* (same category + exclusive
+group) on every execution — flag a camera, some outfits and a few
+emotions, queue 10–15 images, and each result differs. The `raw_prompt`
+output shows what was actually chosen for each run. Randomized documents
+bypass ComfyUI's execution cache so every queue item recompiles.
 
 ## Storage
 
@@ -66,10 +92,10 @@ warning — they never prevent ComfyUI from starting.
 
 Open via the **Presets** toolbar button (or a token popup → **Edit
 Preset**). Create, duplicate, edit, delete, search and filter presets.
-Each preset has: name, category, prompt expansion, optional negative
-clauses, description (shown in hover tooltips), tags, notes, and an
-enabled flag. `reference_images` is reserved for future image-reference
-support.
+Each preset has: name, category, **slot** (exclusive group), prompt
+expansion, optional negative clauses, description (shown in hover
+tooltips), tags, notes, and an enabled flag. `reference_images` is
+reserved for future image-reference support.
 
 ## Editing presets that a workflow already uses
 
@@ -93,9 +119,11 @@ web/prompt_studio_v2.js        entry (auto-discovered, .js)
 web/studio/*.mjs               modules (NOT auto-imported)
     tokenizer.mjs              JS mirror of tokens.py (+ compile mirror)
     caret_math.mjs             pure doc-offset ⇄ caret point math
-    preset_store.mjs           fetch/merge/save + category metadata
-    editor.mjs                 contentEditable pill editor + history
-    chooser.mjs / token_popup.mjs / manager.mjs / preview.mjs
+    preset_store.mjs           fetch/merge/save + category/slot metadata
+    editor.mjs                 contentEditable pill editor + history +
+                               nested attachments + dice toggles
+    chooser.mjs / host_picker.mjs / token_popup.mjs /
+    manager.mjs / preview.mjs
     ui.mjs                     panels/modals/clipboard helpers
     studio.css
 ```
@@ -107,7 +135,7 @@ Tests: `tests/test_studio.py` (backend),
 `tests/frontend_studio_tokenizer.mjs`, `tests/frontend_studio_caret_math.mjs`
 (pure frontend logic).
 
-## Known limitations (v2.0)
+## Known limitations (v2.1)
 
 - Tokens are not drag-repositionable yet (insert/delete/swap cover the
   workflow; drag is planned).
@@ -119,3 +147,8 @@ Tests: `tests/test_studio.py` (backend),
   rich editor is intercepted); the plain textarea keeps native undo.
 - Preset edits do not retroactively rewrite saved expansion snapshots
   (there are none by design — see propagation above).
+- Randomized runs log their picks to the console and reflect them in
+  `raw_prompt`; a per-image visual record (e.g. PNG metadata) is future
+  work.
+- Actions/expressions as a separate category are planned; the category
+  system already supports them (add JSON + one toolbar entry).

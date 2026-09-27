@@ -5,8 +5,8 @@
  * Ctrl/Cmd+Space. Selecting a preset inserts its token at the editor's
  * remembered caret.
  */
-import { el, anchoredPanel } from "./ui.mjs?v=1";
-import { categoryLabel } from "./preset_store.mjs?v=1";
+import { el, anchoredPanel } from "./ui.mjs?v=2";
+import { categoryLabel } from "./preset_store.mjs?v=2";
 
 function matchesQuery(preset, query) {
   if (!query) return true;

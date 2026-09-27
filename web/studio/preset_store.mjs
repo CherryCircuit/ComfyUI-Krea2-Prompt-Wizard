@@ -13,6 +13,7 @@ export const CATEGORY_ORDER = [
   "camera",
   "style",
   "continuity",
+  "emotion",
   "wardrobe",
   "props",
   "other",
@@ -25,6 +26,7 @@ export const CATEGORY_LABELS = {
   camera: "Camera",
   style: "Style",
   continuity: "Continuity",
+  emotion: "Emotion",
   wardrobe: "Wardrobe",
   props: "Props",
   other: "Other",
@@ -40,8 +42,48 @@ export const TOOLBAR_CATEGORIES = [
   "continuity",
 ];
 
+/**
+ * Categories whose presets attach to a character token in the prompt
+ * (outfits, emotions). Inserting one asks which character wears/feels it
+ * when the prompt has more than one character.
+ */
+export const ATTACHABLE_CATEGORIES = ["emotion", "wardrobe"];
+
+/**
+ * Known exclusive groups (mirror of src/studio/presets.py). Presets
+ * sharing a group cannot coexist: inserting one replaces the other.
+ * Global groups scope to the whole prompt; per-host groups scope to one
+ * character's attachments.
+ */
+export const EXCLUSIVE_GROUPS = [
+  "camera",
+  "lighting",
+  "style",
+  "scene",
+  "emotion",
+  "wardrobe_full",
+  "wardrobe_top",
+  "wardrobe_bottom",
+];
+
+export const EXCLUSIVE_GROUP_LABELS = {
+  "": "None (can stack freely)",
+  camera: "Camera (one per prompt)",
+  lighting: "Lighting (one per prompt)",
+  style: "Style (one per prompt)",
+  scene: "Scene (one per prompt)",
+  emotion: "Emotion (one per character)",
+  wardrobe_full: "Full outfit (one per character)",
+  wardrobe_top: "Upper body (one per character)",
+  wardrobe_bottom: "Lower body (one per character)",
+};
+
 export function categoryLabel(category) {
   return CATEGORY_LABELS[category] || CATEGORY_LABELS.other;
+}
+
+export function exclusiveGroupLabel(group) {
+  return EXCLUSIVE_GROUP_LABELS[group] || group || EXCLUSIVE_GROUP_LABELS[""];
 }
 
 /** Compute derived fields for one preset dict from the backend. */
@@ -56,6 +98,7 @@ function normalizePreset(raw) {
     tags: Array.isArray(raw?.tags) ? raw.tags.map(String) : [],
     notes: String(raw?.notes ?? ""),
     enabled: raw?.enabled !== false,
+    exclusive_group: String(raw?.exclusive_group ?? "").trim(),
     reference_images: Array.isArray(raw?.reference_images) ? raw.reference_images : [],
     origin: raw?.origin === "user" ? "user" : "bundled",
   };

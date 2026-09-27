@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "presets": [
+    {
+      "id": "wardrobe_bottom_skinny_jeans",
+      "name": "SKINNY JEANS",
+      "category": "wardrobe",
+      "prompt": "A pair of modern fitted skinny jeans made from matte stretch denim, sitting naturally at the waist and following the legs closely from hip to ankle. The jeans have a classic five-pocket construction, metal button closure, discreet stitching, and subtle natural creasing behind the knees and around the hips. The denim has realistic texture and mild wear without heavy distressing or large tears.",
+      "negative": "",
+      "description": "Skinny Jeans — lower-body garment only; tops stay independent.",
+      "tags": [
+        "wardrobe",
+        "bottom",
+        "skinny jeans"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_bottom",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_bottom_a_line_skirt",
+      "name": "A-LINE SKIRT",
+      "category": "wardrobe",
+      "prompt": "A classic knee-length A-line skirt fitted cleanly at the natural waist and gradually widening toward the hem. The fabric has enough structure to maintain the A-line silhouette while still producing soft natural folds during movement. Construction is simple and elegant with a concealed closure and minimal visible decoration. The overall shape is timeless and flattering rather than excessively flared.",
+      "negative": "",
+      "description": "A-Line Skirt — lower-body garment only; tops stay independent.",
+      "tags": [
+        "wardrobe",
+        "bottom",
+        "a-line skirt"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_bottom",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_bottom_straight_leg_jeans",
+      "name": "STRAIGHT-LEG JEANS",
+      "category": "wardrobe",
+      "prompt": "A pair of classic straight-leg denim jeans with a comfortable mid-rise waist, fitted naturally through the hips and falling in a straight consistent line from the upper thigh to the ankle. The jeans feature traditional five-pocket construction, realistic cotton denim texture, subtle seam fading, and restrained natural wear without excessive distressing.",
+      "negative": "",
+      "description": "Straight-Leg Jeans — lower-body garment only; tops stay independent.",
+      "tags": [
+        "wardrobe",
+        "bottom",
+        "straight-leg jeans"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_bottom",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_bottom_wide_leg_trousers",
+      "name": "WIDE-LEG TROUSERS",
+      "category": "wardrobe",
+      "prompt": "A pair of high-waisted tailored wide-leg trousers made from medium-weight woven fabric with a clean waistband, subtle front pleats, and long flowing legs that fall straight from the hips. The material creates smooth vertical folds and natural movement without appearing overly stiff. The overall silhouette is elegant, modern, and refined.",
+      "negative": "",
+      "description": "Wide-Leg Trousers — lower-body garment only; tops stay independent.",
+      "tags": [
+        "wardrobe",
+        "bottom",
+        "wide-leg trousers"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_bottom",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_bottom_slim_chinos",
+      "name": "SLIM CHINOS",
+      "category": "wardrobe",
+      "prompt": "A pair of modern slim-fit chinos made from soft matte cotton twill, sitting naturally at the waist with a clean flat front, angled side pockets, discreet rear pockets, and gently tapered legs. The fabric shows subtle natural wrinkles around the hips, knees, and ankles while maintaining a polished casual appearance.",
+      "negative": "",
+      "description": "Slim Chinos — lower-body garment only; tops stay independent.",
+      "tags": [
+        "wardrobe",
+        "bottom",
+        "slim chinos"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_bottom",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_bottom_pleated_midi_skirt",
+      "name": "PLEATED MIDI SKIRT",
+      "category": "wardrobe",
+      "prompt": "A mid-calf pleated skirt with a fitted waistband and evenly spaced vertical pleats extending through the full length of the garment. The lightweight woven fabric moves naturally while retaining clear structured folds. The silhouette is elegant and fluid without appearing overly voluminous.",
+      "negative": "",
+      "description": "Pleated Midi Skirt — lower-body garment only; tops stay independent.",
+      "tags": [
+        "wardrobe",
+        "bottom",
+        "pleated midi skirt"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_bottom",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_bottom_cargo_pants",
+      "name": "CARGO PANTS",
+      "category": "wardrobe",
+      "prompt": "A pair of practical straight-to-relaxed-fit cargo trousers made from durable matte cotton or technical fabric. The pants feature articulated knees, standard hip pockets, two low-profile cargo pockets on the outer thighs, reinforced seam construction, and adjustable or lightly tapered ankle openings. Keep the utility details functional and restrained rather than excessively tactical.",
+      "negative": "",
+      "description": "Cargo Pants — lower-body garment only; tops stay independent.",
+      "tags": [
+        "wardrobe",
+        "bottom",
+        "cargo pants"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_bottom",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_bottom_leather_pants",
+      "name": "LEATHER PANTS",
+      "category": "wardrobe",
+      "prompt": "A pair of fitted leather trousers made from soft matte leather with natural subtle creasing around the hips, knees, and ankles. The cut is sleek and close fitting without appearing painted onto the body. Construction remains minimal with discreet seams, a simple waistband, and restrained hardware. The leather should show realistic texture rather than glossy plastic shine.",
+      "negative": "",
+      "description": "Leather Pants — lower-body garment only; tops stay independent.",
+      "tags": [
+        "wardrobe",
+        "bottom",
+        "leather pants"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_bottom",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_bottom_tailored_pencil_skirt",
+      "name": "TAILORED PENCIL SKIRT",
+      "category": "wardrobe",
+      "prompt": "A fitted knee-length pencil skirt made from structured woven fabric, sitting cleanly at the natural waist and following the hips before narrowing subtly toward the hem. The skirt includes restrained seam shaping and a small rear walking vent for natural movement. The overall design is polished, professional, and minimal.",
+      "negative": "",
+      "description": "Tailored Pencil Skirt — lower-body garment only; tops stay independent.",
+      "tags": [
+        "wardrobe",
+        "bottom",
+        "tailored pencil skirt"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_bottom",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_bottom_relaxed_sweatpants",
+      "name": "RELAXED SWEATPANTS",
+      "category": "wardrobe",
+      "prompt": "A pair of comfortable relaxed-fit sweatpants made from soft medium-weight cotton fleece with a flexible drawstring waistband, roomy upper legs, gently tapered lower legs, side pockets, and fitted ribbed cuffs at the ankles. The fabric hangs naturally with soft folds and subtle compression around the knees and hips. The design is casual, minimal, and free of logos.",
+      "negative": "",
+      "description": "Relaxed Sweatpants — lower-body garment only; tops stay independent.",
+      "tags": [
+        "wardrobe",
+        "bottom",
+        "relaxed sweatpants"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_bottom",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_bottom_medieval_wool_trousers",
+      "name": "MEDIEVAL WOOL TROUSERS",
+      "category": "wardrobe",
+      "prompt": "A pair of practical medieval-inspired trousers made from coarse matte wool, fitted comfortably at the waist with a simple drawstring or concealed fastening and relaxed through the hips and thighs before narrowing toward the ankles. The fabric shows natural texture, soft wrinkles, and slight wear from regular use. The design remains historically grounded and free of modern pockets, zippers, or decorative elements.",
+      "negative": "",
+      "description": "Medieval Wool Trousers — lower-body garment only; tops stay independent.",
+      "tags": [
+        "wardrobe",
+        "bottom",
+        "medieval wool trousers"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_bottom",
+      "reference_images": []
+    }
+  ]
+}

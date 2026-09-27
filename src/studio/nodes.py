@@ -12,10 +12,12 @@ attributes when V3 bases are unavailable (same strategy as the v1 pack).
 from __future__ import annotations
 
 import logging
+import random
 from typing import Any, Dict, Tuple
 
 from .compiler import compile_document
 from .presets import get_store
+from .tokens import has_randomize
 
 logger = logging.getLogger("krea2.studio.nodes")
 
@@ -62,13 +64,34 @@ class Krea2PromptWizardV2:
         "krea2 prompt builder",
     ]
 
+    @classmethod
+    def IS_CHANGED(cls, prompt_doc: str = "") -> object:
+        # Randomized documents must run fresh for every queue item so a
+        # 10-15 image batch yields different picks each time (NaN is never
+        # equal to itself, defeating the execution cache).
+        if has_randomize(prompt_doc or ""):
+            return float("nan")
+        return prompt_doc
+
     def build(self, prompt_doc: str = "") -> Tuple[str, str, str]:
         store = get_store()
-        result = compile_document(prompt_doc or "", store)
+        doc = prompt_doc or ""
+        # Randomized tokens (flag ~) draw a fresh same-slot preset per
+        # execution; IS_CHANGED returns NaN so ComfyUI never caches a run.
+        rng = random.Random() if has_randomize(doc) else None
+        result = compile_document(doc, store, rng=rng)
         if result.missing_preset_ids:
             logger.warning(
                 "Krea2 Prompt Wizard v2: unresolved preset token(s): %s",
                 ", ".join(result.missing_preset_ids),
+            )
+        if result.random_choices:
+            logger.info(
+                "Krea2 Prompt Wizard v2 randomized: %s",
+                ", ".join(
+                    f"{choice['token_id']} -> {choice['chosen_id']}"
+                    for choice in result.random_choices
+                ),
             )
         return (result.prompt, result.negative, result.raw_prompt)
 

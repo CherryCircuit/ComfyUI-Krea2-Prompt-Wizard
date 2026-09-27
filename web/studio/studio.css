@@ -139,6 +139,7 @@
 .kpw2-cat-camera    { border-color: #4a7fb5; color: #9cc4e8; background: rgba(90, 150, 220, 0.12); }
 .kpw2-cat-style     { border-color: #8a63c9; color: #c4a8ec; background: rgba(150, 110, 220, 0.12); }
 .kpw2-cat-continuity{ border-color: #3f9e9e; color: #8fd8d8; background: rgba(80, 200, 200, 0.10); }
+.kpw2-cat-emotion   { border-color: #c05a4a; color: #f0a89c; background: rgba(220, 100, 80, 0.12); }
 .kpw2-cat-wardrobe  { border-color: #b56576; color: #ecb2c0; background: rgba(220, 120, 140, 0.12); }
 .kpw2-cat-props     { border-color: #b0713c; color: #ecb68f; background: rgba(230, 140, 80, 0.12); }
 .kpw2-cat-other     { border-color: #6f6f6f; color: #b8b8b8; background: rgba(160, 160, 160, 0.10); }
@@ -147,6 +148,59 @@
   border-color: #c0392b;
   color: #ec7063;
   background: rgba(192, 57, 43, 0.14);
+}
+
+/* Host pill containing attachment sub-pills: [(SERENA) (OUTFIT)] */
+.kpw2-token-host {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 0 4px 0 7px;
+}
+
+.kpw2-subtoken {
+  display: inline-block;
+  padding: 0 6px;
+  margin: 0 1px;
+  border-radius: 8px;
+  border: 1px dashed;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.5;
+  cursor: pointer;
+  user-select: none;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* Attachment whose host is missing from the prompt. */
+.kpw2-token-detached {
+  border-style: dashed;
+  opacity: 0.85;
+}
+
+/* Runtime-randomize flag: striped underline + dice affordance. */
+.kpw2-token-random {
+  border-style: double;
+  border-width: 3px;
+}
+
+.kpw2-dice {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 10px;
+  cursor: pointer;
+  opacity: 0.85;
+  user-select: none;
+}
+
+.kpw2-dice:hover {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+.kpw2-active-toggle {
+  border-color: #4a6d8c;
+  color: #9ec3e0;
 }
 
 /* Legend dots reuse the palette. */
@@ -164,6 +218,7 @@
 .kpw2-dot.kpw2-cat-camera    { background: #5a96dc; }
 .kpw2-dot.kpw2-cat-style     { background: #966edc; }
 .kpw2-dot.kpw2-cat-continuity{ background: #50c8c8; }
+.kpw2-dot.kpw2-cat-emotion   { background: #dc6450; }
 .kpw2-dot.kpw2-cat-wardrobe  { background: #dc788c; }
 .kpw2-dot.kpw2-cat-props     { background: #e68c50; }
 .kpw2-dot.kpw2-cat-other     { background: #a0a0a0; }

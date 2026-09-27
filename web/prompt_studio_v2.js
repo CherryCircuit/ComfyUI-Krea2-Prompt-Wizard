@@ -5,17 +5,26 @@
  * editor, footer) around the rich token editor, and handles workflow
  * serialization through the hidden `prompt_doc` STRING widget.
  *
+ * Attachable categories (emotion, wardrobe) insert their presets as
+ * sub-pills attached to a character token; prompts with several
+ * characters ask which one via the host picker.
+ *
  * Module imports carry a `?v=` cache-buster; bump it whenever any studio
  * frontend file changes (same discipline as the v1 wizard).
  */
 import { app } from "../../scripts/app.js";
 
-const VERSION = "v=1";
-await import(`./studio/tokenizer.mjs?${VERSION}`);
-const { presetStore, CATEGORY_ORDER, categoryLabel } = await import(`./studio/preset_store.mjs?${VERSION}`);
+const VERSION = "v=2";
+const { tokenRanges } = await import(`./studio/tokenizer.mjs?${VERSION}`);
+const {
+  presetStore,
+  ATTACHABLE_CATEGORIES,
+  categoryLabel,
+} = await import(`./studio/preset_store.mjs?${VERSION}`);
 const { createStudioEditor } = await import(`./studio/editor.mjs?${VERSION}`);
 const { createPresetChooser } = await import(`./studio/chooser.mjs?${VERSION}`);
 const { createTokenPopup } = await import(`./studio/token_popup.mjs?${VERSION}`);
+const { createHostPicker } = await import(`./studio/host_picker.mjs?${VERSION}`);
 const { openPresetManager } = await import(`./studio/manager.mjs?${VERSION}`);
 const { showPreviewModal } = await import(`./studio/preview.mjs?${VERSION}`);
 const { el } = await import(`./studio/ui.mjs?${VERSION}`);
@@ -32,6 +41,8 @@ const TOOLBAR_CATEGORIES = [
   "camera",
   "style",
   "continuity",
+  "emotion",
+  "wardrobe",
 ];
 
 function buildWidgetRoot(node) {
@@ -63,7 +74,7 @@ function buildWidgetRoot(node) {
       updateStats(info);
       scheduleCanvasRefresh();
     },
-    onTokenPopup: (range, rect, span) => tokenPopup.open(range, rect, span),
+    onTokenPopup: (range, rect, span, options) => tokenPopup.open(range, rect, span, options),
     onOpenChooser: ({ anchorRect }) => {
       const rect = anchorRect ?? caretRect() ?? editorHost.getBoundingClientRect();
       chooser.open({ category: null, anchorRect: rect });
@@ -74,22 +85,73 @@ function buildWidgetRoot(node) {
   });
   editorHost.append(editor.root);
 
-  // --- chooser / popup / manager -------------------------------------------
+  // --- chooser / popup / host picker / manager ------------------------------
+  let pendingAttachment = null; // preset awaiting a host pick
+
+  function characterTokens() {
+    return tokenRanges(editor.doc).filter((token) => {
+      if (token.host) return false;
+      const preset = presetStore.get(token.id);
+      return preset && preset.category === "character" && preset.enabled;
+    });
+  }
+
+  function handleInsert(preset) {
+    if (ATTACHABLE_CATEGORIES.includes(preset.category)) {
+      const characters = characterTokens();
+      if (characters.length === 1) {
+        editor.attachToHost(
+          { start: characters[0].start, end: characters[0].end, id: characters[0].id },
+          preset
+        );
+        return;
+      }
+      if (characters.length > 1) {
+        pendingAttachment = preset;
+        hostPicker.open({
+          anchorRect: editorHost.getBoundingClientRect(),
+          hostCandidates: characters,
+        });
+        return;
+      }
+      // No character in the prompt: fall back to a standalone token.
+    }
+    editor.insertToken(preset);
+    editor.focus();
+  }
+
   const chooser = createPresetChooser({
     store: presetStore,
-    onInsert: (preset) => {
-      editor.insertToken(preset);
-      editor.focus();
-    },
+    onInsert: handleInsert,
     onManage: () => openManager(null, null),
+  });
+
+  const hostPicker = createHostPicker({
+    onPick: (hostRange) => {
+      const preset = pendingAttachment;
+      pendingAttachment = null;
+      if (!preset) return;
+      if (hostRange) {
+        editor.attachToHost(hostRange, preset);
+      } else {
+        editor.insertToken(preset);
+        editor.focus();
+      }
+    },
   });
 
   const tokenPopup = createTokenPopup({
     store: presetStore,
-    onReplace: (range, preset) => editor.replaceToken(range, preset),
+    onReplace: (range, preset) => {
+      // Swapping a character must re-point its attachments at the new id.
+      const current = presetStore.get(range.id);
+      if (current?.category === "character") editor.replaceHost(range, preset);
+      else editor.replaceToken(range, preset);
+    },
     onDelete: (range) => editor.deleteToken(range),
     onEditPreset: (preset) => openManager(null, preset.id),
     onNewPreset: (category) => openManager(category, null),
+    onToggleRandomize: (range) => editor.toggleRandomize(range),
   });
 
   function openManager(category, selectId) {

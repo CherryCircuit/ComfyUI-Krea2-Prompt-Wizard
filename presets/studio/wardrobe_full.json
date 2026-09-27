@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "presets": [
+    {
+      "id": "wardrobe_futuristic_flight_suit",
+      "name": "FUTURISTIC FLIGHT SUIT",
+      "category": "wardrobe",
+      "prompt": "A sleek futuristic one-piece flight suit designed for professional spacecraft or high-performance aircraft use. The suit is made from matte dark technical fabric with subtle reinforced paneling across the shoulders, chest, elbows, knees, and hips. Thin flexible seam lines follow the body's natural structure without appearing overly armored. A high structured collar frames the neck, with a concealed front closure and small functional utility pockets integrated into the thighs and torso. Minimal metallic hardware and restrained interface details provide a believable advanced aerospace aesthetic. Matching fitted gloves and streamlined mid-calf flight boots complete the outfit. The design is practical, sophisticated, and grounded rather than resembling superhero armor.",
+      "negative": "",
+      "description": "Sleek grounded sci-fi flight suit with gloves and flight boots.",
+      "tags": [
+        "wardrobe",
+        "full outfit",
+        "futuristic flight suit"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_full",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_steampunk_diving_suit",
+      "name": "STEAMPUNK DIVING SUIT",
+      "category": "wardrobe",
+      "prompt": "A complete Victorian-inspired steampunk deep-sea diving outfit constructed from heavy aged canvas, dark brown leather, brass fittings, and oxidized copper hardware. The torso is protected by a thick reinforced suit with broad leather straps and riveted brass connection points. A large spherical brass diving helmet includes a circular glass faceplate, side viewing ports, external bolts, pressure fittings, and thick articulated air hoses extending from the rear. Heavy leather gloves, reinforced trousers, weighted boots, and a broad utility belt complete the outfit. The materials appear functional, weathered, heavy, and industrial rather than decorative cosplay.",
+      "negative": "",
+      "description": "Victorian brass diving rig: helmet, canvas, leather, copper.",
+      "tags": [
+        "wardrobe",
+        "full outfit",
+        "steampunk diving suit"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_full",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_cyberpunk_streetwear",
+      "name": "CYBERPUNK STREETWEAR",
+      "category": "wardrobe",
+      "prompt": "A coordinated futuristic urban streetwear outfit combining dark technical fabrics, layered asymmetrical garments, practical utility details, and restrained neon accents. The upper body features a fitted technical shirt beneath a cropped structured jacket with subtle reflective piping and compact utility pockets. Slim reinforced cargo trousers include segmented panels and concealed fasteners. High-top tactical sneakers or lightweight boots complete the look. Small metallic accessories and discreet illuminated details add a cyberpunk aesthetic without overwhelming the clothing. The outfit should appear wearable, fashionable, and functional rather than costume-like.",
+      "negative": "",
+      "description": "Layered techwear with restrained neon accents and tactical shoes.",
+      "tags": [
+        "wardrobe",
+        "full outfit",
+        "cyberpunk streetwear"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_full",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_post_apocalyptic_survivor",
+      "name": "POST-APOCALYPTIC SURVIVOR",
+      "category": "wardrobe",
+      "prompt": "A practical layered survival outfit assembled from worn but functional clothing. A faded heavy cotton shirt sits beneath a weathered canvas field jacket reinforced with stitched fabric patches and leather repairs. Durable cargo trousers show realistic wear at the knees and hems, secured with a sturdy utility belt carrying a few practical pouches. Scuffed leather hiking boots, fingerless work gloves, and a lightweight scarf or neck wrap complete the ensemble. Fabrics are dusty, sun-faded, frayed in places, and visibly used without becoming excessively ragged or theatrical.",
+      "negative": "",
+      "description": "Worn layered survival gear: patched jacket, cargo trousers, boots.",
+      "tags": [
+        "wardrobe",
+        "full outfit",
+        "post-apocalyptic survivor"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_full",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_modern_business_casual",
+      "name": "MODERN BUSINESS CASUAL",
+      "category": "wardrobe",
+      "prompt": "A polished contemporary business-casual outfit consisting of a tailored single-breasted sport coat worn over a clean fitted crew-neck T-shirt, slim straight-leg trousers, and minimalist leather sneakers or low-profile loafers. The blazer has soft natural structure rather than heavy formal padding, with a clean lapel, subtle texture, and restrained tailoring. The shirt remains untucked or neatly tucked depending on composition. Colors are coordinated and understated, creating a confident professional appearance that remains approachable rather than corporate or formal.",
+      "negative": "",
+      "description": "Soft-structured blazer over tee with tailored trousers.",
+      "tags": [
+        "wardrobe",
+        "full outfit",
+        "modern business casual"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_full",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_classic_private_detective",
+      "name": "CLASSIC PRIVATE DETECTIVE",
+      "category": "wardrobe",
+      "prompt": "A grounded noir-inspired private detective outfit consisting of a rumpled light-colored button-up shirt, dark wool tie worn slightly loosened, charcoal trousers, worn leather belt, and a long weathered trench coat. Dark leather lace-up shoes and a simple analog wristwatch complete the ensemble. The clothing is practical and slightly lived-in rather than pristine, with subtle creases and realistic fabric wear. The look evokes mid-century detective cinema without appearing like exaggerated costume attire.",
+      "negative": "",
+      "description": "Noir detective: trench coat, loosened tie, lived-in wear.",
+      "tags": [
+        "wardrobe",
+        "full outfit",
+        "classic private detective"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_full",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_fantasy_ranger",
+      "name": "FANTASY RANGER",
+      "category": "wardrobe",
+      "prompt": "A practical medieval-fantasy ranger outfit built around layered natural fabrics and worn leather. A muted green wool tunic sits beneath a fitted brown leather jerkin with reinforced shoulder panels. Dark durable trousers are tucked into weathered knee-high leather boots. A broad utility belt carries several small leather pouches, while a hooded forest-green cloak rests across the shoulders. Leather bracers protect the forearms and a pair of lightweight gloves completes the outfit. The ensemble appears functional for long wilderness travel rather than decorative fantasy armor.",
+      "negative": "",
+      "description": "Wilderness ranger kit: jerkin, cloak, bracers, knee-high boots.",
+      "tags": [
+        "wardrobe",
+        "full outfit",
+        "fantasy ranger"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_full",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_royal_formal_gown",
+      "name": "ROYAL FORMAL GOWN",
+      "category": "wardrobe",
+      "prompt": "An elegant floor-length formal gown constructed from rich matte fabric with a fitted structured bodice, flowing skirt, graceful long sleeves, and subtle embroidered detailing along the neckline, cuffs, and waist. The silhouette is refined and balanced rather than excessively voluminous. Restrained metallic thread and small gemstone accents provide visual richness without overwhelming the garment. Coordinated formal shoes and understated jewelry complete the look. The overall appearance is aristocratic, sophisticated, and cinematic rather than extravagant costume design.",
+      "negative": "",
+      "description": "Aristocratic floor-length gown with restrained embroidery.",
+      "tags": [
+        "wardrobe",
+        "full outfit",
+        "royal formal gown"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_full",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_retro_1980s_casual",
+      "name": "RETRO 1980S CASUAL",
+      "category": "wardrobe",
+      "prompt": "A coordinated casual outfit inspired by authentic mid-to-late 1980s street fashion. It includes a slightly oversized denim jacket layered over a simple graphic or solid-color T-shirt, high-waisted straight-leg jeans, white leather sneakers, and a slim woven or leather belt. Fabrics show subtle natural wear and period-appropriate cuts. Optional small accessories such as a simple digital watch or understated hoop earrings reinforce the era without turning the look into parody.",
+      "negative": "",
+      "description": "Authentic 80s casual: denim jacket, high-waisted jeans, sneakers.",
+      "tags": [
+        "wardrobe",
+        "full outfit",
+        "retro 1980s casual"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_full",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_tactical_exploration_suit",
+      "name": "TACTICAL EXPLORATION SUIT",
+      "category": "wardrobe",
+      "prompt": "A practical futuristic exploration outfit designed for harsh terrestrial or alien environments. The outfit uses layered abrasion-resistant fabric with flexible reinforced panels at the shoulders, elbows, hips, and knees. A structured utility vest integrates compact storage pouches, environmental sensors, attachment points, and a lightweight communications module. Durable fitted trousers feed into rugged sealed expedition boots. Gloves, a compact utility belt, and subtle reflective identification markings complete the outfit. The design should feel scientifically credible, functional, and field-tested rather than militarized.",
+      "negative": "",
+      "description": "Credible field-exploration layering with utility vest and sealed boots.",
+      "tags": [
+        "wardrobe",
+        "full outfit",
+        "tactical exploration suit"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_full",
+      "reference_images": []
+    }
+  ]
+}

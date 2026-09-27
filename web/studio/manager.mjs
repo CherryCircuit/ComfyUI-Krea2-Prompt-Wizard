@@ -6,8 +6,14 @@
  * upserts changes into the user payload; bundled presets are overridden
  * by id rather than modified in place, and can be tombstoned.
  */
-import { el, openModal } from "./ui.mjs?v=1";
-import { CATEGORY_ORDER, categoryLabel, presetStore } from "./preset_store.mjs?v=1";
+import { el, openModal } from "./ui.mjs?v=2";
+import {
+  CATEGORY_ORDER,
+  EXCLUSIVE_GROUPS,
+  categoryLabel,
+  exclusiveGroupLabel,
+  presetStore,
+} from "./preset_store.mjs?v=2";
 
 function slugify(name) {
   const base = String(name || "")
@@ -97,6 +103,12 @@ export function openPresetManager({ onChanged = () => {}, initialCategory = null
     categoryInput.append(option);
   }
   const descriptionInput = textInput("", "One-line description (shown on hover)");
+  const slotSelect = el("select", "kpw2-form-input");
+  for (const group of ["", ...EXCLUSIVE_GROUPS]) {
+    const option = el("option", null, exclusiveGroupLabel(group));
+    option.value = group;
+    slotSelect.append(option);
+  }
   const promptArea = areaInput("", "The full prompt this token expands into", 8);
   const negativeArea = areaInput("", "Optional negative prompt clauses (comma separated)", 4);
   const tagsInput = textInput("", "comma, separated, tags");
@@ -108,6 +120,7 @@ export function openPresetManager({ onChanged = () => {}, initialCategory = null
   form.append(
     fieldRow("Name", nameInput),
     fieldRow("Category", categoryInput),
+    fieldRow("Slot (exclusive group)", slotSelect),
     fieldRow("Description", descriptionInput),
     fieldRow("Prompt", promptArea),
     fieldRow("Negative", negativeArea),
@@ -149,6 +162,7 @@ export function openPresetManager({ onChanged = () => {}, initialCategory = null
       id: selectedId,
       name: nameInput.value.trim(),
       category: categoryInput.value,
+      exclusive_group: slotSelect.value,
       description: descriptionInput.value,
       prompt: promptArea.value,
       negative: negativeArea.value,
@@ -161,6 +175,8 @@ export function openPresetManager({ onChanged = () => {}, initialCategory = null
   function fillForm(preset) {
     nameInput.value = preset?.name ?? "";
     categoryInput.value = preset?.category ?? "other";
+    slotSelect.value = preset?.exclusive_group ?? "";
+    if (slotSelect.value !== (preset?.exclusive_group ?? "")) slotSelect.value = "";
     descriptionInput.value = preset?.description ?? "";
     promptArea.value = preset?.prompt ?? "";
     negativeArea.value = preset?.negative ?? "";
@@ -248,6 +264,7 @@ export function openPresetManager({ onChanged = () => {}, initialCategory = null
     fillForm({
       name,
       category,
+      exclusive_group: basePreset?.exclusive_group ?? "",
       description: basePreset?.description ?? "",
       prompt: basePreset?.prompt ?? "",
       negative: basePreset?.negative ?? "",

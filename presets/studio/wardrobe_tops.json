@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "presets": [
+    {
+      "id": "wardrobe_top_casual_crop_top",
+      "name": "CASUAL CROP TOP",
+      "category": "wardrobe",
+      "prompt": "A simple modern fitted crop top made from soft matte cotton jersey, ending naturally above the waist with a clean straight hem. It has a modest crew neckline, short fitted sleeves, minimal visible seams, and no logos or printed graphics. The fabric follows the body naturally without appearing excessively tight or glossy. The garment feels casual, comfortable, contemporary, and understated.",
+      "negative": "",
+      "description": "Casual Crop Top — upper-body garment only; bottoms stay independent.",
+      "tags": [
+        "wardrobe",
+        "top",
+        "casual crop top"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_top",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_top_sport_coat_tshirt",
+      "name": "SPORT COAT OVER T-SHIRT",
+      "category": "wardrobe",
+      "prompt": "A tailored contemporary single-breasted sport coat worn over a clean fitted crew-neck T-shirt. The jacket has soft natural shoulders, narrow-to-medium lapels, two front buttons, subtle textured fabric, and a modern fitted silhouette without excessive tightness. The T-shirt remains simple, matte, and free of visible branding. The overall look is relaxed business casual, polished but approachable.",
+      "negative": "",
+      "description": "Sport Coat Over T-Shirt — upper-body garment only; bottoms stay independent.",
+      "tags": [
+        "wardrobe",
+        "top",
+        "sport coat over t-shirt"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_top",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_top_oversized_hoodie",
+      "name": "OVERSIZED HOODIE",
+      "category": "wardrobe",
+      "prompt": "A comfortable oversized pullover hoodie made from heavyweight brushed cotton fleece. It has dropped shoulders, roomy sleeves, a large front kangaroo pocket, ribbed cuffs and hem, and a softly structured hood with simple drawstrings. The garment hangs loosely around the torso with natural folds and realistic fabric weight. The design is minimal and unbranded.",
+      "negative": "",
+      "description": "Oversized Hoodie — upper-body garment only; bottoms stay independent.",
+      "tags": [
+        "wardrobe",
+        "top",
+        "oversized hoodie"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_top",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_top_classic_denim_jacket",
+      "name": "CLASSIC DENIM JACKET",
+      "category": "wardrobe",
+      "prompt": "A classic waist-length denim jacket made from sturdy medium-weight cotton denim with a pointed collar, metal front buttons, two buttoned chest pockets, vertical seam construction, and adjustable button tabs near the waist. The fabric shows subtle natural fading and light wear along seams and edges. The fit is relaxed but structured, with authentic denim texture and no visible logos.",
+      "negative": "",
+      "description": "Classic Denim Jacket — upper-body garment only; bottoms stay independent.",
+      "tags": [
+        "wardrobe",
+        "top",
+        "classic denim jacket"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_top",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_top_fitted_turtleneck",
+      "name": "FITTED TURTLENECK",
+      "category": "wardrobe",
+      "prompt": "A clean fitted long-sleeve turtleneck made from soft fine-knit fabric with a high folded collar, smooth shoulders, fitted sleeves, and a simple body-hugging silhouette. The material has a matte finish and subtle knit texture without visible logos, decoration, or exaggerated ribbing. The overall look is minimalist, refined, and contemporary.",
+      "negative": "",
+      "description": "Fitted Turtleneck — upper-body garment only; bottoms stay independent.",
+      "tags": [
+        "wardrobe",
+        "top",
+        "fitted turtleneck"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_top",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_top_silk_blouse",
+      "name": "SILK BLOUSE",
+      "category": "wardrobe",
+      "prompt": "An elegant long-sleeve blouse made from lightweight matte silk with a soft fluid drape, gently structured collar, concealed or understated front buttons, relaxed sleeves tapering into fitted cuffs, and subtle natural folds around the torso. The fabric has restrained soft highlights rather than a glossy satin appearance. The overall design is sophisticated and timeless.",
+      "negative": "",
+      "description": "Silk Blouse — upper-body garment only; bottoms stay independent.",
+      "tags": [
+        "wardrobe",
+        "top",
+        "silk blouse"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_top",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_top_leather_biker_jacket",
+      "name": "LEATHER BIKER JACKET",
+      "category": "wardrobe",
+      "prompt": "A fitted classic motorcycle jacket made from matte black or dark brown leather with a diagonal front zipper, broad fold-over lapels, metal snap details, zipped cuffs, and compact zippered pockets. The leather shows subtle creasing and realistic wear while remaining well maintained. The jacket has a structured but wearable silhouette and avoids excessive spikes, chains, or decorative embellishment.",
+      "negative": "",
+      "description": "Leather Biker Jacket — upper-body garment only; bottoms stay independent.",
+      "tags": [
+        "wardrobe",
+        "top",
+        "leather biker jacket"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_top",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_top_flannel_shirt",
+      "name": "FLANNEL SHIRT",
+      "category": "wardrobe",
+      "prompt": "A relaxed long-sleeve flannel shirt made from soft brushed cotton with a traditional muted plaid pattern, pointed collar, buttoned front, chest pockets, and buttoned cuffs. The garment fits comfortably with natural folds and slightly rolled sleeves if appropriate. The fabric appears soft and well worn without looking damaged.",
+      "negative": "",
+      "description": "Flannel Shirt — upper-body garment only; bottoms stay independent.",
+      "tags": [
+        "wardrobe",
+        "top",
+        "flannel shirt"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_top",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_top_fitted_tank_top",
+      "name": "FITTED TANK TOP",
+      "category": "wardrobe",
+      "prompt": "A simple fitted sleeveless tank top made from soft ribbed cotton jersey with moderate shoulder straps, a clean rounded neckline, and a natural fitted silhouette. The fabric has subtle stretch and realistic texture without excessive sheen. The garment is minimal, casual, and free of visible branding.",
+      "negative": "",
+      "description": "Fitted Tank Top — upper-body garment only; bottoms stay independent.",
+      "tags": [
+        "wardrobe",
+        "top",
+        "fitted tank top"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_top",
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_top_medieval_linen_tunic",
+      "name": "MEDIEVAL LINEN TUNIC",
+      "category": "wardrobe",
+      "prompt": "A simple medieval-style upper tunic made from textured natural linen with a modest round neckline, loose long sleeves narrowing slightly at the wrists, visible hand-finished seams, and a relaxed straight silhouette extending to the upper hips. The fabric is lightly wrinkled and naturally matte, with restrained historical styling and no modern fasteners.",
+      "negative": "",
+      "description": "Medieval Linen Tunic — upper-body garment only; bottoms stay independent.",
+      "tags": [
+        "wardrobe",
+        "top",
+        "medieval linen tunic"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "wardrobe_top",
+      "reference_images": []
+    }
+  ]
+}

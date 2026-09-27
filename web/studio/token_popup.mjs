@@ -1,12 +1,13 @@
 /**
  * Token click-popup for the Prompt Studio.
  *
- * Clicking a pill opens a compact list of the token's category presets.
- * Selecting a different preset swaps the token in place; the popup also
- * offers edit/delete/new-preset shortcuts.
+ * Clicking a pill opens a compact list of same-slot presets (same
+ * category AND exclusive group). Selecting a different preset swaps the
+ * token in place; attachments keep their host. The popup also toggles
+ * runtime randomization and offers edit/remove/new-preset shortcuts.
  */
-import { el, anchoredPanel } from "./ui.mjs?v=1";
-import { categoryLabel } from "./preset_store.mjs?v=1";
+import { el, anchoredPanel } from "./ui.mjs?v=2";
+import { categoryLabel } from "./preset_store.mjs?v=2";
 
 /**
  * @param {{
@@ -15,9 +16,17 @@ import { categoryLabel } from "./preset_store.mjs?v=1";
  *   onDelete: (oldRange: object) => void,
  *   onEditPreset: (preset: object) => void,
  *   onNewPreset: (category: string) => void,
+ *   onToggleRandomize: (range: object) => void,
  * }} options
  */
-export function createTokenPopup({ store, onReplace, onDelete, onEditPreset, onNewPreset }) {
+export function createTokenPopup({
+  store,
+  onReplace,
+  onDelete,
+  onEditPreset,
+  onNewPreset,
+  onToggleRandomize,
+}) {
   let panel = null;
   let activeRange = null;
 
@@ -38,30 +47,60 @@ export function createTokenPopup({ store, onReplace, onDelete, onEditPreset, onN
     return row;
   }
 
-  function open(tokenRange, anchorRect, tokenSpan) {
+  function open(tokenRange, anchorRect, tokenSpan, { attached = false } = {}) {
     close();
     activeRange = tokenRange;
     const preset = store.get(tokenRange.id);
     const category = preset?.category ?? "other";
+    const group = preset?.exclusive_group ?? "";
 
-    const title = el("div", "kpw2-panel-title", `${categoryLabel(category)} presets`);
+    const isRandom = Boolean(tokenRange.randomize);
+
+    const title = el(
+      "div",
+      "kpw2-panel-title",
+      categoryLabel(category) + (group ? ` · ${group.replace(/^wardrobe_/, "").replace(/_/g, " ")}` : "")
+    );
     const list = el("div", "kpw2-popup-list");
-    const options = store.byCategory(category).filter((p) => p.enabled);
+    // Same slot only: category AND exclusive group. Ungrouped presets
+    // list their whole category.
+    const options = store
+      .byCategory(category)
+      .filter((p) => p.enabled)
+      .filter((p) => (group ? p.exclusive_group === group : true));
     if (!options.length) {
-      list.append(el("div", "kpw2-chooser-empty", "No presets in this category yet."));
+      list.append(el("div", "kpw2-chooser-empty", "No presets in this slot yet."));
     }
     for (const option of options) {
       list.append(rowButton(option, option.id === tokenRange.id));
     }
 
     const footer = el("div", "kpw2-popup-footer");
+
+    const randomButton = el(
+      "button",
+      "kpw2-ghost-button" + (isRandom ? " kpw2-active-toggle" : ""),
+      (isRandom ? "✓ " : "") + "🎲 Randomize each run"
+    );
+    randomButton.type = "button";
+    randomButton.title = "Pick a random preset from this slot on every execution";
+    randomButton.addEventListener("click", () => {
+      const range = activeRange;
+      close();
+      if (range) onToggleRandomize(range);
+    });
+
     const newButton = el("button", "kpw2-ghost-button", "+ New Preset");
     newButton.type = "button";
     const editButton = el("button", "kpw2-ghost-button", "Edit Preset");
     editButton.type = "button";
-    const removeButton = el("button", "kpw2-danger-button", "Remove Token");
+    const removeButton = el(
+      "button",
+      "kpw2-danger-button",
+      attached ? "Remove Attachment" : "Remove Token"
+    );
     removeButton.type = "button";
-    footer.append(newButton, editButton, removeButton);
+    footer.append(randomButton, newButton, editButton, removeButton);
 
     const body = el("div", "kpw2-token-popup");
     body.append(title, list, footer);
@@ -86,7 +125,7 @@ export function createTokenPopup({ store, onReplace, onDelete, onEditPreset, onN
 
     // Anchor next to the pill itself when available.
     const rect = tokenSpan?.getBoundingClientRect?.() ?? anchorRect;
-    panel = anchoredPanel("popup", rect, () => body, { width: 260 });
+    panel = anchoredPanel("popup", rect, () => body, { width: 280 });
   }
 
   function close() {

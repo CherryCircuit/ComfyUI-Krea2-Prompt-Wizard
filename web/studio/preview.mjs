@@ -2,9 +2,9 @@
  * "Preview Expanded" modal: shows exactly what the node will output, with
  * copy buttons for each of the three STRING outputs.
  */
-import { el, openModal, copyText } from "./ui.mjs?v=1";
-import { compileDocument } from "./tokenizer.mjs?v=1";
-import { presetStore } from "./preset_store.mjs?v=1";
+import { el, openModal, copyText } from "./ui.mjs?v=2";
+import { compileDocument, hasRandomize } from "./tokenizer.mjs?v=2";
+import { presetStore } from "./preset_store.mjs?v=2";
 
 function section(label, text, copyButton) {
   const wrap = el("div", "kpw2-preview-section");
@@ -52,6 +52,15 @@ export function showPreviewModal({ doc }) {
         "div",
         "kpw2-preview-warning",
         `Unresolved presets: ${compiled.missingIds.join(", ")} — they appear as [MISSING: …] in the output.`
+      )
+    );
+  }
+  if (hasRandomize(doc)) {
+    body.append(
+      el(
+        "div",
+        "kpw2-preview-note kpw2-preview-warning",
+        "This prompt contains 🎲 randomized tokens. Each queued image picks a different preset from the same slot; this preview shows the currently selected ones."
       )
     );
   }

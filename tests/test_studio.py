@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import random
 import tempfile
 import unittest
 from unittest import mock
@@ -322,6 +323,244 @@ class UserPresetFileTests(unittest.TestCase):
         self.assertIsNone(studio_presets.get_store().get("brand_new"))
         fresh = studio_presets.reload_store()
         self.assertIsNotNone(fresh.get("brand_new"))
+
+
+class MarkerFlagsTests(unittest.TestCase):
+    """Grammar v2: labels, @host attachments and ~ randomize flags."""
+
+    def test_parse_label_host_randomize(self):
+        segments = studio_tokens.parse_document(
+            "{{krea2:wardrobe_serena_travelling|SERENA - TRAVELLING|@character_serena|~}}"
+        )
+        token = segments[0]
+        self.assertEqual(token.preset_id, "wardrobe_serena_travelling")
+        self.assertEqual(token.label, "SERENA - TRAVELLING")
+        self.assertEqual(token.host, "character_serena")
+        self.assertTrue(token.randomize)
+
+    def test_parse_flag_order_free(self):
+        segments = studio_tokens.parse_document("{{krea2:x|~|@host1}}")
+        token = segments[0]
+        self.assertEqual(token.label, "")
+        self.assertEqual(token.host, "host1")
+        self.assertTrue(token.randomize)
+
+    def test_parse_v1_markers_still_work(self):
+        segments = studio_tokens.parse_document("{{krea2:plain|Old Label}} and {{krea2:bare}}")
+        self.assertEqual([s.type for s in segments], ["token", "text", "token"])
+        self.assertEqual(segments[0].label, "Old Label")
+        self.assertEqual(segments[0].host, "")
+        self.assertFalse(segments[0].randomize)
+        self.assertEqual(segments[2].preset_id, "bare")
+
+    def test_token_markup_options(self):
+        self.assertEqual(
+            studio_tokens.token_markup("w", "OUTFIT", host="character_serena", randomize=True),
+            "{{krea2:w|OUTFIT|@character_serena|~}}",
+        )
+        self.assertEqual(
+            studio_tokens.token_markup("w", "OUTFIT", host="character_serena"),
+            "{{krea2:w|OUTFIT|@character_serena}}",
+        )
+
+    def test_roundtrip_with_flags(self):
+        doc = "A {{krea2:emotion_happy|HAPPY|@character_serena|~}} day."
+        self.assertEqual(
+            studio_tokens.serialize_segments(studio_tokens.parse_document(doc)), doc
+        )
+
+    def test_has_randomize(self):
+        self.assertFalse(studio_tokens.has_randomize("{{krea2:a|A}}"))
+        self.assertTrue(studio_tokens.has_randomize("{{krea2:a|A|~}}"))
+        self.assertTrue(studio_tokens.has_randomize("{{krea2:a|@h|~}}"))
+        self.assertFalse(studio_tokens.has_randomize("no tokens"))
+
+    def test_host_ids(self):
+        doc = (
+            "{{krea2:character_serena|SERENA}}{{krea2:emotion_happy|HAPPY|@character_serena}} "
+            "{{krea2:character_marcus|MARCUS}}"
+        )
+        self.assertEqual(studio_tokens.host_ids(doc), ["character_serena"])
+
+    def test_replace_token_fields(self):
+        doc = "{{krea2:emotion_happy|HAPPY|@character_serena}}"
+        out = studio_tokens.replace_token_fields(doc, 0, len(doc), randomize=True)
+        self.assertEqual(out, "{{krea2:emotion_happy|HAPPY|@character_serena|~}}")
+        out2 = studio_tokens.replace_token_fields(out, 0, len(out), host="character_marcus")
+        self.assertEqual(
+            out2, "{{krea2:emotion_happy|HAPPY|@character_marcus|~}}"
+        )
+
+    def test_attach_token_after_host(self):
+        doc = "{{krea2:character_serena|SERENA}} sits."
+        host_end = len("{{krea2:character_serena|SERENA}}")
+        out = studio_tokens.attach_token(
+            doc, 0, host_end,
+            "wardrobe_serena_travelling", "SERENA - TRAVELLING",
+        )
+        self.assertTrue(out.startswith(
+            "{{krea2:character_serena|SERENA}}"
+            "{{krea2:wardrobe_serena_travelling|SERENA - TRAVELLING|@character_serena}}"
+        ))
+        self.assertTrue(out.endswith(" sits."))
+
+    def test_raw_display_attachment_nesting(self):
+        doc = (
+            "{{krea2:character_serena|SERENA}}"
+            "{{krea2:wardrobe_serena_travelling|OUTFIT|@character_serena}}"
+            "{{krea2:emotion_happy|HAPPY|@character_serena}} sits."
+        )
+        raw = studio_tokens.raw_display(doc)
+        self.assertEqual(raw, "[SERENA (OUTFIT) (HAPPY)] sits.")
+
+    def test_raw_display_orphan_attachment(self):
+        doc = "{{krea2:emotion_happy|HAPPY|@character_ghost}} alone."
+        self.assertEqual(
+            studio_tokens.raw_display(doc), "[MISSING: character_ghost] (HAPPY) alone."
+        )
+
+    def test_raw_display_orphan_with_resolver(self):
+        doc = "{{krea2:emotion_happy|HAPPY|@character_ghost}} alone."
+        raw = studio_tokens.raw_display(doc, lambda pid: None)
+        self.assertEqual(raw, "[MISSING: character_ghost] (MISSING: emotion_happy) alone.")
+
+
+class RandomizeTests(unittest.TestCase):
+    def setUp(self):
+        self.store = PresetStore(
+            [
+                Preset(id="camera_a", name="CAM A", category="camera",
+                       prompt="A.", exclusive_group="camera"),
+                Preset(id="camera_b", name="CAM B", category="camera",
+                       prompt="B.", exclusive_group="camera"),
+                Preset(id="camera_c", name="CAM C", category="camera",
+                       prompt="C.", exclusive_group="camera"),
+                Preset(id="light_x", name="LIGHT", category="lighting",
+                       prompt="X.", exclusive_group="lighting"),
+                Preset(id="top_a", name="TOP A", category="wardrobe",
+                       prompt="TA.", exclusive_group="wardrobe_top"),
+                Preset(id="top_b", name="TOP B", category="wardrobe",
+                       prompt="TB.", exclusive_group="wardrobe_top"),
+            ]
+        )
+
+    def test_candidates_same_slot_only(self):
+        preset = self.store.get("camera_a")
+        ids = {p.id for p in studio_compiler.random_candidates(self.store, preset, exclude_id="camera_a")}
+        self.assertEqual(ids, {"camera_b", "camera_c"})
+
+    def test_candidates_exclude_other_groups(self):
+        top = self.store.get("top_a")
+        ids = {p.id for p in studio_compiler.random_candidates(self.store, top, exclude_id="top_a")}
+        self.assertEqual(ids, {"top_b"})
+
+    def test_randomize_document_swaps_flagged_tokens(self):
+        doc = "{{krea2:camera_a|CAM A|~}} stable {{krea2:light_x|LIGHT}}"
+        rng = random.Random(42)
+        new_doc, choices = studio_compiler.randomize_document(doc, self.store, rng=rng)
+        self.assertEqual(len(choices), 1)
+        self.assertEqual(choices[0]["token_id"], "camera_a")
+        self.assertIn(choices[0]["chosen_id"], ("camera_b", "camera_c"))
+        self.assertIn("|~", new_doc, "randomize flag must survive the swap")
+        self.assertIn("stable", new_doc)
+        # The label refreshes to the chosen preset.
+        parsed = studio_tokens.parse_document(new_doc)
+        camera = [s for s in parsed if s.type == "token" and not s.host][0]
+        self.assertEqual(camera.label, choices[0]["chosen_name"])
+
+    def test_randomize_keeps_attachment_host(self):
+        doc = "{{krea2:character_serena|SERENA}}{{krea2:top_a|TOP A|@character_serena|~}}"
+        rng = random.Random(7)
+        new_doc, choices = studio_compiler.randomize_document(doc, self.store, rng=rng)
+        token = [s for s in studio_tokens.parse_document(new_doc) if s.host][0]
+        self.assertEqual(token.host, "character_serena")
+        self.assertEqual(token.preset_id, choices[0]["chosen_id"])
+
+    def test_randomize_skips_missing_and_slotless(self):
+        doc = "{{krea2:ghost|G|~}} {{krea2:light_x|LIGHT|~}}"
+        new_doc, choices = studio_compiler.randomize_document(doc, self.store)
+        self.assertEqual(choices, [])
+        self.assertEqual(new_doc, doc, "no alternatives -> untouched")
+
+    def test_compile_with_rng_uses_randomized_doc(self):
+        doc = "{{krea2:camera_a|CAM A|~}}"
+        rng = random.Random(3)
+        result = studio_compiler.compile_document(doc, self.store, rng=rng)
+        self.assertEqual(len(result.random_choices), 1)
+        self.assertIn(result.prompt, ("B.", "C."))
+        self.assertNotEqual(result.raw_prompt, "[CAM A]")
+
+    def test_compile_without_rng_is_deterministic(self):
+        result = studio_compiler.compile_document("{{krea2:camera_a|CAM A|~}}", self.store)
+        self.assertEqual(result.prompt, "A.")
+        self.assertEqual(result.random_choices, [])
+
+
+class ExclusiveGroupSchemaTests(unittest.TestCase):
+    def test_exclusive_group_roundtrip(self):
+        preset = studio_presets.preset_from_dict(
+            {"id": "x", "prompt": "p", "exclusive_group": "Wardrobe Full"}, "user"
+        )
+        self.assertEqual(preset.exclusive_group, "wardrobe_full")
+        self.assertIn("exclusive_group", preset.to_dict())
+
+    def test_exclusive_group_defaults_empty(self):
+        preset = studio_presets.preset_from_dict({"id": "x", "prompt": "p"}, "user")
+        self.assertEqual(preset.exclusive_group, "")
+
+    def test_exclusive_group_normalizes_junk(self):
+        preset = studio_presets.preset_from_dict(
+            {"id": "x", "prompt": "p", "exclusive_group": "My Group!!"}, "user"
+        )
+        self.assertEqual(preset.exclusive_group, "my_group")
+
+    def test_bundled_groups_present(self):
+        store = studio_presets.load_store()
+        self.assertEqual(store.get("camera_close_up").exclusive_group, "camera")
+        self.assertEqual(store.get("lighting_candlelight").exclusive_group, "lighting")
+        self.assertEqual(store.get("scene_medieval_tavern_a").exclusive_group, "scene")
+        self.assertEqual(store.get("style_cinematic_fantasy").exclusive_group, "style")
+        self.assertEqual(store.get("emotion_happy").exclusive_group, "emotion")
+        self.assertEqual(store.get("wardrobe_serena_travelling").exclusive_group, "wardrobe_full")
+        self.assertEqual(store.get("wardrobe_top_silk_blouse").exclusive_group, "wardrobe_top")
+        self.assertEqual(store.get("wardrobe_bottom_skinny_jeans").exclusive_group, "wardrobe_bottom")
+        # Characters and continuity stay stackable.
+        self.assertEqual(store.get("character_serena").exclusive_group, "")
+        self.assertEqual(store.get("continuity_strict_scene_continuity").exclusive_group, "")
+
+    def test_bundled_new_categories_load(self):
+        store = studio_presets.load_store()
+        self.assertEqual(len(store.by_category("emotion")), 17)
+        self.assertEqual(len(store.by_category("wardrobe")), 34)
+
+
+class RandomizeNodeTests(unittest.TestCase):
+    """End-to-end randomization through the node (bundled preset store)."""
+
+    LOCKED = "camera_locked_medium_shot"
+
+    def test_is_changed_nan_for_random_docs(self):
+        self.assertNotEqual(
+            Krea2PromptWizardV2.IS_CHANGED("{{krea2:camera_locked_medium_shot|A|~}}"),
+            Krea2PromptWizardV2.IS_CHANGED("{{krea2:camera_locked_medium_shot|A|~}}"),
+        )
+        self.assertEqual(
+            Krea2PromptWizardV2.IS_CHANGED("plain"),
+            Krea2PromptWizardV2.IS_CHANGED("plain"),
+        )
+
+    def test_build_randomizes_within_camera_slot(self):
+        node = Krea2PromptWizardV2()
+        locked = node.build("{{krea2:camera_locked_medium_shot|LOCKED MEDIUM SHOT}}")[0]
+        prompt, negative, raw = node.build("{{krea2:camera_locked_medium_shot|LOCKED MEDIUM SHOT|~}}")
+        camera_names = {
+            "LOCKED MEDIUM SHOT", "MEDIUM CLOSE-UP", "CLOSE-UP",
+            "WIDE ESTABLISHING SHOT", "OVER THE SHOULDER",
+        }
+        self.assertIn(raw.strip("[]"), camera_names - {"LOCKED MEDIUM SHOT"})
+        self.assertNotEqual(prompt, locked)
+        # The randomized negative set still comes from the chosen preset's group.
+        self.assertIsInstance(negative, str)
 
 
 class NodeTests(unittest.TestCase):

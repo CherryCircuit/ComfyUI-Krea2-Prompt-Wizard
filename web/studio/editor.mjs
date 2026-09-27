@@ -11,6 +11,17 @@
  * tokens perfectly atomic (backspace deletes a whole pill) and makes
  * copy/paste round-trip: serialized markers paste back as tokens.
  *
+ * Attachments (outfits, emotions on a character) are markers with a
+ * `@host` field. When an attachment marker sits immediately after its
+ * host marker — the normal case, enforced at insert time — the two are
+ * rendered as ONE merged element: the host pill visually containing the
+ * attachment sub-pill. The merged element's doc length is the combined
+ * marker length, so caret math stays exact.
+ *
+ * Each pill carries a small dice toggle that flags the token for runtime
+ * randomization (`~`): the backend then picks a random same-slot preset
+ * on every execution.
+ *
  * Undo/redo uses a private stack because continuous re-rendering defeats
  * the browser's DOM-level undo. Plain-text mode is a genuine <textarea>
  * fallback for environments or users that prefer raw markers.
@@ -19,12 +30,16 @@ import {
   parseDocument,
   tokenMarkup,
   replaceRange,
+  replaceTokenFields,
+  attachToken,
+  remapHosts,
   tokenAt,
+  tokenRanges,
   compileDocument,
   documentStats,
-} from "./tokenizer.mjs?v=1";
-import { offsetOfPoint, pointForOffset } from "./caret_math.mjs?v=1";
-import { presetStore, tokenTooltip } from "./preset_store.mjs?v=1";
+} from "./tokenizer.mjs?v=2";
+import { offsetOfPoint, pointForOffset } from "./caret_math.mjs?v=2";
+import { presetStore, tokenTooltip } from "./preset_store.mjs?v=2";
 
 const SENTINEL = "\u200B"; // zero-width space: gives the caret a home between tokens
 
@@ -242,38 +257,144 @@ export function createStudioEditor({
 
   // ----------------------------------------------------------------- render
 
-  function makeTokenSpan(segment) {
+  function categoryClassFor(preset) {
+    return preset ? `kpw2-cat-${preset.category}` : "kpw2-token-missing";
+  }
+
+  function makeDice(range) {
+    const dice = el("span", "kpw2-dice", "🎲");
+    dice.title = "Randomize on every run (pick a random preset from the same slot)";
+    dice.addEventListener("click", (event) => {
+      event.stopPropagation();
+      event.preventDefault();
+      toggleRandomize(range);
+    });
+    return dice;
+  }
+
+  /**
+   * Build one standalone (or detached-attachment) pill.
+   * @param {object} segment doc segment for the token
+   * @param {boolean} detached true when an attachment's host is absent
+   */
+  function makeTokenSpan(segment, detached = false) {
     const preset = presetStore.get(segment.id);
     const span = el("span", "kpw2-token");
     span.contentEditable = "false";
     span.dataset.raw = segment.raw;
     span.dataset.id = segment.id;
+    span.__range = { start: segment.start, end: segment.end, id: segment.id, host: segment.host };
     if (!preset || !preset.enabled) {
       span.classList.add("kpw2-token-missing");
-      span.dataset.raw = segment.raw;
       span.append(el("span", "kpw2-token-label", `[MISSING: ${segment.id}]`));
       span.title = `Missing preset "${segment.id}". Use the Preset Manager to restore or create it.`;
       return span;
     }
-    span.classList.add(`kpw2-cat-${preset.category}`);
+    span.classList.add(categoryClassFor(preset));
+    if (detached) span.classList.add("kpw2-token-detached");
     span.append(el("span", "kpw2-token-label", preset.name));
     span.title = tokenTooltip(preset);
+    if (segment.randomize) {
+      span.classList.add("kpw2-token-random");
+      span.append(makeDice({ start: segment.start, end: segment.end }));
+    }
+    return span;
+  }
+
+  /**
+   * Build a host pill that visually contains its adjacent attachment
+   * sub-pills. `rawCombined` covers the host marker plus every adjacent
+   * attachment marker so caret math treats it as one atomic run.
+   */
+  function makeHostSpan(segment, attached) {
+    const preset = presetStore.get(segment.id);
+    const span = el("span", "kpw2-token kpw2-token-host");
+    span.contentEditable = "false";
+    const rawCombined = segment.raw + attached.map((a) => a.raw).join("");
+    span.dataset.raw = rawCombined;
+    span.dataset.id = segment.id;
+    span.__range = { start: segment.start, end: segment.end, id: segment.id, host: "" };
+
+    if (!preset || !preset.enabled) {
+      span.classList.add("kpw2-token-missing");
+      span.append(el("span", "kpw2-token-label", `[MISSING: ${segment.id}]`));
+    } else {
+      span.classList.add(categoryClassFor(preset));
+      span.append(el("span", "kpw2-token-label", preset.name));
+      span.title = tokenTooltip(preset);
+    }
+    if (segment.randomize) {
+      span.classList.add("kpw2-token-random");
+      span.append(makeDice({ start: segment.start, end: segment.end }));
+    }
+
+    for (const attachment of attached) {
+      const attPreset = presetStore.get(attachment.id);
+      const sub = el("span", "kpw2-subtoken");
+      sub.contentEditable = "false";
+      sub.dataset.raw = attachment.raw;
+      sub.dataset.id = attachment.id;
+      sub.__range = { start: attachment.start, end: attachment.end, id: attachment.id, host: attachment.host };
+      if (!attPreset || !attPreset.enabled) {
+        sub.classList.add("kpw2-token-missing");
+        sub.append(el("span", "kpw2-token-label", `[MISSING: ${attachment.id}]`));
+      } else {
+        sub.classList.add(categoryClassFor(attPreset));
+        sub.append(el("span", "kpw2-token-label", attPreset.name));
+        sub.title = tokenTooltip(attPreset);
+      }
+      if (attachment.randomize) {
+        sub.classList.add("kpw2-token-random");
+        sub.append(makeDice({ start: attachment.start, end: attachment.end }));
+      }
+      span.append(sub);
+    }
     return span;
   }
 
   function render() {
     const caret = state.lastCaret;
+    const segments = parseDocument(state.doc);
     const frag = document.createDocumentFragment();
     let lastWasToken = false;
-    for (const segment of parseDocument(state.doc)) {
-      if (segment.type === "token") {
-        if (lastWasToken || frag.childNodes.length === 0) frag.append(sentinelNode());
-        frag.append(makeTokenSpan(segment));
-        lastWasToken = true;
-      } else if (segment.value) {
-        frag.append(document.createTextNode(segment.value));
-        lastWasToken = false;
+    let i = 0;
+    while (i < segments.length) {
+      const segment = segments[i];
+      if (segment.type === "text") {
+        if (segment.value) {
+          frag.append(document.createTextNode(segment.value));
+          lastWasToken = false;
+        }
+        i += 1;
+        continue;
       }
+      if (segment.host) {
+        // Reached an attachment that is not adjacent to its host (the
+        // adjacent case is consumed below): render it standalone.
+        if (lastWasToken || frag.childNodes.length === 0) frag.append(sentinelNode());
+        frag.append(makeTokenSpan(segment, true));
+        lastWasToken = true;
+        i += 1;
+        continue;
+      }
+      // Collect attachments that directly follow this host marker.
+      const attached = [];
+      let end = segment.end;
+      let j = i + 1;
+      while (
+        j < segments.length &&
+        segments[j].type === "token" &&
+        segments[j].host === segment.id &&
+        segments[j].start === end
+      ) {
+        attached.push(segments[j]);
+        end = segments[j].end;
+        j += 1;
+      }
+      if (lastWasToken || frag.childNodes.length === 0) frag.append(sentinelNode());
+      frag.append(makeHostSpan(segment, attached));
+      lastWasToken = true;
+      i = j;
     }
     if (lastWasToken) frag.append(sentinelNode());
     editor.replaceChildren(frag);
@@ -299,8 +420,40 @@ export function createStudioEditor({
     return !!ch && /[\w]/.test(ch);
   }
 
-  /** Insert a preset token at the caret with smart boundary spacing. */
-  function insertToken(preset) {
+  /**
+   * Find the token that blocks insertion of `preset` under the same
+   * exclusive group. Global presets (no host) conflict with other global
+   * presets of the group; attachments conflict within the same host.
+   */
+  function findExclusiveToken(exclusiveGroup, hostId) {
+    if (!exclusiveGroup) return null;
+    for (const token of tokenRanges(state.doc)) {
+      if ((token.host || "") !== hostId) continue;
+      const tokenPreset = presetStore.get(token.id);
+      if (tokenPreset && tokenPreset.exclusive_group === exclusiveGroup) {
+        return token;
+      }
+    }
+    return null;
+  }
+
+  /** Insert a preset token at the caret (or swap per exclusivity rules). */
+  function insertToken(preset, { hostRange = null } = {}) {
+    if (hostRange) {
+      attachToHost(hostRange, preset);
+      return;
+    }
+    const existing = findExclusiveToken(preset.exclusive_group, "");
+    if (existing) {
+      // Replace the current same-slot token in place (position preserved).
+      const markup = tokenMarkup(preset.id, preset.name, { randomize: existing.randomize });
+      applyDoc(replaceRange(state.doc, existing.start, existing.end, markup), {
+        start: existing.start + markup.length,
+        end: existing.start + markup.length,
+      });
+      editor.focus();
+      return;
+    }
     const { start, end } = captureCaret();
     let insert = tokenMarkup(preset.id, preset.name);
     let caret = start;
@@ -317,13 +470,64 @@ export function createStudioEditor({
     editor.focus();
   }
 
-  /** Swap a token's preset in place. */
+  /**
+   * Attach `preset` to the character token at `hostRange`. Replaces any
+   * same-slot attachment already on that character; otherwise the new
+   * attachment marker lands directly after the host marker.
+   */
+  function attachToHost(hostRange, preset) {
+    const host = tokenRanges(state.doc).find(
+      (token) => token.start === hostRange.start && !token.host
+    );
+    if (!host) return;
+    const existing = findExclusiveToken(preset.exclusive_group, host.id);
+    const markup = tokenMarkup(preset.id, preset.name, {
+      host: host.id,
+      randomize: existing ? existing.randomize : false,
+    });
+    let nextDoc;
+    let caret;
+    if (existing) {
+      nextDoc = replaceRange(state.doc, existing.start, existing.end, markup);
+      caret = existing.start + markup.length;
+    } else {
+      nextDoc = attachToken(state.doc, { start: host.start, end: host.end }, preset.id, preset.name);
+      caret = host.end + markup.length;
+    }
+    applyDoc(nextDoc, { start: caret, end: caret });
+    editor.focus();
+  }
+
+  /** Swap any token's preset in place (keeps host + randomize flags). */
   function replaceToken(oldRange, preset) {
-    const markup = tokenMarkup(preset.id, preset.name);
+    const current = tokenRanges(state.doc).find(
+      (token) => token.start === oldRange.start && token.id === oldRange.id
+    );
+    const markup = tokenMarkup(preset.id, preset.name, {
+      host: current?.host || "",
+      randomize: current?.randomize || false,
+    });
     applyDoc(replaceRange(state.doc, oldRange.start, oldRange.end, markup), {
       start: oldRange.start + markup.length,
       end: oldRange.start + markup.length,
     });
+    editor.focus();
+  }
+
+  /**
+   * Swap a host character preset and re-point its attachments at the new
+   * character id so outfits/emotions survive the swap.
+   */
+  function replaceHost(oldRange, preset) {
+    const oldId = oldRange.id;
+    const markup = tokenMarkup(preset.id, preset.name, {
+      randomize: tokenRanges(state.doc).find(
+        (token) => token.start === oldRange.start && token.id === oldRange.id
+      )?.randomize || false,
+    });
+    let nextDoc = replaceRange(state.doc, oldRange.start, oldRange.end, markup);
+    nextDoc = remapHosts(nextDoc, oldId, preset.id);
+    applyDoc(nextDoc, { start: oldRange.start + markup.length, end: oldRange.start + markup.length });
     editor.focus();
   }
 
@@ -333,6 +537,20 @@ export function createStudioEditor({
     let end = range.end;
     if (state.doc[start - 1] === " " && state.doc[end] === " ") start -= 1;
     applyDoc(replaceRange(state.doc, start, end, ""), { start, end });
+  }
+
+  /** Toggle the runtime-randomize flag on one token. */
+  function toggleRandomize(range) {
+    const current = tokenRanges(state.doc).find(
+      (token) => token.start === range.start && token.end === range.end
+    );
+    if (!current) return;
+    applyDoc(
+      replaceTokenFields(state.doc, range.start, range.end, {
+        randomize: !current.randomize,
+      }),
+      { start: range.end, end: range.end }
+    );
   }
 
   // ----------------------------------------------------------- input pipeline
@@ -505,15 +723,19 @@ export function createStudioEditor({
   });
 
   editor.addEventListener("click", (event) => {
+    // Sub-pills (attachments) first — they live inside host pills.
+    const sub = event.target.closest?.(".kpw2-subtoken");
+    if (sub && editor.contains(sub)) {
+      const range = sub.__range;
+      if (range) onTokenPopup(range, sub.getBoundingClientRect(), sub, { attached: true });
+      return;
+    }
+    const dice = event.target.closest?.(".kpw2-dice");
+    if (dice) return; // handled (and stopped) by the dice listener itself
     const tokenSpan = event.target.closest?.(".kpw2-token");
-    if (!tokenSpan) return;
-    const raw = tokenSpan.dataset?.raw;
-    const id = tokenSpan.dataset?.id;
-    if (!raw || !id) return;
-    // Record the clicked token's range so popup actions operate on it.
-    const segments = parseDocument(state.doc);
-    const range = segments.find((s) => s.type === "token" && s.raw === raw && s.id === id);
-    if (range) onTokenPopup(range, tokenSpan.getBoundingClientRect(), tokenSpan);
+    if (!tokenSpan || !editor.contains(tokenSpan)) return;
+    const range = tokenSpan.__range;
+    if (range) onTokenPopup(range, tokenSpan.getBoundingClientRect(), tokenSpan, { attached: false });
   });
 
   plain.addEventListener("input", () => {
@@ -557,8 +779,11 @@ export function createStudioEditor({
       notify();
     },
     insertToken,
+    attachToHost,
     replaceToken,
+    replaceHost,
     deleteToken,
+    toggleRandomize,
     refreshTokens,
     setMode,
     undo,
