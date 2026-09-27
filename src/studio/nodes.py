@@ -48,14 +48,17 @@ class Krea2PromptWizardV2:
             "hidden": {},
         }
 
-    RETURN_TYPES = ("STRING", "STRING", "STRING")
-    RETURN_NAMES = ("prompt", "negative", "raw_prompt")
+    RETURN_TYPES = ("STRING", "STRING", "STRING", "STRING", "STRING")
+    RETURN_NAMES = ("prompt", "negative", "raw_prompt", "last_prompt", "last_negative")
     FUNCTION = "build"
     CATEGORY = "_Krea2 Prompt Wizard"
     DESCRIPTION = (
         "Write naturally and insert preset tokens; each token expands into its "
         "stored prompt at run time. Outputs the expanded positive prompt, the "
-        "combined negative prompt from used presets, and the unexpanded raw view."
+        "combined negative prompt from used presets, and the unexpanded raw view. "
+        "With frame sections, prompt/negative/raw cover the FIRST frame and "
+        "last_prompt/last_negative carry the shared+last-frame text for H3-style "
+        "first/last-frame image pairs."
     )
     SEARCH_ALIASES = [
         "krea2 prompt studio",
@@ -73,7 +76,7 @@ class Krea2PromptWizardV2:
             return float("nan")
         return prompt_doc
 
-    def build(self, prompt_doc: str = "") -> Tuple[str, str, str]:
+    def build(self, prompt_doc: str = "") -> Tuple[str, str, str, str, str]:
         store = get_store()
         doc = prompt_doc or ""
         # Randomized tokens (flag ~) draw a fresh same-slot preset per
@@ -93,7 +96,13 @@ class Krea2PromptWizardV2:
                     for choice in result.random_choices
                 ),
             )
-        return (result.prompt, result.negative, result.raw_prompt)
+        return (
+            result.prompt,
+            result.negative,
+            result.raw_prompt,
+            result.last_prompt,
+            result.last_negative,
+        )
 
 
 NODE_CLASS_MAPPINGS: Dict[str, Any] = {NODE_NAME: Krea2PromptWizardV2}

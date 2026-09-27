@@ -8,6 +8,20 @@ stored prompt at run time.
 This node lives **alongside** the v1 dashboard wizard (still fully
 functional) as a much smaller, editor-first replacement.
 
+## The human mental model: Cast, Looks, Performances, Locations
+
+The toolbar speaks in filmmaking ideas rather than prompt parameters:
+
+| Toolbar button | Meaning |
+|---|---|
+| `+ Character` | Permanent identity (Serena, Marcus). Stackable. |
+| `+ Look` | A saved appearance package (PILOT, RANGER, FORMAL…). A bundle of wardrobe/prop presets; one per character. |
+| `+ Performance` | A semantic acting instruction ("hiding something", "trying not to cry"). One per character. |
+| `+ Emotion` | Simple emotional states. One per character. |
+| `+ State` | Temporary physical conditions (wet, sweaty, muddy, exhausted). Stackable. |
+| `+ Scene` / `+ Lighting` / `+ Camera` / `+ Style` | The shot itself — one each per prompt. |
+| `+ More` | Wardrobe slots, continuity, props, and anything else. |
+
 ## Usage
 
 1. Add the **Krea2 Prompt Wizard v2** node.
@@ -71,10 +85,55 @@ dashed "detached" pill you can delete or re-anchor by attaching anew.
 
 **Randomization.** Every pill has a small 🎲 toggle. Flagged tokens are
 swapped for a random preset *of the same slot* (same category + exclusive
-group) on every execution — flag a camera, some outfits and a few
-emotions, queue 10–15 images, and each result differs. The `raw_prompt`
-output shows what was actually chosen for each run. Randomized documents
-bypass ComfyUI's execution cache so every queue item recompiles.
+group) on every execution — flag a camera, some Looks and a few emotions,
+queue 10–15 images, and each result differs. The `raw_prompt` output shows
+what was actually chosen for each run. Randomized documents bypass
+ComfyUI's execution cache so every queue item recompiles.
+
+## First / Last frame mode
+
+Click **Frames** in the toolbar to split the prompt into three sections:
+
+```
+Shared text + shared presets — identical in both frames
+▾ FIRST FRAME — only this changes in the first image
+…starting state…
+▾ LAST FRAME — only this changes in the last image
+…ending state…
+```
+
+- `prompt` / `negative` = shared + first (connect to the first-frame
+  encoder); `last_prompt` / `last_negative` = shared + last (connect to
+  the last-frame encoder). Without frame sections the last two outputs
+  are empty strings.
+- Shared presets expand into **both** frames; only the section text
+  differs — no rebuilding the whole prompt twice.
+- 🎲 Randomization runs **once per execution**, so both frames always
+  receive identical picks (coherent frame pairs).
+- Removing the sections (click **Frames** again) keeps all text; it just
+  becomes shared.
+
+## Bundles: Looks and Performances
+
+A Look or Performance preset is a *bundle*: its expansion is the ordered
+expansion of its `included_presets` (with cycle detection; missing
+members render as `[MISSING: id]`). Build bundles in the Preset Manager
+—the "Included presets" section appears for bundle categories, with a
+member picker filtered to sensible categories (Looks pull from wardrobe/
+props/nested Looks; Performances from emotions/Performances). Negatives
+are the union of the members'. Because bundles are presets, they attach
+to characters, swap via the token popup, and support 🎲 randomization
+(random Look per run) like everything else.
+
+## Favorites, recents and visual browsing
+
+- The chooser opens with **★ Favorites** and **Recent** sections (star
+  toggles on every row); recents update automatically on insertion.
+- Any preset can carry a **preview image**: put a picture in
+  `<user>/Krea2PromptWizard/previews/` and set the filename in the
+  manager's "Preview image" field (full URLs work too). Rows with
+  previews render as visual cards.
+- Prefs live in `studio_prefs.json` next to the user preset file.
 
 ## Storage
 
@@ -82,6 +141,8 @@ bypass ComfyUI's execution cache so every queue item recompiles.
 |---|---|
 | Bundled starter presets (shipped, read-only) | `presets/studio/*.json` |
 | Your presets / edits / deletions | `<user_directory>/Krea2PromptWizard/studio_presets.json` |
+| Favorites + recents | `<user_directory>/Krea2PromptWizard/studio_prefs.json` |
+| Manual preview images | `<user_directory>/Krea2PromptWizard/previews/` |
 
 Both layers are human-readable JSON. User entries override bundled presets
 with the same id; a `{"id": "...", "deleted": true}` tombstone hides a
@@ -108,12 +169,13 @@ duplicate the preset and use the duplicate's token.
 
 ```
 src/studio/            backend (independent of the v1 wizard modules)
-    tokens.py          pure tokenizer: document ⇄ segments
-    compiler.py        expansion, negative dedupe, raw rendering
+    tokens.py          pure tokenizer: document ⇄ segments + frame sections
+    compiler.py        expansion (incl. bundles), randomization, frames
     presets.py         schema, bundled+user loading, tolerant validation
-    nodes.py           ComfyUI node (prompt/negative/raw_prompt STRINGs)
-    api.py             /krea2_prompt_studio routes
-    package_paths.py   bundled dir + user file path
+    prefs.py           favorites/recents persistence
+    nodes.py           ComfyUI node (5 STRING outputs incl. last frame)
+    api.py             /krea2_prompt_studio routes (presets, prefs, previews)
+    package_paths.py   bundled dir + user file paths
 
 web/prompt_studio_v2.js        entry (auto-discovered, .js)
 web/studio/*.mjs               modules (NOT auto-imported)
@@ -135,18 +197,18 @@ Tests: `tests/test_studio.py` (backend),
 `tests/frontend_studio_tokenizer.mjs`, `tests/frontend_studio_caret_math.mjs`
 (pure frontend logic).
 
-## Known limitations (v2.1)
+## Known limitations (v2.2)
 
-- Tokens are not drag-repositionable yet (insert/delete/swap cover the
-  workflow; drag is planned).
-- No First/Last Frame tabs yet — the compiler accepts the document as one
-  block; segment-scoped compilation (SHARED/FIRST/LAST) is the next major
-  feature and slots in without schema changes.
+- Token drag-repositioning and First/Last "delta" tooling (what changed
+  between frames) are future work.
+- Preview images are manual (drop a file, set the filename). Automated
+  preview generation (standardized test scenes per category) is planned
+  and needs a render pipeline.
+- Preset creation is form-based; no LLM is contacted (a pack principle).
+  Guided-create forms may come later without one.
 - Reference images are stored in the schema but unused.
 - Undo/redo is the editor's private stack (browser-native undo inside the
   rich editor is intercepted); the plain textarea keeps native undo.
-- Preset edits do not retroactively rewrite saved expansion snapshots
-  (there are none by design — see propagation above).
 - Randomized runs log their picks to the console and reflect them in
   `raw_prompt`; a per-image visual record (e.g. PNG metadata) is future
   work.

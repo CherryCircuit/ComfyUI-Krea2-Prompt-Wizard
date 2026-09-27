@@ -1,35 +1,43 @@
 """Prompt compilation for the Prompt Studio.
 
-Turns a token document into the three node outputs:
+Turns a token document into the node outputs:
 
-* ``prompt``      — every token replaced by its preset expansion
-* ``negative``    — the combined, de-duplicated negatives of used presets
-* ``raw_prompt``  — the human-readable ``[LABEL]`` rendering
+* ``prompt``        — shared + first-frame text, tokens expanded
+* ``negative``      — combined negatives of the presets used above
+* ``raw_prompt``    — the human-readable ``[LABEL]`` rendering
+* ``last_prompt``   — shared + last-frame text (frames mode only)
+* ``last_negative`` — combined negatives for the last frame
 
-Tokens flagged with ``~`` are first replaced by a random preset drawn from
-the same category and exclusive group (the "slot"), so queueing several
-images yields deliberately different looks. Attachment tokens (outfits,
-emotions) follow their host character in document order and therefore
-expand directly after the character's own block.
+Bundle presets (Looks, Performances) inline their ``included_presets``
+expansions in order, with cycle detection; a bundle's negatives are the
+union of its members'.
 
-Pure logic; no ComfyUI imports so it runs identically in tests.
+Tokens flagged with ``~`` are first replaced by a random preset drawn
+from the same category and exclusive group (the "slot"). Randomization
+runs ONCE over the whole document, so in frames mode both frames receive
+identical picks — essential for coherent first/last pairs.
+
+The inheritance model is composition + text order: a character's block
+comes first, then its Look, then its other attachments, then scene text;
+later text refines earlier text. Pure logic; no ComfyUI imports.
 """
 from __future__ import annotations
 
 import random
 import re
-from dataclasses import dataclass
-from typing import Callable, List, Optional
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Tuple
 
+from .presets import Preset, PresetStore
 from .tokens import (
-    RANDOMIZE_FLAG,
     clean_spacing,
+    has_frames,
     parse_document,
     raw_display,
+    split_sections,
     token_markup,
     token_ranges,
 )
-from .presets import Preset, PresetStore
 
 
 @dataclass
@@ -37,20 +45,56 @@ class CompiledPrompt:
     prompt: str
     negative: str
     raw_prompt: str
-    used_preset_ids: Optional[List[str]] = None
-    missing_preset_ids: Optional[List[str]] = None
-    random_choices: Optional[List[dict]] = None
-
-    def __post_init__(self) -> None:
-        if self.used_preset_ids is None:
-            self.used_preset_ids = []
-        if self.missing_preset_ids is None:
-            self.missing_preset_ids = []
-        if self.random_choices is None:
-            self.random_choices = []
+    last_prompt: str = ""
+    last_negative: str = ""
+    has_frames: bool = False
+    used_preset_ids: List[str] = field(default_factory=list)
+    missing_preset_ids: List[str] = field(default_factory=list)
+    random_choices: List[dict] = field(default_factory=list)
 
 
 _CLAUSE_SPLIT = re.compile(r"[\n,]+")
+
+
+# ---------------------------------------------------------------------------
+# Bundle expansion
+# ---------------------------------------------------------------------------
+
+
+def expand_preset(
+    preset: Preset,
+    store: PresetStore,
+    _seen: Optional[frozenset] = None,
+) -> Tuple[str, List[str]]:
+    """Expand one preset to (prompt_text, contributing_preset_ids).
+
+    Bundles inline their members depth-first. Cycles are cut with a
+    visible marker; missing or disabled members render ``[MISSING: id]``.
+    """
+    if not preset.included_presets:
+        return preset.prompt.strip(), [preset.id]
+    seen = _seen or frozenset()
+    if preset.id in seen:
+        return f"[CYCLIC BUNDLE: {preset.id}]", []
+    seen = seen | {preset.id}
+    parts: List[str] = []
+    used: List[str] = [preset.id]
+    for member_id in preset.included_presets:
+        member = store.get(member_id)
+        if member is None or not member.enabled:
+            parts.append(f"[MISSING: {member_id}]")
+            used.append(member_id)  # surface in missing/negative accounting
+            continue
+        text, member_ids = expand_preset(member, store, seen)
+        if text:
+            parts.append(text)
+        used.extend(member_ids)
+    return " ".join(part for part in parts if part), used
+
+
+# ---------------------------------------------------------------------------
+# Negatives
+# ---------------------------------------------------------------------------
 
 
 def _negative_clauses(store: PresetStore, used_ids: List[str]) -> List[str]:
@@ -71,6 +115,11 @@ def _negative_clauses(store: PresetStore, used_ids: List[str]) -> List[str]:
             seen.add(key)
             clauses.append(clause)
     return clauses
+
+
+# ---------------------------------------------------------------------------
+# Randomization
+# ---------------------------------------------------------------------------
 
 
 def random_candidates(
@@ -100,18 +149,15 @@ def randomize_document(
     doc: str,
     store: PresetStore,
     rng: Optional[random.Random] = None,
-) -> tuple:
+) -> Tuple[str, List[dict]]:
     """Replace ``~``-flagged tokens with a random same-slot preset.
 
-    Returns ``(new_doc, choices)`` where ``choices`` describes each pick
-    (``token_id``, ``chosen_id``, ``chosen_name``). Tokens whose own
-    preset is missing or that have no alternatives are left untouched.
-    Attachments keep their host; labels update to the chosen preset so
-    the raw output and any downstream tooling show what was used.
+    Runs over the WHOLE document (frame markers are irrelevant here: they
+    are plain text that survives the splice), so both frames share picks.
+    Returns ``(new_doc, choices)``.
     """
     chooser = rng.choice if rng is not None else random.choice
     choices: List[dict] = []
-    # Rebuild from the end so earlier ranges stay valid while we splice.
     replacements: List[tuple] = []
     for segment in token_ranges(doc):
         if not segment.randomize:
@@ -145,6 +191,46 @@ def randomize_document(
     return new_doc, choices
 
 
+# ---------------------------------------------------------------------------
+# Compilation
+# ---------------------------------------------------------------------------
+
+
+def _expand_segments(doc: str, store: PresetStore) -> Tuple[str, List[str], List[str]]:
+    """Expand one section document to (prompt_text, used_ids, missing_ids)."""
+    parts: List[str] = []
+    used: List[str] = []
+    missing: List[str] = []
+    for segment in parse_document(doc):
+        if segment.type == "text":
+            parts.append(segment.value)
+            continue
+        if segment.type == "frame":
+            continue  # structural; never appears inside a section
+        preset = store.get(segment.preset_id)
+        if preset is None or not preset.enabled:
+            if segment.preset_id not in missing:
+                missing.append(segment.preset_id)
+            parts.append(f"[MISSING: {segment.preset_id}]")
+            continue
+        text, contributing = expand_preset(preset, store)
+        if segment.preset_id not in used:
+            used.append(segment.preset_id)
+        used.extend(pid for pid in contributing if pid not in used)
+        for member_id in contributing:
+            member = store.get(member_id)
+            if member is None and member_id not in missing:
+                missing.append(member_id)
+        parts.append(text)
+    return clean_spacing("".join(parts)), used, missing
+
+
+def _compile_section(doc: str, store: PresetStore) -> Tuple[str, str, List[str], List[str]]:
+    text, used, missing = _expand_segments(doc, store)
+    negative = ", ".join(_negative_clauses(store, used))
+    return text, negative, used, missing
+
+
 def compile_document(
     doc: str,
     store: PresetStore,
@@ -154,33 +240,44 @@ def compile_document(
     active_doc = doc or ""
     choices: List[dict] = []
     if rng is not None:
-        # Randomization only runs when explicitly enabled by the caller
-        # (the node passes an rng when the document asks for it).
+        # One randomization pass per execution: both frames share picks.
         active_doc, choices = randomize_document(active_doc, store, rng=rng)
 
-    parts: List[str] = []
-    used: List[str] = []
-    missing: List[str] = []
-    for segment in parse_document(active_doc):
-        if segment.type == "text":
-            parts.append(segment.value)
-            continue
-        preset = store.get(segment.preset_id)
-        if preset is None or not preset.enabled:
-            if segment.preset_id not in missing:
-                missing.append(segment.preset_id)
-            parts.append(f"[MISSING: {segment.preset_id}]")
-            continue
-        if segment.preset_id not in used:
-            used.append(segment.preset_id)
-        parts.append(preset.prompt.strip())
-    negative = ", ".join(_negative_clauses(store, used))
-    raw = raw_display(
-        active_doc,
-        lambda preset_id: store.label_of(preset_id),
-    )
+    if has_frames(active_doc):
+        sections = split_sections(active_doc)
+        prompt, negative, used, missing = _compile_section(
+            sections["shared"] + sections["first"], store
+        )
+        last_prompt, last_negative, last_used, last_missing = _compile_section(
+            sections["shared"] + sections["last"], store
+        )
+        for pid in last_used:
+            if pid not in used:
+                used.append(pid)
+        for pid in last_missing:
+            if pid not in missing:
+                missing.append(pid)
+        raw = raw_display(sections["shared"] + sections["first"],
+                          lambda pid: store.label_of(pid))
+        if sections["last"].strip():
+            raw += "\n[LAST FRAME]\n" + raw_display(sections["shared"] + sections["last"],
+                                                    lambda pid: store.label_of(pid))
+        return CompiledPrompt(
+            prompt=prompt,
+            negative=negative,
+            raw_prompt=clean_spacing(raw),
+            last_prompt=last_prompt,
+            last_negative=last_negative,
+            has_frames=True,
+            used_preset_ids=used,
+            missing_preset_ids=missing,
+            random_choices=choices,
+        )
+
+    prompt, negative, used, missing = _compile_section(active_doc, store)
+    raw = raw_display(active_doc, lambda pid: store.label_of(pid))
     return CompiledPrompt(
-        prompt=clean_spacing("".join(parts)),
+        prompt=prompt,
         negative=negative,
         raw_prompt=clean_spacing(raw),
         used_preset_ids=used,

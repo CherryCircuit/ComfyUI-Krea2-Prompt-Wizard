@@ -9,6 +9,7 @@ import unittest
 from unittest import mock
 
 from src.studio import compiler as studio_compiler
+from src.studio import prefs as studio_prefs
 from src.studio import presets as studio_presets
 from src.studio import tokens as studio_tokens
 from src.studio.nodes import Krea2PromptWizardV2
@@ -19,9 +20,10 @@ def _make_store(presets):
     return PresetStore([Preset(**p) if isinstance(p, dict) else p for p in presets])
 
 
-def _preset(pid, name="X", category="other", prompt="P", negative=""):
+def _preset(pid, name="X", category="other", prompt="P", negative="", exclusive_group=""):
     return Preset(
-        id=pid, name=name, category=category, prompt=prompt, negative=negative
+        id=pid, name=name, category=category, prompt=prompt, negative=negative,
+        exclusive_group=exclusive_group,
     )
 
 
@@ -552,7 +554,9 @@ class RandomizeNodeTests(unittest.TestCase):
     def test_build_randomizes_within_camera_slot(self):
         node = Krea2PromptWizardV2()
         locked = node.build("{{krea2:camera_locked_medium_shot|LOCKED MEDIUM SHOT}}")[0]
-        prompt, negative, raw = node.build("{{krea2:camera_locked_medium_shot|LOCKED MEDIUM SHOT|~}}")
+        prompt, negative, raw, last_prompt, last_negative = node.build(
+            "{{krea2:camera_locked_medium_shot|LOCKED MEDIUM SHOT|~}}"
+        )
         camera_names = {
             "LOCKED MEDIUM SHOT", "MEDIUM CLOSE-UP", "CLOSE-UP",
             "WIDE ESTABLISHING SHOT", "OVER THE SHOULDER",
@@ -563,6 +567,211 @@ class RandomizeNodeTests(unittest.TestCase):
         self.assertIsInstance(negative, str)
 
 
+class BundleTests(unittest.TestCase):
+    """Looks / Performances: presets composed of other presets."""
+
+    def setUp(self):
+        self.store = PresetStore(
+            [
+                _preset("outfit_a", "OUTFIT A", "wardrobe", "Green dress.", "modern fabric"),
+                _preset("hair_a", "HAIR A", "hair", "Blonde waves."),
+                _preset("look_pilot", "PILOT", "look", "", exclusive_group="look"),
+                _preset("look_nested", "NESTED", "look", "", exclusive_group="look"),
+                _preset("emotion_tense", "TENSE", "emotion", "Tense face."),
+            ]
+        )
+        self.store.get("look_pilot").included_presets = ["outfit_a", "hair_a"]
+        self.store.get("look_nested").included_presets = ["look_pilot", "emotion_tense"]
+
+    def test_expand_simple_bundle(self):
+        text, used = studio_compiler.expand_preset(self.store.get("look_pilot"), self.store)
+        self.assertEqual(text, "Green dress. Blonde waves.")
+        self.assertEqual(used, ["look_pilot", "outfit_a", "hair_a"])
+
+    def test_expand_nested_bundle(self):
+        text, used = studio_compiler.expand_preset(self.store.get("look_nested"), self.store)
+        self.assertEqual(text, "Green dress. Blonde waves. Tense face.")
+        self.assertEqual(used[0], "look_nested")
+        self.assertIn("look_pilot", used)
+
+    def test_expand_cycle_is_cut(self):
+        self.store.get("look_pilot").included_presets = ["look_nested"]
+        self.store.get("look_nested").included_presets = ["look_pilot"]
+        text, _ = studio_compiler.expand_preset(self.store.get("look_pilot"), self.store)
+        self.assertIn("[CYCLIC BUNDLE:", text)
+
+    def test_expand_missing_member(self):
+        self.store.get("look_pilot").included_presets = ["ghost_preset"]
+        text, used = studio_compiler.expand_preset(self.store.get("look_pilot"), self.store)
+        self.assertEqual(text, "[MISSING: ghost_preset]")
+
+    def test_bundle_negatives_union(self):
+        doc = "{{krea2:look_pilot|PILOT|@character_serena}}"
+        result = studio_compiler.compile_document(doc, self.store)
+        self.assertEqual(result.prompt, "Green dress. Blonde waves.")
+        self.assertEqual(result.negative, "modern fabric")
+        self.assertIn("hair_a", result.used_preset_ids)
+
+    def test_bundle_missing_member_marks_missing(self):
+        self.store.get("look_pilot").included_presets = ["ghost_preset"]
+        result = studio_compiler.compile_document("{{krea2:look_pilot|PILOT}}", self.store)
+        self.assertIn("[MISSING: ghost_preset]", result.prompt)
+        self.assertIn("ghost_preset", result.missing_preset_ids)
+
+    def test_new_bundled_categories_load(self):
+        store = studio_presets.load_store()
+        self.assertEqual(len(store.by_category("look")), 6)
+        self.assertEqual(len(store.by_category("performance")), 6)
+        self.assertEqual(len(store.by_category("state")), 6)
+        pilot = store.get("look_pilot")
+        self.assertEqual(pilot.exclusive_group, "look")
+        self.assertIn("wardrobe_futuristic_flight_suit", pilot.included_presets)
+        self.assertEqual(store.get("performance_on_edge").exclusive_group, "performance")
+        # States stack freely.
+        self.assertEqual(store.get("state_sweaty").exclusive_group, "")
+
+
+class FrameTests(unittest.TestCase):
+    """First / Last frame sections."""
+
+    def setUp(self):
+        self.store = PresetStore(
+            [
+                _preset("char_a", "CHARA", "character", "Character block."),
+                _preset("scene_x", "SCENE", "scene", "Scene block.", negative="modern"),
+                _preset("emotion_x", "SHOCKED", "emotion", "Shocked face.", negative="calm face"),
+                _preset("emotion_y", "CALM", "emotion", "Calm face."),
+            ]
+        )
+
+    def test_has_frames(self):
+        self.assertFalse(studio_tokens.has_frames("plain doc"))
+        self.assertTrue(studio_tokens.has_frames("a {{frame:first}} b"))
+        self.assertTrue(studio_tokens.has_frames("{{frame:last}}"))
+
+    def test_parse_frame_segments(self):
+        segments = studio_tokens.parse_document("A {{frame:first}} B")
+        self.assertEqual([s.type for s in segments], ["text", "frame", "text"])
+        self.assertEqual(segments[1].value, "first")
+        self.assertEqual(segments[1].raw, "{{frame:first}}")
+
+    def test_split_sections(self):
+        doc = "shared text {{frame:first}} she stands {{frame:last}} she recoils"
+        sections = studio_tokens.split_sections(doc)
+        self.assertEqual(sections["shared"], "shared text ")
+        self.assertEqual(sections["first"], " she stands ")
+        self.assertEqual(sections["last"], " she recoils")
+
+    def test_split_sections_shared_only(self):
+        self.assertEqual(studio_tokens.split_sections("no markers")["last"], "")
+
+    def test_split_multiple_markers_accumulate(self):
+        doc = "A {{frame:first}} B {{frame:last}} C {{frame:first}} D"
+        sections = studio_tokens.split_sections(doc)
+        self.assertEqual(sections["shared"], "A ")
+        self.assertEqual(sections["first"], " B  D")
+        self.assertEqual(sections["last"], " C ")
+
+    def test_compile_frames_outputs(self):
+        doc = (
+            "{{krea2:char_a|CHARA}} in {{krea2:scene_x|SCENE}}. "
+            "{{frame:first}}"
+            "{{krea2:emotion_y|CALM}}. "
+            "{{frame:last}}"
+            "{{krea2:emotion_x|SHOCKED}}."
+        )
+        result = studio_compiler.compile_document(doc, self.store)
+        self.assertTrue(result.has_frames)
+        # prompt = shared + first
+        self.assertEqual(result.prompt, "Character block. in Scene block. Calm face.")
+        # last_prompt = shared + last
+        self.assertEqual(result.last_prompt, "Character block. in Scene block. Shocked face.")
+        # negatives are per-frame
+        self.assertEqual(result.negative, "modern")
+        self.assertEqual(result.last_negative, "modern, calm face")
+        # raw shows both frames
+        self.assertIn("[LAST FRAME]", result.raw_prompt)
+        self.assertIn("[CALM]", result.raw_prompt.split("[LAST FRAME]")[0])
+        self.assertIn("[SHOCKED]", result.raw_prompt.split("[LAST FRAME]")[1])
+
+    def test_compile_no_frames_last_empty(self):
+        result = studio_compiler.compile_document("{{krea2:char_a|CHARA}}", self.store)
+        self.assertFalse(result.has_frames)
+        self.assertEqual(result.last_prompt, "")
+        self.assertEqual(result.last_negative, "")
+
+    def test_randomize_shared_across_frames(self):
+        store = PresetStore(
+            [
+                _preset("cam_a", "CAM A", "camera", "A.", exclusive_group="camera"),
+                _preset("cam_b", "CAM B", "camera", "B.", exclusive_group="camera"),
+            ]
+        )
+        doc = (
+            "{{krea2:cam_a|CAM A|~}} {{frame:first}} calm {{frame:last}} shocked"
+        )
+        rng = random.Random(11)
+        result = studio_compiler.compile_document(doc, store, rng=rng)
+        self.assertEqual(len(result.random_choices), 1)
+        # Both frames contain the SAME pick (sections differ by design).
+        pick = result.prompt.split(".")[0]
+        self.assertIn(pick, ("A", "B"))
+        self.assertTrue(result.last_prompt.startswith(pick + "."))
+
+    def test_node_build_frames(self):
+        node = Krea2PromptWizardV2()
+        doc = (
+            "{{krea2:character_serena|SERENA}} {{frame:first}} stands tall "
+            "{{frame:last}} recoils in shock."
+        )
+        prompt, negative, raw, last_prompt, last_negative = node.build(doc)
+        self.assertIn("young adult woman", prompt)
+        self.assertIn("stands tall", prompt)
+        self.assertNotIn("stands tall", last_prompt)
+        self.assertIn("recoils in shock", last_prompt)
+        self.assertIn("young adult woman", last_prompt)
+
+
+class PrefsTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.prefs_path = os.path.join(self.tmp.name, "studio_prefs.json")
+        patcher = mock.patch(
+            "src.studio.prefs.studio_user_prefs_path", return_value=self.prefs_path
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.addCleanup(self.tmp.cleanup)
+
+    def test_defaults_when_missing(self):
+        prefs = studio_prefs.load_prefs()
+        self.assertEqual(prefs, {"favorites": [], "recent": []})
+
+    def test_save_and_load_roundtrip(self):
+        issues = studio_prefs.save_prefs(
+            {"favorites": ["camera_close_up"], "recent": ["look_pilot", "look_pilot", "camera_close_up"]}
+        )
+        self.assertEqual(issues, [])
+        prefs = studio_prefs.load_prefs()
+        self.assertEqual(prefs["favorites"], ["camera_close_up"])
+        # Recent dedupes, most recent first.
+        self.assertEqual(prefs["recent"], ["look_pilot", "camera_close_up"])
+
+    def test_junk_file_resets(self):
+        with open(self.prefs_path, "w", encoding="utf-8") as handle:
+            handle.write("{broken")
+        self.assertEqual(studio_prefs.load_prefs()["recent"], [])
+
+    def test_caps_and_type_coercion(self):
+        issues = studio_prefs.save_prefs(
+            {"favorites": [1, "a", None, "b"], "recent": ["x"] * 50}
+        )
+        self.assertEqual(issues, [])
+        prefs = studio_prefs.load_prefs()
+        self.assertEqual(prefs["favorites"], ["a", "b"])
+        self.assertLessEqual(len(prefs["recent"]), 30)
+
+
 class NodeTests(unittest.TestCase):
     def test_input_types(self):
         spec = Krea2PromptWizardV2.INPUT_TYPES()
@@ -570,26 +779,30 @@ class NodeTests(unittest.TestCase):
         self.assertEqual(spec["required"]["prompt_doc"][0], "STRING")
 
     def test_return_signature(self):
-        self.assertEqual(Krea2PromptWizardV2.RETURN_TYPES, ("STRING", "STRING", "STRING"))
         self.assertEqual(
-            Krea2PromptWizardV2.RETURN_NAMES, ("prompt", "negative", "raw_prompt")
+            Krea2PromptWizardV2.RETURN_TYPES, ("STRING",) * 5
+        )
+        self.assertEqual(
+            Krea2PromptWizardV2.RETURN_NAMES,
+            ("prompt", "negative", "raw_prompt", "last_prompt", "last_negative"),
         )
 
-    def test_build_outputs_three_strings(self):
+    def test_build_outputs_five_strings(self):
         node = Krea2PromptWizardV2()
-        prompt, negative, raw = node.build(
+        prompt, negative, raw, last_prompt, last_negative = node.build(
             "{{krea2:character_serena|SERENA}} plain"
         )
-        for value in (prompt, negative, raw):
+        for value in (prompt, negative, raw, last_prompt, last_negative):
             self.assertIsInstance(value, str)
         self.assertIn("young adult woman", prompt)
         self.assertIn("short hair", negative)
         self.assertEqual(raw, "[SERENA] plain")
+        self.assertEqual((last_prompt, last_negative), ("", ""))
 
     def test_build_empty(self):
         node = Krea2PromptWizardV2()
-        prompt, negative, raw = node.build("")
-        self.assertEqual((prompt, negative, raw), ("", "", ""))
+        outputs = node.build("")
+        self.assertEqual(outputs, ("", "", "", "", ""))
 
 
 if __name__ == "__main__":

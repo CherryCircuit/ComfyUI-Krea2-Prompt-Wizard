@@ -41,6 +41,7 @@ class FrontendPackagingTests(unittest.TestCase):
             "preset_store.mjs",
             "editor.mjs",
             "chooser.mjs",
+            "host_picker.mjs",
             "token_popup.mjs",
             "manager.mjs",
             "preview.mjs",

@@ -32,6 +32,9 @@ SCHEMA_VERSION = 1
 #: rendered with the neutral "other" styling by the frontend.
 CATEGORIES = (
     "character",
+    "look",
+    "performance",
+    "state",
     "scene",
     "lighting",
     "camera",
@@ -45,17 +48,23 @@ CATEGORIES = (
 
 DEFAULT_CATEGORY = "other"
 
+#: Categories whose presets are bundles of other presets (their expansion
+#: inlines the members' expansions, with cycle detection).
+BUNDLE_CATEGORIES = ("look", "performance")
+
 #: Known exclusive groups. Presets sharing a group cannot coexist in a
 #: prompt: inserting one replaces the other (per host for attachments).
 #: "camera", "lighting", "style" and "scene" are global singletons;
-#: "emotion" and the wardrobe slots are per character. Custom group
-#: strings are allowed for user presets.
+#: "emotion", "look" and "performance" are per character. Wardrobe slots
+#: are per character. Custom group strings are allowed for user presets.
 EXCLUSIVE_GROUPS = (
     "camera",
     "lighting",
     "style",
     "scene",
     "emotion",
+    "look",
+    "performance",
     "wardrobe_full",
     "wardrobe_top",
     "wardrobe_bottom",
@@ -66,7 +75,14 @@ _REQUIRED_STRING_FIELDS = ("id", "prompt")
 
 @dataclass
 class Preset:
-    """One reusable prompt expansion."""
+    """One reusable prompt expansion.
+
+    ``included_presets`` turns the preset into a bundle (a Look or a
+    Performance): at compile time the members' expansions are inlined in
+    order, with cycle detection. ``preview_image`` is a manual visual
+    reference (a filename inside the user's previews folder or a URL)
+    used by the visual preset browser.
+    """
 
     id: str
     name: str
@@ -78,6 +94,8 @@ class Preset:
     notes: str = ""
     enabled: bool = True
     exclusive_group: str = ""
+    included_presets: List[str] = field(default_factory=list)
+    preview_image: str = ""
     reference_images: List[Any] = field(default_factory=list)
     origin: str = "bundled"
 
@@ -93,6 +111,8 @@ class Preset:
             "notes": self.notes,
             "enabled": self.enabled,
             "exclusive_group": self.exclusive_group,
+            "included_presets": list(self.included_presets),
+            "preview_image": self.preview_image,
             "reference_images": list(self.reference_images),
             "origin": self.origin,
         }
@@ -111,6 +131,13 @@ def _coerce_string_list(value: Any) -> List[str]:
         # Tolerate comma-separated strings authored by hand in JSON.
         return [part.strip() for part in value.split(",") if part.strip()]
     return []
+
+
+def _coerce_id_list(value: Any) -> List[str]:
+    """Included-preset ids: strictly a list of non-empty strings."""
+    if not isinstance(value, list):
+        return []
+    return [str(item).strip() for item in value if isinstance(item, str) and item.strip()]
 
 
 def _coerce_exclusive_group(value: Any) -> str:
@@ -146,6 +173,8 @@ def preset_from_dict(data: Any, origin: str) -> Optional[Preset]:
         notes=data.get("notes", "") if isinstance(data.get("notes", ""), str) else "",
         enabled=_coerce_bool(data.get("enabled"), True),
         exclusive_group=_coerce_exclusive_group(data.get("exclusive_group", "")),
+        included_presets=_coerce_id_list(data.get("included_presets")),
+        preview_image=data.get("preview_image", "") if isinstance(data.get("preview_image", ""), str) else "",
         reference_images=data.get("reference_images") if isinstance(data.get("reference_images"), list) else [],
         origin=origin,
     )

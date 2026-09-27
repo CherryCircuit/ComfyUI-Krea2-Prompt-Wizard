@@ -26,7 +26,14 @@ insert reusable presets as color-coded tokens — `[SERENA]`,
 `[MEDIEVAL TAVERN A]`, `[CANDLELIGHT]`, `[LOCKED MEDIUM SHOT]` — each of
 which expands into its full stored prompt (character bibles, scene
 "mini bibles" with fixed landmarks, lighting, camera, style and continuity
-instructions) in the node's `prompt` output. Presets ship with a starter
+instructions) in the node's `prompt` output. Character-bound concepts —
+Looks (saved appearance bundles like PILOT or RANGER), Performances
+("hiding something"), emotions and physical states — attach directly to a
+character's pill, and the toolbar speaks in filmmaking ideas rather than
+prompt parameters. A **Frames** mode splits the prompt into shared /
+first-frame / last-frame sections and emits both frame prompts for
+H3-style keyframe pairs. Per-token 🎲 randomization reshuffles flagged
+presets (same slot) on every queued image. Presets ship with a starter
 library and are fully editable in the built-in Preset Manager; edits are
 stored in `<user>/Krea2PromptWizard/studio_presets.json` and survive
 updates. Details, storage layout and limitations: `docs/STUDIO_V2.md`.

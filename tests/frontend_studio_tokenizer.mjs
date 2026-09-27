@@ -101,8 +101,8 @@ assert.equal(tokenizer.cleanSpacing("and then..."), "and then...");
 
 {
   const presets = {
-    character_serena: { name: "SERENA", prompt: "Blonde woman.", negative: "dark hair, blue eyes", enabled: true },
-    scene_tavern: { name: "TAVERN", prompt: "A tavern.", negative: "dark hair\nmodern furniture", enabled: true },
+    character_serena: { id: "character_serena", name: "SERENA", prompt: "Blonde woman.", negative: "dark hair, blue eyes", enabled: true },
+    scene_tavern: { id: "scene_tavern", name: "TAVERN", prompt: "A tavern.", negative: "dark hair\nmodern furniture", enabled: true },
   };
   const doc = "{{krea2:character_serena|SERENA}} enters {{krea2:scene_tavern|TAVERN}}.";
   const result = tokenizer.compileDocument(doc, (id) => presets[id]);
@@ -231,6 +231,77 @@ assert.deepEqual(
     tokenizer.rawDisplay("{{krea2:emotion_happy|HAPPY|@character_ghost}} alone.", () => null),
     "[MISSING: character_ghost] (MISSING: emotion_happy) alone."
   );
+}
+
+// --- frames: parse / split / hasFrames --------------------------------------
+
+{
+  const segments = tokenizer.parseDocument("A {{frame:first}} B {{frame:last}} C");
+  assert.deepEqual(
+    segments.map((s) => s.type),
+    ["text", "frame", "text", "frame", "text"]
+  );
+  assert.equal(segments[1].value, "first");
+  assert.equal(segments[3].value, "last");
+  assert.equal(segments[1].raw, "{{frame:first}}");
+  assert.equal(segments[1].end - segments[1].start, "{{frame:first}}".length);
+}
+
+assert.equal(tokenizer.hasFrames("plain"), false);
+assert.equal(tokenizer.hasFrames("a {{frame:last}}"), true);
+
+{
+  const sections = tokenizer.splitSections(
+    "shared text {{frame:first}} she stands {{frame:last}} she recoils"
+  );
+  assert.equal(sections.shared, "shared text ");
+  assert.equal(sections.first, " she stands ");
+  assert.equal(sections.last, " she recoils");
+}
+
+// --- bundles in compile ------------------------------------------------------
+
+{
+  const presets = {
+    look_pilot: {
+      id: "look_pilot", name: "PILOT", prompt: "", negative: "", enabled: true,
+      included_presets: ["outfit_x", "hair_y"],
+    },
+    outfit_x: { id: "outfit_x", name: "OUTFIT", prompt: "Flight suit.", negative: "armor", enabled: true },
+    hair_y: { id: "hair_y", name: "HAIR", prompt: "Tied-back hair.", negative: "", enabled: true },
+  };
+  const result = tokenizer.compileDocument(
+    "{{krea2:look_pilot|PILOT|@character_serena}}",
+    (id) => presets[id]
+  );
+  assert.equal(result.prompt, "Flight suit. Tied-back hair.");
+  assert.equal(result.negative, "armor");
+  assert.ok(result.usedIds.includes("outfit_x"));
+}
+
+// --- compileFramedDocument ---------------------------------------------------
+
+{
+  const presets = {
+    char_a: { id: "char_a", name: "CHARA", prompt: "Character block.", negative: "", enabled: true },
+    emotion_calm: { id: "emotion_calm", name: "CALM", prompt: "Calm face.", negative: "", enabled: true },
+    emotion_shock: { id: "emotion_shock", name: "SHOCK", prompt: "Shocked face.", negative: "", enabled: true },
+  };
+  const doc =
+    "{{krea2:char_a|CHARA}} {{frame:first}} {{krea2:emotion_calm|CALM}} " +
+    "{{frame:last}} {{krea2:emotion_shock|SHOCK}}";
+  const result = tokenizer.compileFramedDocument(doc, (id) => presets[id]);
+  assert.equal(result.hasFrames, true);
+  assert.equal(result.prompt, "Character block. Calm face.");
+  assert.equal(result.lastPrompt, "Character block. Shocked face.");
+  assert.match(result.raw, /\[LAST FRAME\]/);
+}
+
+{
+  const presets = { char_a: { id: "char_a", name: "CHARA", prompt: "Character block.", negative: "", enabled: true } };
+  const single = tokenizer.compileFramedDocument("{{krea2:char_a|CHARA}}", (id) => presets[id]);
+  assert.equal(single.hasFrames, false);
+  assert.equal(single.lastPrompt, "");
 }
 
 console.log("frontend_studio_tokenizer: all assertions passed");

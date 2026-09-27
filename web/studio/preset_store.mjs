@@ -8,6 +8,9 @@
 
 export const CATEGORY_ORDER = [
   "character",
+  "look",
+  "performance",
+  "state",
   "scene",
   "lighting",
   "camera",
@@ -21,6 +24,9 @@ export const CATEGORY_ORDER = [
 
 export const CATEGORY_LABELS = {
   character: "Character",
+  look: "Look",
+  performance: "Performance",
+  state: "State",
   scene: "Scene",
   lighting: "Lighting",
   camera: "Camera",
@@ -32,22 +38,37 @@ export const CATEGORY_LABELS = {
   other: "Other",
 };
 
+/**
+ * Categories whose presets are bundles (their expansion inlines members).
+ * Mirror of src/studio/presets.py BUNDLE_CATEGORIES.
+ */
+export const BUNDLE_CATEGORIES = ["look", "performance"];
+
 /** Toolbar shows these; "More" holds the remainder. */
 export const TOOLBAR_CATEGORIES = [
   "character",
+  "look",
+  "performance",
+  "emotion",
+  "state",
   "scene",
   "lighting",
   "camera",
   "style",
-  "continuity",
 ];
 
 /**
  * Categories whose presets attach to a character token in the prompt
- * (outfits, emotions). Inserting one asks which character wears/feels it
- * when the prompt has more than one character.
+ * (looks, performances, states, outfits, emotions). Inserting one asks
+ * which character it belongs to when the prompt has several.
  */
-export const ATTACHABLE_CATEGORIES = ["emotion", "wardrobe"];
+export const ATTACHABLE_CATEGORIES = [
+  "emotion",
+  "wardrobe",
+  "look",
+  "performance",
+  "state",
+];
 
 /**
  * Known exclusive groups (mirror of src/studio/presets.py). Presets
@@ -61,6 +82,8 @@ export const EXCLUSIVE_GROUPS = [
   "style",
   "scene",
   "emotion",
+  "look",
+  "performance",
   "wardrobe_full",
   "wardrobe_top",
   "wardrobe_bottom",
@@ -73,9 +96,17 @@ export const EXCLUSIVE_GROUP_LABELS = {
   style: "Style (one per prompt)",
   scene: "Scene (one per prompt)",
   emotion: "Emotion (one per character)",
+  look: "Look (one per character)",
+  performance: "Performance (one per character)",
   wardrobe_full: "Full outfit (one per character)",
   wardrobe_top: "Upper body (one per character)",
   wardrobe_bottom: "Lower body (one per character)",
+};
+
+/** Sensible member categories for the bundle editor, per bundle type. */
+export const BUNDLE_MEMBER_CATEGORIES = {
+  look: ["wardrobe", "look", "props"],
+  performance: ["emotion", "performance"],
 };
 
 export function categoryLabel(category) {
@@ -99,6 +130,10 @@ function normalizePreset(raw) {
     notes: String(raw?.notes ?? ""),
     enabled: raw?.enabled !== false,
     exclusive_group: String(raw?.exclusive_group ?? "").trim(),
+    included_presets: Array.isArray(raw?.included_presets)
+      ? raw.included_presets.map(String).filter(Boolean)
+      : [],
+    preview_image: String(raw?.preview_image ?? "").trim(),
     reference_images: Array.isArray(raw?.reference_images) ? raw.reference_images : [],
     origin: raw?.origin === "user" ? "user" : "bundled",
   };
@@ -106,10 +141,21 @@ function normalizePreset(raw) {
   return preset;
 }
 
+/** Resolve a preset's preview image to a servable URL, or null. */
+export function previewImageUrl(preset) {
+  const value = String(preset?.preview_image ?? "").trim();
+  if (!value) return null;
+  if (/^(https?:|data:|\/)/i.test(value)) return value;
+  // Bare filename: served from the user's previews folder.
+  return `/krea2_prompt_studio/previews/${encodeURIComponent(value)}`;
+}
+
 class PresetStore {
   constructor() {
     this.presets = [];
     this.byId = new Map();
+    this.favorites = [];
+    this.recent = [];
     this.listeners = new Set();
     this._loaded = null;
   }
@@ -138,14 +184,27 @@ class PresetStore {
   async ensureLoaded() {
     if (this._loaded) return this._loaded;
     if (!this._loading) {
-      this._loading = fetch("/krea2_prompt_studio/presets")
+      const presetsPromise = fetch("/krea2_prompt_studio/presets")
         .then((response) => (response.ok ? response.json() : { presets: [] }))
         .then((payload) => {
           const presets = (payload?.presets ?? [])
             .map(normalizePreset)
             .filter(Boolean);
           this._absorb(presets);
+        });
+      const prefsPromise = fetch("/krea2_prompt_studio/prefs")
+        .then((response) => (response.ok ? response.json() : null))
+        .then((prefs) => {
+          if (prefs) {
+            this.favorites = Array.isArray(prefs.favorites) ? prefs.favorites : [];
+            this.recent = Array.isArray(prefs.recent) ? prefs.recent : [];
+          }
+        })
+        .catch(() => {});
+      this._loading = Promise.all([presetsPromise, prefsPromise])
+        .then(() => {
           this._loaded = true;
+          this._notify();
         })
         .catch((error) => {
           console.warn("[Krea2Studio] could not load presets", error);
@@ -157,6 +216,37 @@ class PresetStore {
         });
     }
     return this._loading;
+  }
+
+  // -- favorites / recents -------------------------------------------------
+
+  isFavorite(id) {
+    return this.favorites.includes(id);
+  }
+
+  async toggleFavorite(id) {
+    this.favorites = this.isFavorite(id)
+      ? this.favorites.filter((entry) => entry !== id)
+      : [id, ...this.favorites];
+    this._notify();
+    await this._persistPrefs();
+  }
+
+  async pushRecent(id) {
+    this.recent = [id, ...this.recent.filter((entry) => entry !== id)].slice(0, 30);
+    await this._persistPrefs();
+  }
+
+  async _persistPrefs() {
+    try {
+      await fetch("/krea2_prompt_studio/prefs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ favorites: this.favorites, recent: this.recent }),
+      });
+    } catch (error) {
+      console.warn("[Krea2Studio] could not save prefs", error);
+    }
   }
 
   get(id) {
@@ -239,7 +329,13 @@ export function tokenTooltip(preset) {
   if (!preset) return "";
   const lines = [preset.name, categoryLabel(preset.category)];
   if (preset.description) lines.push("", preset.description);
-  if (preset.prompt) {
+  if (preset.included_presets?.length) {
+    lines.push("", "Bundle contains:");
+    for (const memberId of preset.included_presets) {
+      const member = presetStore.get(memberId);
+      lines.push(`· ${member ? member.name : memberId}`);
+    }
+  } else if (preset.prompt) {
     const excerpt = preset.prompt.length > 220 ? `${preset.prompt.slice(0, 220)}…` : preset.prompt;
     lines.push("", `Expanded prompt:`, excerpt);
   }

@@ -28,10 +28,17 @@ export const TOKEN_ID_RE = /^[A-Za-z0-9_-]+$/;
 export const RANDOMIZE_FLAG = "~";
 export const HOST_FLAG_PREFIX = "@";
 
+// Frame section markers (structural, not presets).
+export const FRAME_FIRST = "{{frame:first}}";
+export const FRAME_LAST = "{{frame:last}}";
+const FRAME_MARKERS = { [FRAME_FIRST]: "first", [FRAME_LAST]: "last" };
+
 /**
- * Parse a document into segments: {type:"text", value, start, end} and
- * {type:"token", id, label, host, randomize, raw, start, end}. Offsets
- * index into the document string so the editor can splice without
+ * Parse a document into segments:
+ *   {type:"text", value, start, end}
+ *   {type:"token", id, label, host, randomize, raw, start, end}
+ *   {type:"frame", value:"first"|"last", raw, start, end}
+ * Offsets index into the document string so the editor can splice without
  * re-parsing.
  * @param {string} doc
  */
@@ -39,24 +46,47 @@ export function parseDocument(doc) {
   const segments = [];
   const source = String(doc ?? "");
   const tokenRe = /\{\{krea2:([A-Za-z0-9_-]+)((?:\|[^}]*)?)\}\}/g;
-  let pos = 0;
+  const events = [];
   let match;
   while ((match = tokenRe.exec(source)) !== null) {
-    if (match.index > pos) {
-      segments.push({ type: "text", value: source.slice(pos, match.index), start: pos, end: match.index });
+    events.push({ start: match.index, end: match.index + match[0].length, kind: "token", payload: match });
+  }
+  for (const [marker, which] of Object.entries(FRAME_MARKERS)) {
+    let index = source.indexOf(marker);
+    while (index >= 0) {
+      events.push({ start: index, end: index + marker.length, kind: "frame", payload: which });
+      index = source.indexOf(marker, index + marker.length);
     }
-    const { label, host, randomize } = parseFields(match[2]);
-    segments.push({
-      type: "token",
-      id: match[1],
-      label,
-      host,
-      randomize,
-      raw: match[0],
-      start: match.index,
-      end: match.index + match[0].length,
-    });
-    pos = match.index + match[0].length;
+  }
+  events.sort((a, b) => a.start - b.start);
+  let pos = 0;
+  for (const event of events) {
+    if (event.start < pos) continue; // overlap guard
+    if (event.start > pos) {
+      segments.push({ type: "text", value: source.slice(pos, event.start), start: pos, end: event.start });
+    }
+    if (event.kind === "token") {
+      const { label, host, randomize } = parseFields(event.payload[2]);
+      segments.push({
+        type: "token",
+        id: event.payload[1],
+        label,
+        host,
+        randomize,
+        raw: event.payload[0],
+        start: event.start,
+        end: event.end,
+      });
+    } else {
+      segments.push({
+        type: "frame",
+        value: event.payload,
+        raw: source.slice(event.start, event.end),
+        start: event.start,
+        end: event.end,
+      });
+    }
+    pos = event.end;
   }
   if (pos < source.length) {
     segments.push({ type: "text", value: source.slice(pos), start: pos, end: source.length });
@@ -137,6 +167,44 @@ export function hasRandomize(doc) {
   return /\{\{krea2:[A-Za-z0-9_-]+[^}]*~[^}]*\}\}/.test(String(doc ?? ""));
 }
 
+/** True when the document contains any frame section marker. */
+export function hasFrames(doc) {
+  const source = String(doc ?? "");
+  return source.includes(FRAME_FIRST) || source.includes(FRAME_LAST);
+}
+
+/**
+ * Split a document into SHARED / FIRST / LAST sections (mirror of Python).
+ * @returns {{shared: string, first: string, last: string}}
+ */
+export function splitSections(doc) {
+  const source = String(doc ?? "");
+  const sections = { shared: [], first: [], last: [] };
+  const events = [];
+  for (const [marker, which] of Object.entries(FRAME_MARKERS)) {
+    let index = source.indexOf(marker);
+    while (index >= 0) {
+      events.push({ index, marker, which });
+      index = source.indexOf(marker, index + marker.length);
+    }
+  }
+  events.sort((a, b) => a.index - b.index);
+  let pos = 0;
+  let current = sections.shared;
+  for (const event of events) {
+    if (event.index < pos) continue;
+    current.push(source.slice(pos, event.index));
+    current = sections[event.which];
+    pos = event.index + event.marker.length;
+  }
+  current.push(source.slice(pos));
+  return {
+    shared: sections.shared.join(""),
+    first: sections.first.join(""),
+    last: sections.last.join(""),
+  };
+}
+
 /**
  * Rewrite one token's optional fields in place, preserving its id.
  * Pass only the fields that should change (null/undefined = keep).
@@ -213,6 +281,7 @@ export function rawDisplay(doc, resolveLabel) {
       out += segment.value;
       continue;
     }
+    if (segment.type === "frame") continue; // structural; labeled by the caller
     if (segment.host && hostsPresent.has(segment.host)) continue; // nested below
     const label = labelFor(segment.id, segment.label);
     if (!label) {
@@ -244,11 +313,41 @@ export function rawDisplay(doc, resolveLabel) {
 }
 
 /**
+ * Expand one preset to {text, usedIds}, inlining bundle members
+ * depth-first with cycle detection (mirror of compiler.expand_preset).
+ */
+function expandPreset(preset, lookup, seen = new Set()) {
+  const members = Array.isArray(preset.included_presets) ? preset.included_presets : [];
+  if (!members.length) {
+    return { text: String(preset.prompt ?? "").trim(), usedIds: [preset.id] };
+  }
+  if (seen.has(preset.id)) {
+    return { text: `[CYCLIC BUNDLE: ${preset.id}]`, usedIds: [preset.id] };
+  }
+  const nextSeen = new Set(seen);
+  nextSeen.add(preset.id);
+  const parts = [];
+  const usedIds = [preset.id];
+  for (const memberId of members) {
+    const member = lookup(memberId);
+    if (!member || member.enabled === false) {
+      parts.push(`[MISSING: ${memberId}]`);
+      usedIds.push(memberId);
+      continue;
+    }
+    const expanded = expandPreset(member, lookup, nextSeen);
+    if (expanded.text) parts.push(expanded.text);
+    for (const id of expanded.usedIds) usedIds.push(id);
+  }
+  return { text: parts.filter(Boolean).join(" "), usedIds };
+}
+
+/**
  * Expand a document against a preset lookup. Used by the live preview;
  * mirrors src/studio/compiler.py (without the runtime randomization,
  * which only the backend performs at execution time).
  * @param {string} doc
- * @ {(id: string) => {prompt: string, negative: string, enabled: boolean} | null | undefined} lookup
+ * @ {(id: string) => {prompt: string, negative: string, enabled: boolean, included_presets?: string[]} | null | undefined} lookup
  */
 export function compileDocument(doc, lookup) {
   const parts = [];
@@ -256,30 +355,39 @@ export function compileDocument(doc, lookup) {
   const seenNegative = new Set();
   const usedIds = [];
   const missingIds = [];
+  const addNegative = (negative) => {
+    const text = String(negative ?? "").trim();
+    if (!text) return;
+    for (const clause of text.split(/[\n,]+/)) {
+      const piece = clause.trim();
+      const key = piece.toLowerCase();
+      if (piece && !seenNegative.has(key)) {
+        seenNegative.add(key);
+        negatives.push(piece);
+      }
+    }
+  };
   for (const segment of parseDocument(doc)) {
     if (segment.type === "text") {
       parts.push(segment.value);
       continue;
     }
+    if (segment.type === "frame") continue;
     const preset = lookup ? lookup(segment.id) : null;
     if (!preset || preset.enabled === false) {
       if (!missingIds.includes(segment.id)) missingIds.push(segment.id);
       parts.push(`[MISSING: ${segment.id}]`);
       continue;
     }
+    const expanded = expandPreset(preset, lookup);
     if (!usedIds.includes(segment.id)) usedIds.push(segment.id);
-    parts.push(String(preset.prompt ?? "").trim());
-    const negative = String(preset.negative ?? "").trim();
-    if (negative) {
-      for (const clause of negative.split(/[\n,]+/)) {
-        const piece = clause.trim();
-        const key = piece.toLowerCase();
-        if (piece && !seenNegative.has(key)) {
-          seenNegative.add(key);
-          negatives.push(piece);
-        }
-      }
+    for (const id of expanded.usedIds) {
+      if (!usedIds.includes(id)) usedIds.push(id);
+      const member = lookup(id);
+      if (!member && !missingIds.includes(id)) missingIds.push(id);
+      if (member) addNegative(member.negative);
     }
+    parts.push(expanded.text);
   }
   return {
     prompt: cleanSpacing(parts.join("")),
@@ -290,6 +398,31 @@ export function compileDocument(doc, lookup) {
     }),
     usedIds,
     missingIds,
+  };
+}
+
+/**
+ * Compile the frame sections of a document (mirror of the backend's
+ * frames mode): prompt/negative cover shared+first, lastPrompt/
+ * lastNegative cover shared+last. No randomization (backend-only).
+ */
+export function compileFramedDocument(doc, lookup) {
+  if (!hasFrames(doc)) {
+    const single = compileDocument(doc, lookup);
+    return { ...single, lastPrompt: "", lastNegative: "", hasFrames: false };
+  }
+  const sections = splitSections(doc);
+  const main = compileDocument(sections.shared + sections.first, lookup);
+  const last = compileDocument(sections.shared + sections.last, lookup);
+  return {
+    prompt: main.prompt,
+    negative: main.negative,
+    raw: main.raw + (sections.last.trim() ? `\n[LAST FRAME]\n${last.raw}` : ""),
+    usedIds: main.usedIds,
+    missingIds: main.missingIds,
+    lastPrompt: last.prompt,
+    lastNegative: last.negative,
+    hasFrames: true,
   };
 }
 

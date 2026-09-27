@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "presets": [
+    {
+      "id": "state_wet_from_rain",
+      "name": "WET FROM RAIN",
+      "category": "state",
+      "prompt": "The character is thoroughly wet from rain. Their hair is soaked and clumped into heavier strands that cling to the forehead, cheeks and neck, with individual drips visible at the ends. Clothing is darkened with moisture and clings to the shoulders, chest and arms in realistic wet-fabric patterns. Skin glistens with fine water droplets, and small rivulets run from the hairline or jaw. Posture and identity are unchanged; only the rain-soaked condition is added. Preserve the character's established facial structure and baseline features exactly.",
+      "negative": "",
+      "description": "Soaked clinging hair and darkened wet fabric with skin-dimpling droplets.",
+      "tags": [
+        "state",
+        "wet from rain"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "",
+      "included_presets": [],
+      "preview_image": "",
+      "reference_images": []
+    },
+    {
+      "id": "state_sweaty",
+      "name": "SWEATY",
+      "category": "state",
+      "prompt": "The character is visibly sweaty from exertion or heat. A fine sheen of perspiration covers the face, neck and forearms, with slightly stronger highlights along the forehead, temples, upper lip and collarbones. A few beads run down the temple or the side of the neck. Hair shows light dampness at the hairline and roots, sticking in small strands. Clothing shows realistic damp patches under the arms and along the back without being soaked. Preserve the character's established facial structure and identity exactly.",
+      "negative": "",
+      "description": "Realistic perspiration sheen, damp hairline, modest clothing patches.",
+      "tags": [
+        "state",
+        "sweaty"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "",
+      "included_presets": [],
+      "preview_image": "",
+      "reference_images": []
+    },
+    {
+      "id": "state_muddy",
+      "name": "MUDDY",
+      "category": "state",
+      "prompt": "The character is splattered and smudged with dried and fresh mud. Boots and the lower legs carry the heaviest coating, with secondary splashes across the knees, hands and forearms, and a few flicked streaks on one cheek or the jaw. The mud has realistic texture: darker where wet, pale and cracked where dried. Clothing shows scuffed smears where they knelt or braced against something. The pattern looks earned by activity rather than painted on. Preserve the character's established facial structure and identity exactly.",
+      "negative": "",
+      "description": "Earned mud spatter on boots, knees, hands and one cheek streak.",
+      "tags": [
+        "state",
+        "muddy"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "",
+      "included_presets": [],
+      "preview_image": "",
+      "reference_images": []
+    },
+    {
+      "id": "state_exhausted",
+      "name": "EXHAUSTED",
+      "category": "state",
+      "prompt": "The character is deeply physically exhausted. Their shoulders sag, their head sits slightly forward, and their posture carries visible weight. The eyelids are heavy at half-mast with slowed, tired blinks, the features slack with fatigue, and the mouth rests slightly open as breathing recovers. Skin may be slightly flushed or pale, with sweat-damp hair strands stuck to the forehead. The body language reads as spent but standing. Preserve the character's established facial structure and identity exactly.",
+      "negative": "",
+      "description": "Sagging spent posture, heavy half-lidded eyes, slack features.",
+      "tags": [
+        "state",
+        "exhausted"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "",
+      "included_presets": [],
+      "preview_image": "",
+      "reference_images": []
+    },
+    {
+      "id": "state_bloodied",
+      "name": "BLOODIED",
+      "category": "state",
+      "prompt": "The character carries visible but non-fatal injuries. A thin trail of blood runs from the hairline past one eyebrow, a split lip shows a small bead, and grazes across the knuckles or forearm are crusted at the edges. Smears where hands wiped a face add realism. The blood is dark red and realistic rather than glossy or theatrical, and the character remains upright and functional. Placement stays consistent and anatomically believable. Preserve the character's established facial structure and identity exactly.",
+      "negative": "",
+      "description": "Non-fatal believable injuries: hairline trail, split lip, grazed knuckles.",
+      "tags": [
+        "state",
+        "bloodied"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "",
+      "included_presets": [],
+      "preview_image": "",
+      "reference_images": []
+    },
+    {
+      "id": "state_disheveled",
+      "name": "DISHEVELED",
+      "category": "state",
+      "prompt": "The character looks like they have been through an ordeal. Their hair is out of its usual shape, loosely tangled with strands crossing unfashionably, clothing is rumpled with twisted seams, an undone collar or an untucked hem, and perhaps a cloak or jacket worn slightly askew. Small details are off: a loosened belt, a missing clasp, fabric bunched at one shoulder. Everything remains wearable and realistic rather than torn to shreds. Preserve the character's established facial structure and identity exactly.",
+      "negative": "",
+      "description": "Ordeal-worn: tangled hair, twisted seams, askew fastenings.",
+      "tags": [
+        "state",
+        "disheveled"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "",
+      "included_presets": [],
+      "preview_image": "",
+      "reference_images": []
+    }
+  ]
+}

@@ -35,11 +35,14 @@ import {
   remapHosts,
   tokenAt,
   tokenRanges,
-  compileDocument,
+  compileFramedDocument,
   documentStats,
-} from "./tokenizer.mjs?v=2";
-import { offsetOfPoint, pointForOffset } from "./caret_math.mjs?v=2";
-import { presetStore, tokenTooltip } from "./preset_store.mjs?v=2";
+  hasFrames,
+  FRAME_FIRST,
+  FRAME_LAST,
+} from "./tokenizer.mjs?v=3";
+import { offsetOfPoint, pointForOffset } from "./caret_math.mjs?v=3";
+import { presetStore, tokenTooltip } from "./preset_store.mjs?v=3";
 
 const SENTINEL = "\u200B"; // zero-width space: gives the caret a home between tokens
 
@@ -356,24 +359,31 @@ export function createStudioEditor({
     const caret = state.lastCaret;
     const segments = parseDocument(state.doc);
     const frag = document.createDocumentFragment();
-    let lastWasToken = false;
+    let lastWasAtomic = false;
     let i = 0;
     while (i < segments.length) {
       const segment = segments[i];
       if (segment.type === "text") {
         if (segment.value) {
           frag.append(document.createTextNode(segment.value));
-          lastWasToken = false;
+          lastWasAtomic = false;
         }
+        i += 1;
+        continue;
+      }
+      if (segment.type === "frame") {
+        if (lastWasAtomic || frag.childNodes.length === 0) frag.append(sentinelNode());
+        frag.append(makeFrameDivider(segment));
+        lastWasAtomic = true;
         i += 1;
         continue;
       }
       if (segment.host) {
         // Reached an attachment that is not adjacent to its host (the
         // adjacent case is consumed below): render it standalone.
-        if (lastWasToken || frag.childNodes.length === 0) frag.append(sentinelNode());
+        if (lastWasAtomic || frag.childNodes.length === 0) frag.append(sentinelNode());
         frag.append(makeTokenSpan(segment, true));
-        lastWasToken = true;
+        lastWasAtomic = true;
         i += 1;
         continue;
       }
@@ -391,14 +401,29 @@ export function createStudioEditor({
         end = segments[j].end;
         j += 1;
       }
-      if (lastWasToken || frag.childNodes.length === 0) frag.append(sentinelNode());
+      if (lastWasAtomic || frag.childNodes.length === 0) frag.append(sentinelNode());
       frag.append(makeHostSpan(segment, attached));
-      lastWasToken = true;
+      lastWasAtomic = true;
       i = j;
     }
-    if (lastWasToken) frag.append(sentinelNode());
+    if (lastWasAtomic) frag.append(sentinelNode());
     editor.replaceChildren(frag);
     if (caret) setCaret(caret.start, caret.end);
+  }
+
+  /** Labeled section divider for a frame marker. Atomic via dataset.raw. */
+  function makeFrameDivider(segment) {
+    const divider = el("div", `kpw2-frame-divider kpw2-frame-${segment.value}`);
+    divider.contentEditable = "false";
+    divider.dataset.raw = segment.raw;
+    divider.textContent =
+      segment.value === "first"
+        ? "▾  FIRST FRAME — only this changes in the first image"
+        : "▾  LAST FRAME — only this changes in the last image";
+    divider.title =
+      "Text in this section appears only in the " +
+      `${segment.value}-frame prompt. Text above the markers is shared.`;
+    return divider;
   }
 
   /** Re-render with fresh preset data (labels/colors may have changed). */
@@ -553,6 +578,25 @@ export function createStudioEditor({
     );
   }
 
+  /**
+   * Toggle First/Last frame sections. Adding appends the marker layout
+   * (shared text above, first between the markers, last below). Removing
+   * strips the markers; the text itself is kept and becomes shared.
+   */
+  function toggleFrames() {
+    if (hasFrames(state.doc)) {
+      const next = state.doc.split(FRAME_FIRST).join("").split(FRAME_LAST).join("");
+      applyDoc(next, { start: next.length, end: next.length });
+      return;
+    }
+    const base = state.doc.replace(/\s*$/, "");
+    const next = `${base}\n${FRAME_FIRST}\n\n${FRAME_LAST}\n`;
+    // Place the caret inside the FIRST section so typing flows there.
+    const firstStart = base.length + 1 + FRAME_FIRST.length + 1;
+    applyDoc(next, { start: firstStart, end: firstStart });
+    editor.focus();
+  }
+
   // ----------------------------------------------------------- input pipeline
 
   editor.addEventListener("compositionstart", () => {
@@ -645,6 +689,12 @@ export function createStudioEditor({
         return;
       case "deleteContentForward": {
         if (start === end) {
+          const frame = frameAt(start + 1);
+          if (frame && frame.start === start) {
+            state.lastCaret = { start: frame.start, end: frame.end };
+            setCaret(frame.start, frame.end);
+            return;
+          }
           const token = tokenAt(state.doc, start + 1);
           if (token && token.start === start) {
             // Caret directly before a pill: select it first (native feel).
@@ -663,6 +713,11 @@ export function createStudioEditor({
       case "deleteContentBackward": {
         if (start === end) {
           if (start === 0) return;
+          const frame = frameAt(start);
+          if (frame && frame.end === start) {
+            deleteToken(frame);
+            return;
+          }
           const token = tokenAt(state.doc, start);
           if (token && token.end === start) {
             deleteToken(token);
@@ -684,6 +739,16 @@ export function createStudioEditor({
     if (offset === 0) return true;
     const before = state.doc[offset - 1];
     return /\s|\n|[({[]/.test(before);
+  }
+
+  /** Frame-marker segment at a caret position (end-edge inclusive). */
+  function frameAt(offset) {
+    for (const segment of parseDocument(state.doc)) {
+      if (segment.type === "frame" && offset > segment.start && offset <= segment.end) {
+        return segment;
+      }
+    }
+    return null;
   }
 
   // Non-prevented inputs (IME, odd input types) rebuild the model from DOM.
@@ -784,6 +849,7 @@ export function createStudioEditor({
     replaceHost,
     deleteToken,
     toggleRandomize,
+    toggleFrames,
     refreshTokens,
     setMode,
     undo,
@@ -793,7 +859,7 @@ export function createStudioEditor({
       (state.mode === "rich" ? editor : plain).focus();
     },
     compile() {
-      return compileDocument(state.doc, (id) => presetStore.lookup(id));
+      return compileFramedDocument(state.doc, (id) => presetStore.lookup(id));
     },
   };
 }

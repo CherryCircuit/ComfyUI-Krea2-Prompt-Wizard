@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "presets": [
+    {
+      "id": "performance_hiding_something",
+      "name": "HIDING SOMETHING",
+      "category": "performance",
+      "prompt": "The character is concealing something and it shows only in small, controlled leaks. Their smile is present but slightly too deliberate, their eyes flick briefly away at key moments before returning with practiced steadiness, and their gestures stay small and self-directed, such as touching a sleeve or the side of a pocket. Their posture remains casually arranged but slightly too still, as if rehearsed. The viewer should sense guardedness beneath an unremarkable surface rather than obvious nervousness. Preserve the character's established facial structure and identity; only the behavioral performance changes.",
+      "negative": "",
+      "description": "Controlled leaks of guardedness beneath a rehearsed, casual surface.",
+      "tags": [
+        "performance",
+        "hiding something"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "performance",
+      "included_presets": [],
+      "preview_image": "",
+      "reference_images": []
+    },
+    {
+      "id": "performance_trying_not_to_cry",
+      "name": "TRYING NOT TO CRY",
+      "category": "performance",
+      "prompt": "The character is fighting back tears and mostly winning. Their eyes are glassy with unshed moisture, the lower eyelids visibly tensed, brows drawn gently upward and together, and the lips pressed into a thin, deliberately steady line. They swallow once, jaw muscles tightening briefly, and their breathing is carefully controlled through the nose. Their posture is rigid and held slightly too upright, as if motion might break their composure. Keep the emotion restrained and human rather than theatrical. Preserve the character's established identity; only the emotional performance changes.",
+      "negative": "",
+      "description": "Glassy restrained eyes and rigid composure on the verge of breaking.",
+      "tags": [
+        "performance",
+        "trying not to cry"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "performance",
+      "included_presets": [],
+      "preview_image": "",
+      "reference_images": []
+    },
+    {
+      "id": "performance_quietly_suspicious",
+      "name": "QUIETLY SUSPICIOUS",
+      "category": "performance",
+      "prompt": "The character is quietly evaluating someone or something they do not trust. Their gaze is steady but measuring, with a subtle sideways glance and a micro-pause before responding. One brow sits fractionally lower than the other, the mouth stays neutral with a hint of restrained judgment, and their body angles slightly away while the head remains oriented toward the subject of suspicion. Hands stay visible and relaxed, but weight rests back on the rear foot. The mood is watchful assessment, not hostility. Preserve the character's established identity; only the performance changes.",
+      "negative": "",
+      "description": "Watchful assessment: measuring gaze, angled body, neutral judgment.",
+      "tags": [
+        "performance",
+        "quietly suspicious"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "performance",
+      "included_presets": [],
+      "preview_image": "",
+      "reference_images": []
+    },
+    {
+      "id": "performance_panicking_but_staying_calm",
+      "name": "PANICKING BUT STAYING CALM",
+      "category": "performance",
+      "prompt": "The character is inwardly panicking while forcing an outward appearance of calm. Their expressions are controlled but slightly fast: blinks come a beat too quickly, the smile is held a little too long, and small tension patterns leak through in the neck, jaw and hands. Their eyes stay alert, scanning for exits or threats, and their breathing appears deliberately slowed but shallow. Posture is composed but coiled, ready to move. The tension between the calm mask and the underlying panic should be clearly readable. Preserve the character's established identity; only the performance changes.",
+      "negative": "",
+      "description": "A held calm mask over visible coiled panic; alert scanning eyes.",
+      "tags": [
+        "performance",
+        "panicking but staying calm"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "performance",
+      "included_presets": [],
+      "preview_image": "",
+      "reference_images": []
+    },
+    {
+      "id": "performance_on_edge",
+      "name": "ON EDGE",
+      "category": "performance",
+      "prompt": "The character is wound tight and ready to react. Their shoulders are raised a fraction, their movements are quick and minimal, and their eyes track movement in the environment with brief, frequent checks. The brows sit slightly tensed, the mouth firms into a flat controlled line, and their hands stay occupied, gripping something or resting near a tool. Weight shifts subtly between their feet as though they cannot fully settle. The energy should read as sustained vigilance rather than open fear. Preserve the character's established identity; only the performance changes.",
+      "negative": "",
+      "description": "Sustained vigilance: raised shoulders, quick eyes, hands near tools.",
+      "tags": [
+        "performance",
+        "on edge"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "performance",
+      "included_presets": [],
+      "preview_image": "",
+      "reference_images": []
+    },
+    {
+      "id": "performance_coldly_furious",
+      "name": "COLDLY FURIOUS",
+      "category": "performance",
+      "prompt": "The character is furious but expressing it as cold, precise control rather than heat. Their stare is level and unblinking, the eyes slightly narrowed, and the face still to the point of unnatural calm. The jaw is set, the lips a thin neutral line, and their voice-level posture is squared and planted, with no fidgeting whatsoever. Every movement that does occur is slow and deliberate. The anger is communicated through stillness and intensity of focus rather than visible rage. Preserve the character's established identity; only the performance changes.",
+      "negative": "",
+      "description": "Fury expressed as icy stillness: level stare, set jaw, planted stance.",
+      "tags": [
+        "performance",
+        "coldly furious"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "performance",
+      "included_presets": [],
+      "preview_image": "",
+      "reference_images": []
+    }
+  ]
+}

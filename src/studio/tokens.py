@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Callable, List, Optional
+from typing import Callable, Dict, List, Optional
 
 # Token marker grammar. The id is strict; everything after it is a pipe
 # separated field list (label, then flags) parsed by _parse_fields.
@@ -42,6 +42,20 @@ RANDOMIZE_FLAG = "~"
 HOST_FLAG_PREFIX = "@"
 
 _RANDOMIZE_MARKER_RE = re.compile(r"\{\{krea2:[A-Za-z0-9_-]+[^}]*~[^}]*\}\}")
+
+# ---------------------------------------------------------------------------
+# Frame sections (First / Last frame mode)
+#
+# ``{{frame:first}}`` and ``{{frame:last}}`` are structural markers, not
+# presets. Text outside them is SHARED (appears in both frames); text after
+# ``{{frame:first}}`` belongs to the first frame only; text after
+# ``{{frame:last}}`` to the last frame only.
+# ---------------------------------------------------------------------------
+
+FRAME_FIRST = "{{frame:first}}"
+FRAME_LAST = "{{frame:last}}"
+
+_FRAME_MARKERS = {FRAME_FIRST: "first", FRAME_LAST: "last"}
 
 
 @dataclass
@@ -112,27 +126,56 @@ def token_markup(
 
 
 def parse_document(doc: str) -> List[Segment]:
-    """Split a document into text and token segments, in order."""
+    """Split a document into text, token and frame segments, in order.
+
+    Frame segments have ``type == "frame"`` with ``value`` ``"first"`` or
+    ``"last"`` and carry no preset reference.
+    """
     segments: List[Segment] = []
     pos = 0
     doc = doc or ""
+    events = []
     for match in TOKEN_PATTERN.finditer(doc):
-        if match.start() > pos:
-            segments.append(Segment(type="text", value=doc[pos:match.start()], start=pos, end=match.start()))
-        label, host, randomize = _parse_fields(match.group(2))
-        segments.append(
-            Segment(
-                type="token",
-                preset_id=match.group(1),
-                label=label,
-                host=host,
-                randomize=randomize,
-                raw=match.group(0),
-                start=match.start(),
-                end=match.end(),
+        events.append((match.start(), match.end(), "token", match))
+    for marker, which in _FRAME_MARKERS.items():
+        start = 0
+        while True:
+            index = doc.find(marker, start)
+            if index < 0:
+                break
+            events.append((index, index + len(marker), "frame", which))
+            start = index + len(marker)
+    events.sort(key=lambda item: item[0])
+    for start, end, kind, payload in events:
+        if start < pos:
+            continue  # overlapping (a frame marker inside a token — impossible, but be safe)
+        if start > pos:
+            segments.append(Segment(type="text", value=doc[pos:start], start=pos, end=start))
+        if kind == "token":
+            label, host, randomize = _parse_fields(payload.group(2))
+            segments.append(
+                Segment(
+                    type="token",
+                    preset_id=payload.group(1),
+                    label=label,
+                    host=host,
+                    randomize=randomize,
+                    raw=payload.group(0),
+                    start=start,
+                    end=end,
+                )
             )
-        )
-        pos = match.end()
+        else:
+            segments.append(
+                Segment(
+                    type="frame",
+                    value=payload,
+                    raw=doc[start:end],
+                    start=start,
+                    end=end,
+                )
+            )
+        pos = end
     if pos < len(doc):
         segments.append(Segment(type="text", value=doc[pos:], start=pos, end=len(doc)))
     return segments
@@ -157,6 +200,46 @@ def token_ranges(doc: str) -> List[Segment]:
 def has_randomize(doc: str) -> bool:
     """True when any token carries the randomize flag."""
     return bool(_RANDOMIZE_MARKER_RE.search(doc or ""))
+
+
+def has_frames(doc: str) -> bool:
+    """True when the document contains any frame section marker."""
+    return FRAME_FIRST in (doc or "") or FRAME_LAST in (doc or "")
+
+
+def split_sections(doc: str) -> Dict[str, str]:
+    """Split a document into SHARED / FIRST / LAST text sections.
+
+    Text outside frame markers is shared. Content following
+    ``{{frame:first}}`` belongs to the first frame (until a last-frame
+    marker or the end of the document) and symmetrically for last. Any
+    number of markers is tolerated; pieces accumulate in order.
+    """
+    doc = doc or ""
+    shared: List[str] = []
+    first: List[str] = []
+    last: List[str] = []
+    current = shared
+    pos = 0
+    events = []
+    for marker, which in _FRAME_MARKERS.items():
+        index = doc.find(marker)
+        while index >= 0:
+            events.append((index, marker, which))
+            index = doc.find(marker, index + len(marker))
+    events.sort()
+    for start, marker, which in events:
+        if start < pos:
+            continue
+        current.append(doc[pos:start])
+        current = first if which == "first" else last
+        pos = start + len(marker)
+    current.append(doc[pos:])
+    return {
+        "shared": "".join(shared),
+        "first": "".join(first),
+        "last": "".join(last),
+    }
 
 
 def host_ids(doc: str) -> List[str]:
@@ -234,6 +317,8 @@ def raw_display(doc: str, resolve_label: Optional[Callable[[str], Optional[str]]
         if segment.type == "text":
             parts.append(segment.value)
             continue
+        if segment.type == "frame":
+            continue  # structural; sections are labeled by the caller
         if segment.host and segment.host in hosts_present:
             continue  # rendered inside the host bracket below
         label = label_for(segment.preset_id, segment.label)

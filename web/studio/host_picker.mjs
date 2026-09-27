@@ -5,8 +5,8 @@
  * contains more than one character token, this panel asks which character
  * the preset belongs to. Also offers a standalone insertion escape hatch.
  */
-import { el, anchoredPanel } from "./ui.mjs?v=2";
-import { presetStore } from "./preset_store.mjs?v=2";
+import { el, anchoredPanel } from "./ui.mjs?v=3";
+import { presetStore } from "./preset_store.mjs?v=3";
 
 /**
  * @param {{

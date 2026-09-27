@@ -6,8 +6,8 @@
  * token in place; attachments keep their host. The popup also toggles
  * runtime randomization and offers edit/remove/new-preset shortcuts.
  */
-import { el, anchoredPanel } from "./ui.mjs?v=2";
-import { categoryLabel } from "./preset_store.mjs?v=2";
+import { el, anchoredPanel } from "./ui.mjs?v=3";
+import { categoryLabel } from "./preset_store.mjs?v=3";
 
 /**
  * @param {{

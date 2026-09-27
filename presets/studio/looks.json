@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "presets": [
+    {
+      "id": "look_pilot",
+      "name": "PILOT",
+      "category": "look",
+      "prompt": "",
+      "negative": "",
+      "description": "Complete pilot appearance built around the futuristic flight suit. Bundle: swap members in the Preset Manager.",
+      "tags": [
+        "look",
+        "pilot"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "look",
+      "included_presets": [
+        "wardrobe_futuristic_flight_suit"
+      ],
+      "preview_image": "",
+      "reference_images": []
+    },
+    {
+      "id": "look_ranger",
+      "name": "RANGER",
+      "category": "look",
+      "prompt": "",
+      "negative": "",
+      "description": "Wilderness ranger appearance: jerkin, cloak, bracers, boots. Bundle: swap members in the Preset Manager.",
+      "tags": [
+        "look",
+        "ranger"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "look",
+      "included_presets": [
+        "wardrobe_fantasy_ranger"
+      ],
+      "preview_image": "",
+      "reference_images": []
+    },
+    {
+      "id": "look_detective",
+      "name": "DETECTIVE",
+      "category": "look",
+      "prompt": "",
+      "negative": "",
+      "description": "Noir detective appearance: trench coat, loosened tie, worn leather. Bundle: swap members in the Preset Manager.",
+      "tags": [
+        "look",
+        "detective"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "look",
+      "included_presets": [
+        "wardrobe_classic_private_detective"
+      ],
+      "preview_image": "",
+      "reference_images": []
+    },
+    {
+      "id": "look_cyberpunk_streetwear",
+      "name": "CYBERPUNK STREETWEAR",
+      "category": "look",
+      "prompt": "",
+      "negative": "",
+      "description": "Layered techwear look with restrained neon accents. Bundle: swap members in the Preset Manager.",
+      "tags": [
+        "look",
+        "cyberpunk streetwear"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "look",
+      "included_presets": [
+        "wardrobe_cyberpunk_streetwear"
+      ],
+      "preview_image": "",
+      "reference_images": []
+    },
+    {
+      "id": "look_survivor",
+      "name": "SURVIVOR",
+      "category": "look",
+      "prompt": "",
+      "negative": "",
+      "description": "Worn layered survival look: patched jacket, cargo trousers, boots. Bundle: swap members in the Preset Manager.",
+      "tags": [
+        "look",
+        "survivor"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "look",
+      "included_presets": [
+        "wardrobe_post_apocalyptic_survivor"
+      ],
+      "preview_image": "",
+      "reference_images": []
+    },
+    {
+      "id": "look_formal_evening",
+      "name": "FORMAL EVENING",
+      "category": "look",
+      "prompt": "",
+      "negative": "",
+      "description": "Aristocratic formal appearance: floor-length gown, understated jewelry. Bundle: swap members in the Preset Manager.",
+      "tags": [
+        "look",
+        "formal evening"
+      ],
+      "notes": "",
+      "enabled": true,
+      "exclusive_group": "look",
+      "included_presets": [
+        "wardrobe_royal_formal_gown"
+      ],
+      "preview_image": "",
+      "reference_images": []
+    }
+  ]
+}

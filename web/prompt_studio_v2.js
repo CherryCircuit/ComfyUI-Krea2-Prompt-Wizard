@@ -14,8 +14,8 @@
  */
 import { app } from "../../scripts/app.js";
 
-const VERSION = "v=2";
-const { tokenRanges } = await import(`./studio/tokenizer.mjs?${VERSION}`);
+const VERSION = "v=3";
+const { tokenRanges, hasFrames } = await import(`./studio/tokenizer.mjs?${VERSION}`);
 const {
   presetStore,
   ATTACHABLE_CATEGORIES,
@@ -36,13 +36,14 @@ document.head.appendChild(stylesheet);
 
 const TOOLBAR_CATEGORIES = [
   "character",
+  "look",
+  "performance",
+  "emotion",
+  "state",
   "scene",
   "lighting",
   "camera",
   "style",
-  "continuity",
-  "emotion",
-  "wardrobe",
 ];
 
 function buildWidgetRoot(node) {
@@ -72,6 +73,10 @@ function buildWidgetRoot(node) {
     onChange: (doc, info) => {
       if (docWidget && docWidget.value !== doc) docWidget.value = doc;
       updateStats(info);
+      framesButton.classList.toggle("kpw2-active-toggle", hasFrames(doc));
+      framesButton.title = hasFrames(doc)
+        ? "Frame sections are active — click to remove them (text is kept)"
+        : "Split the prompt into Shared / First-frame / Last-frame sections";
       scheduleCanvasRefresh();
     },
     onTokenPopup: (range, rect, span, options) => tokenPopup.open(range, rect, span, options),
@@ -183,6 +188,13 @@ function buildWidgetRoot(node) {
   const toolbarSpacer = el("span", "kpw2-toolbar-spacer");
   toolbar.append(toolbarSpacer);
 
+  const framesButton = el("button", "kpw2-toolbar-button", "Frames");
+  framesButton.type = "button";
+  framesButton.title = "Split the prompt into Shared / First-frame / Last-frame sections";
+  framesButton.addEventListener("click", () => {
+    editor.toggleFrames();
+  });
+
   const manageButton = el("button", "kpw2-toolbar-button", "Presets");
   manageButton.type = "button";
   manageButton.title = "Open the Preset Manager";
@@ -197,7 +209,7 @@ function buildWidgetRoot(node) {
     plainButton.textContent = next === "rich" ? "Plain" : "Rich";
   });
 
-  toolbar.append(manageButton, plainButton);
+  toolbar.append(framesButton, manageButton, plainButton);
 
   previewButton.addEventListener("click", () => {
     showPreviewModal({ doc: editor.doc });
@@ -207,6 +219,7 @@ function buildWidgetRoot(node) {
   function updateStats(info) {
     const missing = editor.compile().missingIds.length;
     stats.textContent = `${info.words} words · ${info.tokens} presets`;
+    if (hasFrames(editor.doc)) stats.textContent += " · first/last frames";
     stats.classList.toggle("kpw2-missing-warning", missing > 0);
     if (missing > 0) {
       stats.textContent += ` · ${missing} missing`;

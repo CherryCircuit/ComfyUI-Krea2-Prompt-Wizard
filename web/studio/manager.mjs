@@ -6,14 +6,16 @@
  * upserts changes into the user payload; bundled presets are overridden
  * by id rather than modified in place, and can be tombstoned.
  */
-import { el, openModal } from "./ui.mjs?v=2";
+import { el, openModal, anchoredPanel } from "./ui.mjs?v=3";
 import {
   CATEGORY_ORDER,
   EXCLUSIVE_GROUPS,
+  BUNDLE_CATEGORIES,
+  BUNDLE_MEMBER_CATEGORIES,
   categoryLabel,
   exclusiveGroupLabel,
   presetStore,
-} from "./preset_store.mjs?v=2";
+} from "./preset_store.mjs?v=3";
 
 function slugify(name) {
   const base = String(name || "")
@@ -109,10 +111,21 @@ export function openPresetManager({ onChanged = () => {}, initialCategory = null
     option.value = group;
     slotSelect.append(option);
   }
-  const promptArea = areaInput("", "The full prompt this token expands into", 8);
+
+  // ---- bundle members (Looks / Performances) ------------------------------
+  let memberIds = [];
+  const memberChips = el("div", "kpw2-chips");
+  const addMemberButton = el("button", "kpw2-ghost-button", "+ Add preset…");
+  addMemberButton.type = "button";
+  const memberSection = el("div", "kpw2-form-row");
+  memberSection.append(el("div", "kpw2-form-label", "Included presets (bundle expands to these)"));
+  memberSection.append(memberChips, addMemberButton);
+
+  const promptArea = areaInput("", "The full prompt this token expands into (unused by bundles)", 8);
   const negativeArea = areaInput("", "Optional negative prompt clauses (comma separated)", 4);
   const tagsInput = textInput("", "comma, separated, tags");
   const notesArea = areaInput("", "Private notes", 2);
+  const previewInput = textInput("", "Filename in your previews folder, or a full URL");
   const enabledInput = el("input");
   enabledInput.type = "checkbox";
 
@@ -121,11 +134,13 @@ export function openPresetManager({ onChanged = () => {}, initialCategory = null
     fieldRow("Name", nameInput),
     fieldRow("Category", categoryInput),
     fieldRow("Slot (exclusive group)", slotSelect),
+    memberSection,
     fieldRow("Description", descriptionInput),
     fieldRow("Prompt", promptArea),
     fieldRow("Negative", negativeArea),
     fieldRow("Tags", tagsInput),
-    fieldRow("Notes", notesArea)
+    fieldRow("Notes", notesArea),
+    fieldRow("Preview image", previewInput)
   );
 
   const enabledRow = el("label", "kpw2-form-check");
@@ -163,26 +178,111 @@ export function openPresetManager({ onChanged = () => {}, initialCategory = null
       name: nameInput.value.trim(),
       category: categoryInput.value,
       exclusive_group: slotSelect.value,
+      included_presets: [...memberIds],
       description: descriptionInput.value,
       prompt: promptArea.value,
       negative: negativeArea.value,
       tags: tagsInput.value.split(",").map((tag) => tag.trim()).filter(Boolean),
       notes: notesArea.value,
+      preview_image: previewInput.value.trim(),
       enabled: enabledInput.checked,
     };
   }
+
+  function isBundleCategory() {
+    return BUNDLE_CATEGORIES.includes(categoryInput.value);
+  }
+
+  function renderMemberChips() {
+    memberChips.replaceChildren();
+    for (const memberId of memberIds) {
+      const member = presetStore.get(memberId);
+      const chip = el("span", `kpw2-chip kpw2-chip-${member?.category ?? "other"}`);
+      chip.append(el("span", null, member ? member.name : memberId));
+      const remove = el("button", "kpw2-chip-remove", "×");
+      remove.type = "button";
+      remove.title = "Remove from bundle";
+      remove.addEventListener("click", () => {
+        memberIds = memberIds.filter((id) => id !== memberId);
+        renderMemberChips();
+      });
+      chip.append(remove);
+      memberChips.append(chip);
+    }
+    if (!memberIds.length) {
+      memberChips.append(el("span", "kpw2-chips-empty", "No members yet."));
+    }
+  }
+
+  function openMemberPicker(anchorRect) {
+    const allowed = BUNDLE_MEMBER_CATEGORIES[categoryInput.value] ?? [];
+    const candidates = presetStore.presets.filter(
+      (preset) =>
+        preset.enabled &&
+        preset.id !== selectedId &&
+        (allowed.length ? allowed.includes(preset.category) : true)
+    );
+    const pickerSearch = textInput("", "Search…");
+    pickerSearch.classList.add("kpw2-chooser-search");
+    const pickerList = el("div", "kpw2-popup-list");
+    const pickerTitle = el("div", "kpw2-panel-title", "Add preset to bundle");
+    const body = el("div", "kpw2-token-popup");
+    body.append(pickerTitle, pickerSearch, pickerList);
+
+    function renderPicker() {
+      const query = pickerSearch.value.trim().toLowerCase();
+      pickerList.replaceChildren();
+      for (const preset of candidates) {
+        if (query && !preset.name.toLowerCase().includes(query)
+            && !preset.id.includes(query)) continue;
+        if (memberIds.includes(preset.id)) continue;
+        const row = el("button", "kpw2-popup-row");
+        row.type = "button";
+        row.append(
+          el("span", `kpw2-dot kpw2-cat-${preset.category}`),
+          el("span", "kpw2-popup-name", preset.name),
+          el("span", "kpw2-chooser-cat", categoryLabel(preset.category))
+        );
+        row.addEventListener("click", () => {
+          memberIds = [...memberIds, preset.id];
+          renderMemberChips();
+          destroy();
+        });
+        pickerList.append(row);
+      }
+      if (!pickerList.childNodes.length) {
+        pickerList.append(el("div", "kpw2-chooser-empty", "Nothing left to add."));
+      }
+    }
+    pickerSearch.addEventListener("input", renderPicker);
+    renderPicker();
+    const panelHandle = anchoredPanel("popup", anchorRect, () => body, { width: 280 });
+    function destroy() {
+      panelHandle.destroy();
+    }
+    pickerSearch.focus();
+  }
+
+  function updateMemberSectionVisibility() {
+    memberSection.style.display = isBundleCategory() ? "" : "none";
+  }
+  categoryInput.addEventListener("change", updateMemberSectionVisibility);
 
   function fillForm(preset) {
     nameInput.value = preset?.name ?? "";
     categoryInput.value = preset?.category ?? "other";
     slotSelect.value = preset?.exclusive_group ?? "";
     if (slotSelect.value !== (preset?.exclusive_group ?? "")) slotSelect.value = "";
+    memberIds = Array.isArray(preset?.included_presets) ? [...preset.included_presets] : [];
     descriptionInput.value = preset?.description ?? "";
     promptArea.value = preset?.prompt ?? "";
     negativeArea.value = preset?.negative ?? "";
     tagsInput.value = (preset?.tags ?? []).join(", ");
     notesArea.value = preset?.notes ?? "";
+    previewInput.value = preset?.preview_image ?? "";
     enabledInput.checked = preset ? preset.enabled !== false : true;
+    renderMemberChips();
+    updateMemberSectionVisibility();
   }
 
   function renderList() {
@@ -265,6 +365,7 @@ export function openPresetManager({ onChanged = () => {}, initialCategory = null
       name,
       category,
       exclusive_group: basePreset?.exclusive_group ?? "",
+      included_presets: basePreset?.included_presets ?? [],
       description: basePreset?.description ?? "",
       prompt: basePreset?.prompt ?? "",
       negative: basePreset?.negative ?? "",
@@ -296,6 +397,9 @@ export function openPresetManager({ onChanged = () => {}, initialCategory = null
   }
 
   newListButton.addEventListener("click", () => newDraft());
+  addMemberButton.addEventListener("click", (event) => {
+    openMemberPicker(event.target.getBoundingClientRect());
+  });
   duplicateButton.addEventListener("click", () => {
     const preset = presetStore.get(selectedId);
     if (preset) newDraft(preset);

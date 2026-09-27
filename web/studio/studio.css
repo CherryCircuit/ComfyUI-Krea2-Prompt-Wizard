@@ -134,6 +134,9 @@
 
 /* Category palette: subtle outline + tinted background. */
 .kpw2-cat-character { border-color: #b0568b; color: #f0a4cd; background: rgba(224, 96, 168, 0.12); }
+.kpw2-cat-look      { border-color: #b0952e; color: #ecd28a; background: rgba(212, 175, 55, 0.12); }
+.kpw2-cat-performance { border-color: #5c6bc0; color: #aab6f0; background: rgba(92, 107, 192, 0.14); }
+.kpw2-cat-state     { border-color: #8a9a3c; color: #d3dd90; background: rgba(138, 154, 60, 0.12); }
 .kpw2-cat-scene     { border-color: #4f9e63; color: #96d8a8; background: rgba(80, 200, 120, 0.10); }
 .kpw2-cat-lighting  { border-color: #b08a3c; color: #eccb85; background: rgba(230, 180, 80, 0.10); }
 .kpw2-cat-camera    { border-color: #4a7fb5; color: #9cc4e8; background: rgba(90, 150, 220, 0.12); }
@@ -203,6 +206,116 @@
   color: #9ec3e0;
 }
 
+/* Frame section dividers */
+.kpw2-frame-divider {
+  margin: 8px 0 6px;
+  padding: 3px 8px;
+  border-left: 3px solid #5a96dc;
+  border-top: 1px dashed var(--border-color, #3a3a3a);
+  border-bottom: 1px dashed var(--border-color, #3a3a3a);
+  background: rgba(90, 150, 220, 0.08);
+  color: #9cc4e8;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  user-select: none;
+  cursor: default;
+}
+
+.kpw2-frame-last {
+  border-left-color: #50c878;
+  background: rgba(80, 200, 120, 0.07);
+  color: #96d8a8;
+}
+
+/* Chooser: favorites/recents sections, thumbnails, stars */
+.kpw2-chooser-section {
+  padding: 8px 10px 2px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--descrip-text, #888);
+}
+
+.kpw2-chooser-row.kpw2-has-thumb {
+  padding: 3px 8px;
+}
+
+.kpw2-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex: none;
+  background: #111;
+  border: 1px solid var(--border-color, #3a3a3a);
+}
+
+.kpw2-star {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--descrip-text, #777);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0 2px;
+  flex: none;
+}
+
+.kpw2-star:hover {
+  color: #e6b450;
+}
+
+.kpw2-star-on {
+  color: #e6b450;
+}
+
+/* Manager: bundle member chips */
+.kpw2-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.kpw2-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px 2px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color, #3a3a3a);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 11px;
+}
+
+.kpw2-chip-remove {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--descrip-text, #999);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0 4px;
+}
+
+.kpw2-chip-remove:hover {
+  color: #ec7063;
+}
+
+.kpw2-chips-empty {
+  color: var(--descrip-text, #777);
+  font-size: 11px;
+}
+
+.kpw2-preview-note {
+  color: var(--descrip-text, #999);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 /* Legend dots reuse the palette. */
 .kpw2-dot {
   display: inline-block;
@@ -213,6 +326,9 @@
   flex: none;
 }
 .kpw2-dot.kpw2-cat-character { background: #e060a8; }
+.kpw2-dot.kpw2-cat-look      { background: #d4af37; }
+.kpw2-dot.kpw2-cat-performance { background: #5c6bc0; }
+.kpw2-dot.kpw2-cat-state     { background: #8a9a3c; }
 .kpw2-dot.kpw2-cat-scene     { background: #50c878; }
 .kpw2-dot.kpw2-cat-lighting  { background: #e6b450; }
 .kpw2-dot.kpw2-cat-camera    { background: #5a96dc; }
