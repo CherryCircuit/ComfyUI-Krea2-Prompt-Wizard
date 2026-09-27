@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "presets": [
+    {
+      "id": "props_ancient_sword_a",
+      "name": "ANCIENT SWORD A",
+      "category": "props",
+      "prompt": "A distinctive medieval longsword with a straight double-edged steel blade approximately ninety centimeters long, a simple dark-steel crossguard with slightly downward-curving ends, a grip wrapped tightly in aged dark brown leather and a round weathered bronze pommel engraved with a subtle circular pattern. The blade shows faint scratches and age but remains functional and well maintained. Preserve the same blade length, guard shape, grip color and bronze pommel design whenever this specific sword appears.",
+      "negative": "",
+      "description": "Recurring hero longsword: dark-steel guard, leather grip, bronze pommel.",
+      "tags": ["prop", "sword", "weapon"],
+      "notes": "",
+      "enabled": true,
+      "reference_images": []
+    },
+    {
+      "id": "props_old_leather_journal",
+      "name": "OLD LEATHER JOURNAL",
+      "category": "props",
+      "prompt": "A small thick hand-bound journal approximately twenty centimeters tall with a heavily worn dark brown leather cover, rounded corners, visible crease lines and an overlapping leather strap secured by a small aged brass clasp. The uneven cream-colored handmade pages have darkened edges. A faint circular embossed symbol is centered on the front cover. Preserve the same dimensions, dark leather cover, strap, brass clasp and embossed circular symbol whenever this journal appears.",
+      "negative": "",
+      "description": "Recurring prop journal: worn brown leather, strap clasp, embossed symbol.",
+      "tags": ["prop", "journal", "book"],
+      "notes": "",
+      "enabled": true,
+      "reference_images": []
+    }
+  ]
+}

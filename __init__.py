@@ -67,8 +67,18 @@ from src.api import register_routes
 
 NODE_CLASS_MAPPINGS = _nodes.NODE_CLASS_MAPPINGS
 NODE_DISPLAY_NAME_MAPPINGS = _nodes.NODE_DISPLAY_NAME_MAPPINGS
+
+# v2 "Prompt Studio" nodes are registered additively so the v1 wizard
+# keeps working untouched during the transition.
+from src.studio import nodes as _studio_nodes
+from src.studio.api import register_studio_routes
+
+NODE_CLASS_MAPPINGS.update(_studio_nodes.NODE_CLASS_MAPPINGS)
+NODE_DISPLAY_NAME_MAPPINGS.update(_studio_nodes.NODE_DISPLAY_NAME_MAPPINGS)
+
 try:
     register_routes()
+    register_studio_routes()
 except ModuleNotFoundError:
     # Allows backend modules and tests to run outside a ComfyUI process.
     pass
@@ -84,4 +94,4 @@ __all__ = [
 ]
 
 
-__version__ = "1.5.0"
+__version__ = "1.6.0"

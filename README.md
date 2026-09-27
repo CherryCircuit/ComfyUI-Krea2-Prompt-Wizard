@@ -3,11 +3,12 @@
 A **transparent, database-driven visual prompt builder for Krea 2 image
 generation inside ComfyUI**.
 
-The wizard ships with six nodes:
+The wizard ships with seven nodes:
 
 | Node | Purpose |
 |---|---|
-| `Krea2 Prompt Wizard` | The main all-in-one visual prompt builder. |
+| `Krea2 Prompt Wizard v2` | **New** token-based prompt editor — write naturally, insert preset pills, get fully expanded prompts. See `docs/STUDIO_V2.md`. |
+| `Krea2 Prompt Wizard` | The original all-in-one visual prompt builder (dashboard style). |
 | `Krea2 Save Image` | Saves images with the exact prompt embedded as PNG metadata. |
 | `Krea2 Prompt Saver` | Records every generated prompt to a JSONL history file. |
 | `Krea2 Weighted Phrase` | A small, transparent primitive that renders one `(phrase:weight)` fragment. |
@@ -17,6 +18,18 @@ The wizard ships with six nodes:
 The wizard never calls an LLM, never contacts external services, and
 never downloads models. It generates a transparent, well-formatted
 prompt plus a structured trace JSON you can inspect.
+
+## Krea2 Prompt Wizard v2 (token editor)
+
+The v2 node is a text-editor-first rewrite: type your prompt normally and
+insert reusable presets as color-coded tokens — `[SERENA]`,
+`[MEDIEVAL TAVERN A]`, `[CANDLELIGHT]`, `[LOCKED MEDIUM SHOT]` — each of
+which expands into its full stored prompt (character bibles, scene
+"mini bibles" with fixed landmarks, lighting, camera, style and continuity
+instructions) in the node's `prompt` output. Presets ship with a starter
+library and are fully editable in the built-in Preset Manager; edits are
+stored in `<user>/Krea2PromptWizard/studio_presets.json` and survive
+updates. Details, storage layout and limitations: `docs/STUDIO_V2.md`.
 
 ## Installation
 

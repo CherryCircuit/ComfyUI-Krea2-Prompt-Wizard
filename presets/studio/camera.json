@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "presets": [
+    {
+      "id": "camera_locked_medium_shot",
+      "name": "LOCKED MEDIUM SHOT",
+      "category": "camera",
+      "prompt": "A stable eye-level medium shot framed approximately from the subject's waist or lower torso upward. Use a natural perspective comparable to a 45mm to 55mm full-frame lens, avoiding wide-angle facial distortion or telephoto compression. The camera remains completely stationary and locked to the established position, height, focal length, framing and angle. Maintain consistent composition and perspective between related frames.",
+      "negative": "",
+      "description": "Stationary eye-level medium shot, ~50mm look, locked composition.",
+      "tags": ["camera", "medium shot", "locked"],
+      "notes": "",
+      "enabled": true,
+      "reference_images": []
+    },
+    {
+      "id": "camera_medium_close_up",
+      "name": "MEDIUM CLOSE-UP",
+      "category": "camera",
+      "prompt": "An eye-level medium close-up framing the subject approximately from the upper chest to slightly above the head, allowing clear visibility of facial expression while retaining a small amount of surrounding environment. Use a natural portrait perspective comparable to a 55mm to 70mm full-frame lens. Keep facial proportions natural, maintain comfortable headroom and avoid cropping the chin or top of the head.",
+      "negative": "",
+      "description": "Chest-to-head portrait framing with a natural ~60mm perspective.",
+      "tags": ["camera", "close-up", "portrait"],
+      "notes": "",
+      "enabled": true,
+      "reference_images": []
+    },
+    {
+      "id": "camera_close_up",
+      "name": "CLOSE-UP",
+      "category": "camera",
+      "prompt": "A cinematic eye-level close-up emphasizing the subject's face and emotional expression, framed approximately from the shoulders upward. Use a natural portrait perspective comparable to an 85mm full-frame lens. Facial features remain geometrically natural without wide-angle distortion. Keep both eyes clearly visible unless the subject intentionally turns away, with modest headroom and a gently softened background.",
+      "negative": "",
+      "description": "Shoulders-up emotional close-up with an 85mm portrait look.",
+      "tags": ["camera", "close-up", "emotion"],
+      "notes": "",
+      "enabled": true,
+      "reference_images": []
+    },
+    {
+      "id": "camera_wide_establishing_shot",
+      "name": "WIDE ESTABLISHING SHOT",
+      "category": "camera",
+      "prompt": "A wide establishing composition showing the complete primary environment and the subject's spatial relationship to it. Use a natural wide perspective comparable to a 28mm to 35mm full-frame lens without exaggerated ultra-wide distortion. Architectural geometry should remain straight and believable. The composition should clearly communicate important environmental landmarks and spatial relationships while keeping the principal subject easily identifiable.",
+      "negative": "",
+      "description": "Wide establishing framing that communicates environment layout, ~32mm look.",
+      "tags": ["camera", "wide", "establishing"],
+      "notes": "",
+      "enabled": true,
+      "reference_images": []
+    },
+    {
+      "id": "camera_over_the_shoulder",
+      "name": "OVER THE SHOULDER",
+      "category": "camera",
+      "prompt": "A cinematic over-the-shoulder composition with the near character occupying one edge of the foreground through part of the shoulder and side of the head, while the primary subject remains clearly visible beyond them. Use a natural perspective comparable to a 50mm to 70mm full-frame lens. Maintain believable eyelines and conversational spatial relationships without allowing the foreground character to obscure the primary subject's face.",
+      "negative": "",
+      "description": "Foreground shoulder framing with the main subject visible beyond.",
+      "tags": ["camera", "dialogue", "ots"],
+      "notes": "",
+      "enabled": true,
+      "reference_images": []
+    }
+  ]
+}

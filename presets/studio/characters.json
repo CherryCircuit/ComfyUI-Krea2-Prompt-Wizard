@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "presets": [
+    {
+      "id": "character_serena",
+      "name": "SERENA",
+      "category": "character",
+      "prompt": "A young adult woman in her mid twenties with fair warm-toned skin, a softly oval face, natural freckles, delicate but clearly defined cheekbones, a gently tapered jawline, a narrow straight nose, natural medium-full lips, and large almond-shaped green eyes beneath naturally arched brows. She has long platinum-blonde hair with subtle golden undertones, naturally wavy texture, a center-to-slightly-off-center part, and soft face-framing strands around her cheeks. Her hair falls well below her shoulders in loose irregular waves rather than tight curls. She has a slender, naturally proportioned build and medium height. Her facial proportions, eye shape, nose shape, jawline, hairline, hair color, hair length and overall appearance should remain visually consistent whenever she appears.",
+      "negative": "short hair, dark hair, brown hair, black hair, blue eyes, dramatically different hairstyle, heavy makeup, exaggerated lips, different facial structure, different eye shape, different apparent age",
+      "description": "Persistent lead character: young platinum-blonde woman with green eyes and a slender build.",
+      "tags": ["serena", "lead", "fantasy", "woman"],
+      "notes": "",
+      "enabled": true,
+      "reference_images": []
+    },
+    {
+      "id": "character_marcus",
+      "name": "MARCUS",
+      "category": "character",
+      "prompt": "A rugged man in his late thirties with a broad masculine face, moderately prominent cheekbones, a strong square jaw, straight medium-width nose, deep-set dark brown eyes and thick dark eyebrows. He has medium olive skin with subtle weathering and natural facial texture. His dark brown hair is thick, slightly wavy and worn at medium-short length, longer and somewhat untidy on top with shorter sides. He has a dense short beard and moustache following the natural shape of his jaw without being excessively long. He has a broad-shouldered athletic build and appears slightly taller than average. Preserve his facial structure, beard shape, hairline, hairstyle, hair color, eye color, proportions and apparent age whenever he appears.",
+      "negative": "clean shaven, blond hair, long hair, blue eyes, elderly appearance, teenage appearance, thin delicate face, dramatically different beard, dramatically different facial structure",
+      "description": "Persistent character: rugged bearded man in his late thirties with dark hair and an athletic build.",
+      "tags": ["marcus", "lead", "fantasy", "man"],
+      "notes": "",
+      "enabled": true,
+      "reference_images": []
+    }
+  ]
+}

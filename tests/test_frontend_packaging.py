@@ -18,12 +18,39 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class FrontendPackagingTests(unittest.TestCase):
-    def test_only_entrypoint_is_auto_discovered(self):
+    def test_only_entrypoints_are_auto_discovered(self):
         javascript_files = sorted(
             path.relative_to(ROOT / "web").as_posix()
             for path in (ROOT / "web").rglob("*.js")
         )
-        self.assertEqual(javascript_files, ["krea2_prompt_wizard_v3.js"])
+        self.assertEqual(
+            javascript_files, ["krea2_prompt_wizard_v3.js", "prompt_studio_v2.js"]
+        )
+
+    def test_studio_entrypoint_loads_helpers_before_registration(self):
+        source = (ROOT / "web" / "prompt_studio_v2.js").read_text(encoding="utf-8")
+        self.assertIn('import { app } from "../../scripts/app.js"', source)
+        self.assertIn("`./studio/editor.mjs?${VERSION}`", source)
+        self.assertIn("`./studio/tokenizer.mjs?${VERSION}`", source)
+        self.assertLess(source.index("await import"), source.index("app.registerExtension"))
+
+    def test_studio_helper_modules_exist(self):
+        helpers = (
+            "tokenizer.mjs",
+            "caret_math.mjs",
+            "preset_store.mjs",
+            "editor.mjs",
+            "chooser.mjs",
+            "token_popup.mjs",
+            "manager.mjs",
+            "preview.mjs",
+            "ui.mjs",
+        )
+        for helper in helpers:
+            self.assertTrue(
+                (ROOT / "web" / "studio" / helper).is_file(), helper
+            )
+        self.assertTrue((ROOT / "web" / "studio" / "studio.css").is_file())
 
     def test_entrypoint_loads_helpers_before_registration(self):
         source = (ROOT / "web" / "krea2_prompt_wizard_v3.js").read_text(encoding="utf-8")

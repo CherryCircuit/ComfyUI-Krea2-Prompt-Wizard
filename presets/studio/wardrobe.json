@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "presets": [
+    {
+      "id": "wardrobe_serena_travelling",
+      "name": "SERENA - TRAVELLING",
+      "category": "wardrobe",
+      "prompt": "Serena wears a practical dark forest-green medieval travelling dress made from textured matte wool, fitted comfortably through the torso and falling naturally below the waist, with long fitted sleeves and a modest rounded neckline. A narrow weathered brown leather belt sits at her natural waist with a small simple brass buckle. She wears a small understated gold pendant on a fine chain and a dark brown travelling cloak made from heavy wool, fastened near the collar with a simple brass clasp. The clothing is practical, historically inspired and lightly worn rather than ornate or theatrical.",
+      "negative": "",
+      "description": "Serena's green wool travelling dress with belt, pendant, and brown cloak.",
+      "tags": ["wardrobe", "serena", "travelling"],
+      "notes": "",
+      "enabled": true,
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_serena_formal",
+      "name": "SERENA - FORMAL",
+      "category": "wardrobe",
+      "prompt": "Serena wears an elegant deep emerald medieval-inspired formal gown made from rich matte fabric with subtle texture, a fitted bodice, graceful long sleeves and restrained gold embroidery along the neckline and sleeve edges. A narrow decorative gold belt defines the waist. She wears her familiar small gold pendant along with understated matching earrings. The outfit appears refined and expensive without excessive jewels, fantasy armor or exaggerated decorative elements.",
+      "negative": "",
+      "description": "Serena's emerald formal gown with gold embroidery and belt.",
+      "tags": ["wardrobe", "serena", "formal"],
+      "notes": "",
+      "enabled": true,
+      "reference_images": []
+    },
+    {
+      "id": "wardrobe_marcus_travelling",
+      "name": "MARCUS - TRAVELLING",
+      "category": "wardrobe",
+      "prompt": "Marcus wears a practical dark brown wool tunic beneath a weathered charcoal leather jerkin, with a sturdy brown leather belt, dark trousers and worn leather boots. A heavy muted-brown travelling cloak rests over his shoulders and is fastened with a simple iron clasp. Materials are matte, functional and visibly used, with subtle wear at edges and seams. The outfit should remain grounded and practical rather than resembling ornate fantasy armor.",
+      "negative": "",
+      "description": "Marcus's brown tunic, leather jerkin, and travelling cloak.",
+      "tags": ["wardrobe", "marcus", "travelling"],
+      "notes": "",
+      "enabled": true,
+      "reference_images": []
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "presets": [
+    {
+      "id": "scene_medieval_tavern_a",
+      "name": "MEDIEVAL TAVERN A",
+      "category": "scene",
+      "prompt": "A cozy rectangular medieval tavern interior with a clearly established and repeatable spatial layout. The room has worn dark plank flooring, aged cream-colored plaster walls divided by heavy dark oak structural timbers, and thick exposed oak beams running across a relatively low ceiling. A broad rough-stone fireplace occupies the center portion of the rear wall with a heavy timber mantel above it. A long dark wooden bar runs along the left side of the room, with shelves of ceramic mugs, clay bottles, glass bottles and small wooden containers mounted behind it. Three round wooden tables occupy the main central floor area with simple mismatched wooden chairs and benches around them. A narrow wooden staircase rises against the rear-right wall and disappears to an upper floor. A heavy wooden entrance door with black iron hardware is positioned toward the front-right portion of the room. Small leaded-glass windows sit high along one side wall. Rustic iron sconces, candles, wooden mugs and modest medieval decorations reinforce the environment without excessive clutter. The room feels intimate, practical, aged and genuinely lived in rather than enormous or luxurious. Preserve the same basic architecture, rectangular room proportions, fireplace position, bar position, staircase position, entrance position, table arrangement and major visual landmarks whenever this location appears.",
+      "negative": "modern furniture, electric lights, huge banquet hall, cathedral interior, luxurious palace, modern bar, contemporary objects, radically different room layout, large open windows, futuristic elements",
+      "description": "Reusable tavern interior with fixed landmarks: fireplace, bar, three round tables, staircase, front-right door.",
+      "tags": ["interior", "medieval", "tavern", "fantasy"],
+      "notes": "Primary recurring location.",
+      "enabled": true,
+      "reference_images": []
+    },
+    {
+      "id": "scene_castle_corridor_a",
+      "name": "CASTLE CORRIDOR A",
+      "category": "scene",
+      "prompt": "A narrow medieval stone castle corridor with a consistent recognizable layout. Rough gray-beige stone block walls run parallel through the corridor beneath a shallow pointed stone-vault ceiling. The floor consists of worn irregular flagstones. Repeating recessed archways divide the walls at regular intervals. Small iron torch brackets are mounted between the arches along the left wall. A sequence of narrow wooden doors reinforced with black iron hardware occupies the right side. At the far end of the hallway stands a larger heavy wooden double door framed by a slightly taller pointed stone arch. The corridor is approximately wide enough for three people to comfortably walk side by side and is enclosed rather than cavernous. Occasional narrow slit windows create small areas of cool natural fill light. The environment should feel old, solid, restrained and believable. Preserve the width, architectural rhythm, door placement, major end doorway, stone materials and overall spatial identity whenever this corridor appears.",
+      "negative": "",
+      "description": "Repeating stone corridor with arched walls, left torch brackets, right doors, and a far double door.",
+      "tags": ["interior", "medieval", "castle", "corridor"],
+      "notes": "",
+      "enabled": true,
+      "reference_images": []
+    },
+    {
+      "id": "scene_forest_clearing_a",
+      "name": "FOREST CLEARING A",
+      "category": "scene",
+      "prompt": "A secluded temperate forest clearing approximately twenty meters across, enclosed by tall mature cedar and fir trees. The clearing has an irregular oval shape with a floor of moss, low grasses, ferns, fallen needles and occasional exposed roots. A large weathered fallen log lies diagonally along the rear-left edge of the clearing. A distinctive old cedar with a split trunk stands at the rear-right edge and acts as a recurring visual landmark. A narrow dirt footpath enters the clearing from the front-left and continues into the trees behind the split cedar. Small gray stones and patches of fern cluster around the path. The surrounding forest remains dense enough that the clearing feels private, but light filters through the canopy from above. Preserve the clearing's approximate scale, path placement, fallen log, split-trunk cedar and surrounding tree arrangement whenever this location reappears.",
+      "negative": "",
+      "description": "Outdoor clearing with a fallen log, split-trunk cedar landmark, and a front-left footpath.",
+      "tags": ["exterior", "forest", "clearing", "nature"],
+      "notes": "",
+      "enabled": true,
+      "reference_images": []
+    },
+    {
+      "id": "scene_stone_bedroom_a",
+      "name": "STONE BEDROOM A",
+      "category": "scene",
+      "prompt": "A modest private bedroom inside an old medieval stone residence. The room is rectangular and relatively small, with pale rough-plastered stone walls and dark timber ceiling beams. A simple wooden bed stands lengthwise against the right wall, with a dark carved headboard toward the rear of the room, cream linen sheets, a muted green wool blanket and two plain pillows. A narrow wooden bedside table with a candle sits beside the headboard. A tall narrow leaded-glass window occupies the center of the left wall. A sturdy wooden wardrobe stands against the rear-left wall. A small writing desk and chair sit beneath the window. The entrance is a heavy wooden door positioned near the front-left corner. The room contains a small woven rug and restrained personal objects but remains uncluttered. Preserve the bed position, window position, wardrobe, desk, doorway and overall rectangular room layout whenever this bedroom appears.",
+      "negative": "",
+      "description": "Small stone bedroom: right-wall bed, left-wall window, rear-left wardrobe, desk under the window.",
+      "tags": ["interior", "medieval", "bedroom", "stone"],
+      "notes": "",
+      "enabled": true,
+      "reference_images": []
+    }
+  ]
+}

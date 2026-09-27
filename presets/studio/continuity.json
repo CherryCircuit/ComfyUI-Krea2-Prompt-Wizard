@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "presets": [
+    {
+      "id": "continuity_strict_character_consistency",
+      "name": "STRICT CHARACTER CONSISTENCY",
+      "category": "continuity",
+      "prompt": "Preserve the established character identity exactly. Maintain the same facial proportions, face shape, eye shape and color, nose structure, mouth shape, jawline, skin tone, hairline, hair color, hair length, hairstyle, body proportions, apparent age and distinguishing features established for this character. Do not reinterpret, beautify, age, de-age or redesign the character between images. Changes in pose, gaze and facial expression are allowed, but the underlying person must remain recognizably the same.",
+      "negative": "",
+      "description": "Locks character identity across images while allowing pose/expression changes.",
+      "tags": ["continuity", "character"],
+      "notes": "",
+      "enabled": true,
+      "reference_images": []
+    },
+    {
+      "id": "continuity_strict_scene_continuity",
+      "name": "STRICT SCENE CONTINUITY",
+      "category": "continuity",
+      "prompt": "Treat the established environment as the same physical location rather than generating a new interpretation of a similar location. Preserve major architectural geometry, room proportions, entrances, windows, furniture placement, structural landmarks, materials and recurring environmental objects. Camera viewpoint may change, but the underlying spatial geography must remain logically consistent with previous views of the location.",
+      "negative": "",
+      "description": "Locks environment identity across camera viewpoints.",
+      "tags": ["continuity", "scene"],
+      "notes": "",
+      "enabled": true,
+      "reference_images": []
+    },
+    {
+      "id": "continuity_locked_camera_continuity",
+      "name": "LOCKED CAMERA CONTINUITY",
+      "category": "continuity",
+      "prompt": "Maintain the exact established camera position, camera height, viewing direction, focal length, perspective, framing and composition. The camera is physically locked off and stationary. Do not pan, tilt, zoom, dolly, orbit, reframe or alter lens perspective between related images. Only changes explicitly described in the subject or scene should differ.",
+      "negative": "",
+      "description": "Freezes camera position, lens, and framing between related frames.",
+      "tags": ["continuity", "camera"],
+      "notes": "",
+      "enabled": true,
+      "reference_images": []
+    },
+    {
+      "id": "continuity_first_last_frame_continuity",
+      "name": "FIRST-LAST FRAME CONTINUITY",
+      "category": "continuity",
+      "prompt": "Treat this image as part of the same continuous shot as its corresponding frame. Preserve character identity, clothing, hairstyle, accessories, environmental layout, camera placement, lens perspective, lighting direction, color balance and overall composition unless a specific change is explicitly described. Only the stated action, pose, expression, gaze or object-state changes should differ between the related frames.",
+      "negative": "",
+      "description": "For first/last frame pairs: only the described action changes.",
+      "tags": ["continuity", "first frame", "last frame", "video"],
+      "notes": "Designed for image-to-video keyframes (e.g. MiniMax H3).",
+      "enabled": true,
+      "reference_images": []
+    }
+  ]
+}
