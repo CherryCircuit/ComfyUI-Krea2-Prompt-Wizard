@@ -7,8 +7,8 @@
  * Recent sections first. Presets with a preview image render as visual
  * cards; every row has a star toggle for favoriting.
  */
-import { el, anchoredPanel } from "./ui.mjs?v=3";
-import { categoryLabel, presetStore, previewImageUrl } from "./preset_store.mjs?v=3";
+import { el, anchoredPanel } from "./ui.mjs?v=4";
+import { categoryLabel, presetStore, previewImageUrl } from "./preset_store.mjs?v=4";
 
 function matchesQuery(preset, query) {
   if (!query) return true;

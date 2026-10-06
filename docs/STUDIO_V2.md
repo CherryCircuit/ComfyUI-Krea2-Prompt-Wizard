@@ -175,6 +175,11 @@ src/studio/            backend (independent of the v1 wizard modules)
     prefs.py           favorites/recents persistence
     nodes.py           ComfyUI node (5 STRING outputs incl. last frame)
     api.py             /krea2_prompt_studio routes (presets, prefs, previews)
+    refine_prompts.py  refiner harness: Krea 2 system prompt, ChatML, parser
+    refine_local.py    refiner backend: in-process text-encoder LLM (comfy.sd)
+    refine_remote.py   refiner backend: OpenAI-compatible server client
+    refine_settings.py machine-level refiner settings
+    refine_api.py      refiner routes (models, settings, run)
     package_paths.py   bundled dir + user file paths
 
 web/prompt_studio_v2.js        entry (auto-discovered, .js)
@@ -186,16 +191,50 @@ web/studio/*.mjs               modules (NOT auto-imported)
                                nested attachments + dice toggles
     chooser.mjs / host_picker.mjs / token_popup.mjs /
     manager.mjs / preview.mjs
+    refine.mjs                 brain button, settings popover, draft panel
     ui.mjs                     panels/modals/clipboard helpers
     studio.css
 ```
 
-Frontend cache busting: bump `?v=N` in `web/prompt_studio_v2.js`
-(currently `v=1`) whenever any `web/studio/*` file changes.
+Frontend cache busting: bump `?v=N` in `web/prompt_studio_v2.js` AND the
+cross-module imports inside `web/studio/*.mjs` (currently `v=4`) whenever
+any `web/studio/*` file changes — the modules import each other with the
+same query, and a partial bump forks the singleton store.
 
-Tests: `tests/test_studio.py` (backend),
-`tests/frontend_studio_tokenizer.mjs`, `tests/frontend_studio_caret_math.mjs`
-(pure frontend logic).
+Tests: `tests/test_studio.py` (backend), `tests/test_studio_refine.py`
+(refiner), `tests/frontend_studio_tokenizer.mjs`,
+`tests/frontend_studio_caret_math.mjs` (pure frontend logic).
+
+## The refiner (LLM prompt optimization)
+
+The 🧠 **Refine** button rewrites the *expanded* prompt into the long,
+flowing natural-language description Krea 2's own guide asks for. The
+design follows roadmaus/ComfyUI-Continuity: one press, a draft you can
+edit, and the original always intact.
+
+- **Two backends.** *In ComfyUI* (default) loads a full Qwen3-VL (4B/8B) or
+  Qwen3.5 text encoder from `models/text_encoders` through ComfyUI's own
+  model management — weights are evicted by the next sampler pass and
+  released after each generation. *On a local server* talks to LM Studio,
+  Ollama, llama.cpp, vLLM or any OpenAI-compatible endpoint; the settings
+  panel probes ports 1234/11434 so setup is usually zero-config.
+- **The draft, not a rewrite-in-place.** The result is stored per section
+  in a hidden `refined_doc` widget with its source text, author model and
+  an enabled flag. Enabled drafts replace the node's `prompt` (and
+  `last_prompt`) outputs at run time; negatives always stay the presets'.
+  Toggle, edit, or Revert in the panel; a "prompt edited since" badge
+  marks drafts whose source text has moved on.
+- **One call per section.** With frame sections active, the first-frame
+  and last-frame prompts are refined and toggled separately — they are two
+  encodings at run time, so neither draft belongs to the other.
+- **Fidelity checks.** Quoted render text must survive the rewrite and
+  invented quotation marks are flagged — both advisory, shown beside the
+  editable draft.
+- **Settings are machine-level** (backend, model, temperature, seed,
+  reply length), stored under the pack's user directory; the remote
+  endpoint and its key live in their own owner-only file and never travel
+  inside a workflow. The refiner system prompt lives in
+  `src/studio/refine_prompts.py` if you want to tune it for a new model.
 
 ## Known limitations (v2.2)
 

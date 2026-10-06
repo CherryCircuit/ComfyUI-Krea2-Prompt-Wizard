@@ -14,8 +14,8 @@
  */
 import { app } from "../../scripts/app.js";
 
-const VERSION = "v=3";
-const { tokenRanges, hasFrames } = await import(`./studio/tokenizer.mjs?${VERSION}`);
+const VERSION = "v=4";
+const { tokenRanges, hasFrames, compileFramedDocument } = await import(`./studio/tokenizer.mjs?${VERSION}`);
 const {
   presetStore,
   ATTACHABLE_CATEGORIES,
@@ -28,6 +28,13 @@ const { createHostPicker } = await import(`./studio/host_picker.mjs?${VERSION}`)
 const { openPresetManager } = await import(`./studio/manager.mjs?${VERSION}`);
 const { showPreviewModal } = await import(`./studio/preview.mjs?${VERSION}`);
 const { el } = await import(`./studio/ui.mjs?${VERSION}`);
+const {
+  RefinePanel,
+  loadRefineSettings,
+  openRefineSettings,
+  refineButton,
+  requestRefine,
+} = await import(`./studio/refine.mjs?${VERSION}`);
 
 const stylesheet = document.createElement("link");
 stylesheet.rel = "stylesheet";
@@ -37,6 +44,7 @@ document.head.appendChild(stylesheet);
 const TOOLBAR_CATEGORIES = [
   "character",
   "look",
+  "wardrobe",
   "performance",
   "emotion",
   "state",
@@ -51,21 +59,74 @@ function buildWidgetRoot(node) {
 
   const toolbar = el("div", "kpw2-toolbar");
   const editorHost = el("div", "kpw2-editor-host");
+  const refineHost = el("div", "kpw2-refine-host");
   const footer = el("div", "kpw2-footer");
   const stats = el("span", "kpw2-footer-stats");
   const previewButton = el("button", "kpw2-toolbar-button kpw2-accent", "Preview Expanded");
   previewButton.type = "button";
   footer.append(stats, previewButton);
 
-  root.append(toolbar, editorHost, footer);
+  root.append(toolbar, editorHost, refineHost, footer);
 
-  // The raw document widget is the serialization surface; it stays hidden —
-  // the DOM editor is the only visible editing surface.
+  // The raw document widgets are the serialization surfaces; they stay
+  // hidden - the DOM editor is the only visible editing surface, and the
+  // refine panel is the only view of the LLM drafts.
   const docWidget = node.widgets?.find((widget) => widget.name === "prompt_doc");
   if (docWidget) {
     docWidget.hidden = true;
     docWidget.type = "hidden";
     docWidget.computeSize = () => [0, -4];
+  }
+  const refinedWidget = node.widgets?.find((widget) => widget.name === "refined_doc");
+  if (refinedWidget) {
+    refinedWidget.hidden = true;
+    refinedWidget.type = "hidden";
+    refinedWidget.computeSize = () => [0, -4];
+  }
+
+  // --- refiner state --------------------------------------------------------
+  // Drafts live in the hidden `refined_doc` widget (workflow-serialized
+  // JSON), never in the token document: the rewrite is a draft that can be
+  // edited, toggled and reverted while the user's own text stays intact.
+  let refinedState = {};
+  function readRefinedState() {
+    try {
+      const parsed = JSON.parse(refinedWidget?.value || "{}");
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+  function persistRefined() {
+    if (refinedWidget) refinedWidget.value = JSON.stringify(refinedState);
+  }
+  refinedState = readRefinedState();
+
+  const refinePanel = new RefinePanel({
+    getState: () => refinedState,
+    onCommit: () => {
+      persistRefined();
+      scheduleCanvasRefresh();
+    },
+  });
+  refineHost.append(refinePanel.root);
+
+  function refreshStale() {
+    let changed = false;
+    const compiled = compileFramedDocument(editor.doc, (id) => presetStore.lookup(id));
+    for (const [section, expanded] of [
+      ["prompt", compiled.prompt],
+      ["last_prompt", compiled.lastPrompt],
+    ]) {
+      const draft = refinedState[section];
+      if (!draft) continue;
+      const stale = draft.source !== (expanded ?? "");
+      if (!!draft.stale !== stale) {
+        draft.stale = stale;
+        changed = true;
+      }
+    }
+    if (changed) refinePanel.render();
   }
 
   // --- editor core ---------------------------------------------------------
@@ -75,8 +136,9 @@ function buildWidgetRoot(node) {
       updateStats(info);
       framesButton.classList.toggle("kpw2-active-toggle", hasFrames(doc));
       framesButton.title = hasFrames(doc)
-        ? "Frame sections are active — click to remove them (text is kept)"
+        ? "Frame sections are active - click to remove them (text is kept)"
         : "Split the prompt into Shared / First-frame / Last-frame sections";
+      refreshStale();
       scheduleCanvasRefresh();
     },
     onTokenPopup: (range, rect, span, options) => tokenPopup.open(range, rect, span, options),
@@ -209,7 +271,40 @@ function buildWidgetRoot(node) {
     plainButton.textContent = next === "rich" ? "Plain" : "Rich";
   });
 
-  toolbar.append(framesButton, manageButton, plainButton);
+  // --- the refiner ----------------------------------------------------------
+  async function runRefine({ onStage } = {}) {
+    const doc = editor.doc;
+    const compiled = compileFramedDocument(doc, (id) => presetStore.lookup(id));
+    const targets = [{ section: "prompt", text: compiled.prompt }];
+    if (compiled.hasFrames) targets.push({ section: "last_prompt", text: compiled.lastPrompt });
+    const wanted = targets.filter((target) => (target.text || "").trim());
+    if (!wanted.length) {
+      refinePanel.fail("Nothing to refine — the expanded prompt is empty.");
+      return;
+    }
+    for (const target of wanted) {
+      onStage?.(
+        wanted.length > 1
+          ? `Refining ${target.section === "last_prompt" ? "last frame" : "prompt"}…`
+          : "Refining…"
+      );
+      try {
+        const result = await requestRefine({ doc, section: target.section });
+        refinePanel.apply(result);
+      } catch (error) {
+        refinePanel.fail(String(error?.message || error));
+        return;
+      }
+    }
+    refreshStale();
+  }
+
+  const refineControl = refineButton({
+    run: runRefine,
+    onOpenSettings: (rect) => openRefineSettings({ anchorRect: rect, onChange: refreshStale }),
+  });
+
+  toolbar.append(refineControl, framesButton, manageButton, plainButton);
 
   previewButton.addEventListener("click", () => {
     showPreviewModal({ doc: editor.doc });
@@ -255,6 +350,12 @@ function buildWidgetRoot(node) {
     root,
     editor,
     updateStats,
+    refreshStale,
+    reloadRefined() {
+      refinedState = readRefinedState();
+      refinePanel.render();
+      refreshStale();
+    },
     setPlainMode(plainMode) {
       if (plainMode && editor.mode === "rich") {
         editor.setMode("plain");
@@ -268,8 +369,10 @@ app.registerExtension({
   name: "Krea2PromptWizardV2",
 
   async setup() {
-    // Warm the preset store so the first node render has tokens ready.
+    // Warm the preset store so the first node render has tokens ready, and
+    // the refiner settings so the button's tooltip can name the model.
     await presetStore.ensureLoaded().catch(() => {});
+    loadRefineSettings().catch(() => {});
   },
 
   beforeRegisterNodeDef(nodeType, nodeData) {
@@ -284,6 +387,7 @@ app.registerExtension({
 
         presetStore.ensureLoaded().then(() => {
           studio.editor.refreshTokens();
+          studio.refreshStale();
         });
         presetStore.subscribe(() => studio.editor.refreshTokens());
 
@@ -360,6 +464,7 @@ app.registerExtension({
         if (this.promptStudio) {
           const docWidget = (this.widgets || []).find((w) => w.name === "prompt_doc");
           this.promptStudio.editor.setDoc(docWidget?.value ?? "", { resetHistory: true });
+          this.promptStudio.reloadRefined();
           if (this.properties?.kpw2_plain) {
             this.promptStudio.setPlainMode(true);
           }

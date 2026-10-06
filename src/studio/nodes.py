@@ -6,11 +6,19 @@ and stores it (with inline ``{{krea2:...}}`` token markers) in the
 token into its preset expansion and returns the positive prompt, the
 combined negative prompt, and the human-readable raw document.
 
+A second hidden widget, ``refined_doc``, holds the LLM refiner's drafts:
+one per section (``prompt`` / ``last_prompt``), each carrying the body,
+the expanded text it was written from, the model that wrote it, and an
+enabled flag. An enabled draft replaces that section's compiled text at
+output time — the token document itself is never touched, so flipping the
+draft off queues exactly what the user wrote.
+
 Compatible with the modern ComfyUI node API; falls back to plain class
 attributes when V3 bases are unavailable (same strategy as the v1 pack).
 """
 from __future__ import annotations
 
+import json
 import logging
 import random
 from typing import Any, Dict, Tuple
@@ -23,6 +31,35 @@ logger = logging.getLogger("krea2.studio.nodes")
 
 NODE_NAME = "Krea2PromptWizardV2"
 NODE_DISPLAY_NAME = "Krea2 Prompt Wizard v2"
+
+
+def parse_refined(raw: str) -> Dict[str, Dict[str, Any]]:
+    """The ``refined_doc`` JSON -> ``{section: draft}``, junk mapped away.
+
+    A draft is kept only when it carries a non-empty body; ``enabled`` and
+    ``model`` are passed through for the executor and the logs.
+    """
+    try:
+        data = json.loads(raw or "")
+    except (TypeError, ValueError):
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    out: Dict[str, Dict[str, Any]] = {}
+    for section in ("prompt", "last_prompt"):
+        entry = data.get(section)
+        if not isinstance(entry, dict):
+            continue
+        body = entry.get("body")
+        if not isinstance(body, str) or not body.strip():
+            continue
+        out[section] = {
+            "body": body,
+            "enabled": entry.get("enabled") is not False,
+            "model": str(entry.get("model") or ""),
+            "source": str(entry.get("source") or ""),
+        }
+    return out
 
 
 class Krea2PromptWizardV2:
@@ -40,6 +77,18 @@ class Krea2PromptWizardV2:
                         "advanced": True,
                         "tooltip": (
                             "Editor document with inline preset token markers. "
+                            "Written and read by the node's visual editor."
+                        ),
+                    },
+                ),
+                "refined_doc": (
+                    "STRING",
+                    {
+                        "default": "",
+                        "multiline": True,
+                        "advanced": True,
+                        "tooltip": (
+                            "LLM refiner drafts as JSON, one per section. "
                             "Written and read by the node's visual editor."
                         ),
                     },
@@ -76,7 +125,9 @@ class Krea2PromptWizardV2:
             return float("nan")
         return prompt_doc
 
-    def build(self, prompt_doc: str = "") -> Tuple[str, str, str, str, str]:
+    def build(
+        self, prompt_doc: str = "", refined_doc: str = ""
+    ) -> Tuple[str, str, str, str, str]:
         store = get_store()
         doc = prompt_doc or ""
         # Randomized tokens (flag ~) draw a fresh same-slot preset per
@@ -96,6 +147,26 @@ class Krea2PromptWizardV2:
                     for choice in result.random_choices
                 ),
             )
+
+        # Enabled refiner drafts replace their section's compiled text —
+        # the rewrite stands in for the prompt rather than joining it.
+        # Negatives always stay the presets' own: a draft is positive prose.
+        refined = parse_refined(refined_doc)
+        prompt_draft = refined.get("prompt")
+        if prompt_draft and prompt_draft["enabled"]:
+            result.prompt = prompt_draft["body"]
+            logger.info(
+                "Krea2 Prompt Wizard v2: prompt output uses the refiner draft%s",
+                f" by {prompt_draft['model']}" if prompt_draft["model"] else "",
+            )
+        last_draft = refined.get("last_prompt")
+        if last_draft and last_draft["enabled"] and result.has_frames:
+            result.last_prompt = last_draft["body"]
+            logger.info(
+                "Krea2 Prompt Wizard v2: last_prompt output uses the refiner draft%s",
+                f" by {last_draft['model']}" if last_draft["model"] else "",
+            )
+
         return (
             result.prompt,
             result.negative,

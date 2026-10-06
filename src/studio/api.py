@@ -1,7 +1,8 @@
 """HTTP routes for the Prompt Studio frontend.
 
 Namespaced under ``/krea2_prompt_studio`` and registered separately from
-the v1 wizard routes so the two stay independent.
+the v1 wizard routes so the two stay independent. The refiner's routes
+live beside them in ``refine_api.py``.
 """
 from __future__ import annotations
 
@@ -27,6 +28,8 @@ def register_studio_routes() -> None:
 
     from aiohttp import web
     from server import PromptServer
+
+    from .refine_api import register_refine_routes
 
     routes = PromptServer.instance.routes
 
@@ -108,6 +111,8 @@ def register_studio_routes() -> None:
         with open(path, "rb") as handle:
             body = handle.read()
         return web.Response(body=body, content_type=content_type)
+
+    register_refine_routes()
 
     _ROUTES_REGISTERED = True
     logger.debug("Krea2 Prompt Studio routes registered")

@@ -46,12 +46,35 @@ class FrontendPackagingTests(unittest.TestCase):
             "manager.mjs",
             "preview.mjs",
             "ui.mjs",
+            "refine.mjs",
         )
         for helper in helpers:
             self.assertTrue(
                 (ROOT / "web" / "studio" / helper).is_file(), helper
             )
         self.assertTrue((ROOT / "web" / "studio" / "studio.css").is_file())
+
+    def test_studio_toolbar_has_wardrobe_and_refiner(self):
+        source = (ROOT / "web" / "prompt_studio_v2.js").read_text(encoding="utf-8")
+        self.assertIn('"wardrobe"', source)
+        self.assertIn("refineButton", source)
+        self.assertIn("RefinePanel", source)
+        self.assertIn("requestRefine", source)
+        self.assertIn('widget.name === "refined_doc"', source)
+
+    def test_studio_refine_cache_busters_match_entry_version(self):
+        entry = (ROOT / "web" / "prompt_studio_v2.js").read_text(encoding="utf-8")
+        self.assertIn('const VERSION = "v=4"', entry)
+        for path in (ROOT / "web" / "studio").glob("*.mjs"):
+            source = path.read_text(encoding="utf-8")
+            for needle in ('?v=3"', "?v=3`"):
+                self.assertNotIn(needle, source, f"{path.name} still pins an old cache buster")
+
+    def test_refine_backend_modules_exist(self):
+        from src.studio import refine_api, refine_local, refine_prompts, refine_remote, refine_settings
+
+        for module in (refine_api, refine_local, refine_prompts, refine_remote, refine_settings):
+            self.assertTrue(hasattr(module, "__doc__"))
 
     def test_entrypoint_loads_helpers_before_registration(self):
         source = (ROOT / "web" / "krea2_prompt_wizard_v3.js").read_text(encoding="utf-8")

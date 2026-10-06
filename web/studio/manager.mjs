@@ -6,7 +6,7 @@
  * upserts changes into the user payload; bundled presets are overridden
  * by id rather than modified in place, and can be tombstoned.
  */
-import { el, openModal, anchoredPanel } from "./ui.mjs?v=3";
+import { el, openModal, anchoredPanel } from "./ui.mjs?v=4";
 import {
   CATEGORY_ORDER,
   EXCLUSIVE_GROUPS,
@@ -15,7 +15,7 @@ import {
   categoryLabel,
   exclusiveGroupLabel,
   presetStore,
-} from "./preset_store.mjs?v=3";
+} from "./preset_store.mjs?v=4";
 
 function slugify(name) {
   const base = String(name || "")

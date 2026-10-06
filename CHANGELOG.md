@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## Unreleased - Prompt Studio refiner (LLM prompt optimization) + Wardrobe toolbar button
+
+- **The Prompt Studio (v2) now has a built-in LLM refiner** (brain Refine button): the same one-press prompt-expansion design as roadmaus/ComfyUI-Continuity, rebuilt for Krea 2 and the studio's token document.
+  - **In-ComfyUI backend (default)**: pick a full Qwen3-VL (4B/8B) or Qwen3.5 (0.8B-27B) text encoder from models/text_encoders; it loads through ComfyUI's own model management (offloaded and evicted like any other model, weights handed back after every generation) and refuses H3's truncated conditioning encoder with a real explanation. This is the same 'point it at a text encoder and it just works' flow Continuity users know.
+  - **Local-server backend**: one OpenAI-compatible client covering LM Studio (localhost:1234), Ollama (localhost:11434, probed automatically), llama.cpp, vLLM and hosted endpoints. Keys are stored server-side in an owner-only file bound to the URL, never sent over plain http to non-loopback hosts, and never returned to the browser (only 'a key is set').
+  - **The draft workflow**: Refine compiles the *expanded* prompt server-side (exactly what the node would queue), sends it to the model, and stores the rewrite as a draft in a hidden refined_doc widget - the token document is never touched. The panel below the editor can edit the draft, toggle it on/off (queue my prompt vs. the rewrite), and Revert restores the original. A 'prompt edited since' badge flags stale drafts. In frames mode each section (first/last frame) is refined and toggled separately. Negatives always stay the presets' own.
+  - **Fidelity checks**: quoted render text (Krea's documented convention) must survive the rewrite, and invented quotation marks are flagged - both reported as editable-panel warnings, never hard failures.
+  - Machine-level settings (backend, model, temperature, seed, reply length) live under the pack's user directory, never inside the workflow.
+- **Wardrobe is back in the studio toolbar** (+ Wardrobe) - the category, presets and character-attachment logic were always there; only the button was missing.
+- Bumped the studio cache key to ?v=4.
+
+# CHANGELOG
+
 
 ## Unreleased — 3D-ish lighting stage, orbit camera, real light height
 

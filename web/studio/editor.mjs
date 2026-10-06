@@ -40,9 +40,9 @@ import {
   hasFrames,
   FRAME_FIRST,
   FRAME_LAST,
-} from "./tokenizer.mjs?v=3";
-import { offsetOfPoint, pointForOffset } from "./caret_math.mjs?v=3";
-import { presetStore, tokenTooltip } from "./preset_store.mjs?v=3";
+} from "./tokenizer.mjs?v=4";
+import { offsetOfPoint, pointForOffset } from "./caret_math.mjs?v=4";
+import { presetStore, tokenTooltip } from "./preset_store.mjs?v=4";
 
 const SENTINEL = "\u200B"; // zero-width space: gives the caret a home between tokens
 

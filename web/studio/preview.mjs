@@ -3,9 +3,9 @@
  * copy buttons. In frames mode the FIRST and LAST frame prompts are shown
  * separately (each includes the shared text).
  */
-import { el, openModal, copyText } from "./ui.mjs?v=3";
-import { compileFramedDocument, hasRandomize } from "./tokenizer.mjs?v=3";
-import { presetStore } from "./preset_store.mjs?v=3";
+import { el, openModal, copyText } from "./ui.mjs?v=4";
+import { compileFramedDocument, hasRandomize } from "./tokenizer.mjs?v=4";
+import { presetStore } from "./preset_store.mjs?v=4";
 
 function section(label, text, copyButton, modifier = "") {
   const wrap = el("div", `kpw2-preview-section ${modifier}`);
