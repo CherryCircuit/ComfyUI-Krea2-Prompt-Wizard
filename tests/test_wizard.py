@@ -59,7 +59,7 @@ class StateBuildersTests(unittest.TestCase):
         ]
         sections = {"lights": [{"id": "light_1", "angleDeg": 0}]}
         kept = prune_stale_rows(rows, sections)
-        self.assertEqual([r["id"] for r in kept], ["b", "c"])
+        self.assertEqual([r["id"] for r in kept], ["a", "b", "c", "d", "e"])
 
     def test_coerce_state_prunes_stale_rows(self):
         state = coerce_state({
@@ -69,7 +69,9 @@ class StateBuildersTests(unittest.TestCase):
             ],
             "scene_sections": {"lights": []},
         })
-        self.assertEqual(state["rows"], [])
+        self.assertEqual(state["rows"][0]["phrase"], "light from the left at 1.5m")
+        self.assertFalse(state["rows"][0]["enabled"])
+        self.assertTrue(state["rows"][0]["recovered"])
 
     def test_add_row(self):
         state = empty_state()

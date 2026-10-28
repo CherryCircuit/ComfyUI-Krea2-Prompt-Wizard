@@ -786,6 +786,9 @@ def compile_state(
             }
         )
 
+    warning_list.extend(state.get("migration_report", []))
+    warning_list.extend(state.get("performance_warnings", []))
+
     # Video motion prompt: an explicit user override wins; otherwise the
     # cast draft is emitted only when the motion output is enabled.
     motion_draft = "\n".join([m for m in motion_lines if m]).strip()
@@ -825,6 +828,10 @@ def compile_state(
         "motion_prompt": motion_prompt,
         "motion_prompt_draft": motion_draft,
     }
+
+    trace["document_revision"] = state.get("document_revision", 0)
+    trace["seed"] = state.get("randomization", {}).get("resolved_seed")
+    trace["emitted_spans"] = _emitted_spans(state, final_prompt, character_clauses, fragments, setting_part, preset_index, expert)
 
     return CompilationResult(
         final_prompt=final_prompt,
@@ -915,3 +922,129 @@ def state_json(state: Dict[str, Any]) -> str:
     """Return a JSON string of the (validated) wizard state."""
     validate_state(state)
     return json.dumps(state, ensure_ascii=False, indent=2)
+
+
+def _emitted_spans(state, prompt, character_clauses, fragments, setting_part, preset_index, expert):
+    """Account for all output characters with actionable ownership and truthful origin."""
+    spans = []
+    owners = [None] * len(prompt)
+    def mark(text, path, origin="authored", action="unknown", start=0, end=None):
+        text = _normalise_punctuation(str(text))
+        if not text:
+            return
+        offset = prompt.find(text, start, len(prompt) if end is None else end)
+        if offset < 0:
+            return
+        stop = offset + len(text)
+        metadata = (path, origin, action)
+        for i in range(offset, stop):
+            owners[i] = metadata
+    mark(state.get("base_prompt", ""), "base_prompt")
+    enabled_characters = [(i,c) for i,c in enumerate(state.get("characters", [])) if c.get("enabled", True) is not False]
+    cursor = len(_normalise_punctuation(str(state.get("base_prompt") or "")))
+    for clause, (index, character) in zip(character_clauses, enabled_characters):
+        offset = prompt.find(_normalise_punctuation(clause), cursor)
+        if offset < 0:
+            continue
+        stop = offset + len(_normalise_punctuation(clause))
+        cursor = stop
+        path = f"characters[{index}]"
+        mark(clause, path, "generated_character_wrapper", start=offset, end=stop)
+        name = _normalise_punctuation(str(character.get("name") or f"Character {index+1}").strip()) or f"Character {index+1}"
+        name_start = offset + len("Character ")
+        mark(name, path + ".name", start=name_start, end=name_start+len(name))
+        position = _normalise_punctuation(str(character.get("position") or "").strip())
+        if position:
+            position_start = name_start + len(name) + len(" (")
+            mark(position, path + ".position", start=position_start, end=position_start+len(position))
+        for key, label in _CHARACTER_FIELDS:
+            mark(f"{label}: {character[key]}" if character.get(key) else "", path + "." + key, start=offset, end=stop)
+        character_result = _compile_character(character, index, preset_index, expert=expert)
+        character_fragments = character_result[2] if character_result else []
+        emitted = _dedupe_preserving_order([f.fragment for f in character_fragments if f.enabled and f.fragment])
+        tail = emitted + _face_guidance_lines(character.get("face_guidance")) + _face_guidance_lines(character.get("lora_triggers"))
+        skin = str(character.get("skin_color") or "").strip()
+        if skin and re.fullmatch(r"[a-z ]+", skin, re.IGNORECASE):
+            tail.append(f"({skin} skin:1.5)")
+        ethnicity = str(character.get("ethnicity") or "").strip()
+        species = _SPECIES_DESCRIPTIONS.get(ethnicity.lower())
+        if species or (ethnicity and not re.search(r"[:()]", ethnicity)):
+            tail.append(f"({species}:1.5)" if species else f"({ethnicity}:1.3)")
+        if str(character.get("interaction") or "").strip():
+            tail.append(str(character["interaction"]).strip())
+        emitted_cursor = stop - len(_normalise_punctuation(", ".join(tail))) if tail else stop
+        seen = set()
+        for fragment in character_fragments:
+            text = _normalise_punctuation(fragment.fragment)
+            if not fragment.enabled or not text or text.lower() in seen:
+                continue
+            seen.add(text.lower())
+            row_index = next((i for i,r in enumerate(character.get("rows", [])) if r.get("id") == fragment.row_id), None)
+            if row_index is None:
+                continue
+            row = character["rows"][row_index]
+            found = prompt.find(text, emitted_cursor, stop)
+            if found >= 0:
+                mark(text, row.get("owner_path", f"{path}.rows[{row_index}]"), row.get("origin", "legacy_imported"), row.get("origin_action", "unknown"), start=found, end=found+len(text))
+                emitted_cursor = found + len(text)
+        for key in ("face_guidance", "lora_triggers"):
+            for line in _face_guidance_lines(character.get(key)):
+                text = _normalise_punctuation(line)
+                found = prompt.find(text, emitted_cursor, stop)
+                if found >= 0:
+                    mark(text, path + "." + key, start=found, end=found+len(text))
+                    emitted_cursor = found + len(text)
+        for key, text in (("skin_color", f"({skin} skin:1.5)" if skin and re.fullmatch(r"[a-z ]+", skin, re.IGNORECASE) else ""),
+                          ("ethnicity", f"({species}:1.5)" if species else f"({ethnicity}:1.3)" if ethnicity and not re.search(r"[:()]", ethnicity) else ""),
+                          ("interaction", str(character.get("interaction") or "").strip())):
+            if not text:
+                continue
+            text = _normalise_punctuation(text)
+            found = prompt.find(text, emitted_cursor, stop)
+            if found >= 0:
+                mark(text, path + "." + key, "authored" if key == "interaction" else "automatic_appearance", start=found, end=found+len(text))
+                emitted_cursor = found + len(text)
+    if setting_part:
+        setting_start = prompt.find(_normalise_punctuation(setting_part), cursor)
+        if setting_start >= 0:
+            setting_end = setting_start + len(_normalise_punctuation(setting_part))
+            mark(setting_part, "setting", "generated_setting_wrapper", start=setting_start, end=setting_end)
+            setting_cursor = setting_start + len("Setting " if str(state.get("setting", {}).get("description") or "").strip() else "Setting: ")
+            for key in ("name", "description"):
+                text = _normalise_punctuation(str(state.get("setting", {}).get(key) or "").strip())
+                found = prompt.find(text, setting_cursor, setting_end) if text else -1
+                if found >= 0:
+                    mark(text, "setting." + key, start=found, end=found+len(text))
+                    setting_cursor = found + len(text)
+            cursor = setting_end
+    # The compiler groups rows by category; locate each emitted fragment once
+    # within that category's own bounded output range, including repeated rows.
+    for category in CATEGORIES:
+        category_fragments = [f for f in fragments if f.category == category and f.enabled and f.fragment]
+        seen_text = set()
+        for fragment in category_fragments:
+            key = fragment.fragment.lower()
+            if category in ("emotion", "mouth") and key in seen_text:
+                continue
+            seen_text.add(key)
+            text = _normalise_punctuation(fragment.fragment)
+            offset = prompt.find(text, cursor)
+            if offset < 0:
+                continue
+            row_index = next((i for i,r in enumerate(state.get("rows", [])) if r.get("id") == fragment.row_id), None)
+            if row_index is None:
+                continue
+            row = state["rows"][row_index]
+            mark(text, row.get("owner_path", f"rows[{row_index}]"), row.get("origin", "legacy_imported"), row.get("origin_action", "unknown"), start=offset, end=offset+len(text))
+            cursor = offset + len(text)
+    # Separators are generated assembly text and never falsely attributed to a row.
+    current = None
+    start = 0
+    for i, owner in enumerate(owners + [("END", "", "")]):
+        owner = owner or ("document", "generated_separator" if i < len(prompt) and prompt[i] in ", ;\n\t" else "assembly", "assemble")
+        if owner != current:
+            if current is not None:
+                spans.append({"start": start, "end": i, "text": prompt[start:i], "owner_path": current[0], "origin": current[1], "origin_action": current[2]})
+            start = i
+            current = owner
+    return spans

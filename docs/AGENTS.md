@@ -22,31 +22,32 @@ repo.
 
 | Class | Display name | Purpose |
 |---|---|---|
-| `Krea2PromptWizard` | Krea2 Prompt Wizard | Main node. Outputs: `Prompt Output` (STRING), `Video Motion Prompt` (STRING), `Model` (MODEL, per-character LoRA application). Optional inputs: `expert_mode`, `model`. |
+| `Krea2PromptWizard` | Krea2 Prompt Wizard | Main V1 node. Outputs: `Prompt Output` (STRING), `Video Motion Prompt` (STRING), `Model` (MODEL), `Positive Conditioning` (CONDITIONING). Optional inputs include `expert_mode`, `model`, `clip`. |
 | `Krea2SaveImage` | Krea2 Save Image | Saves PNGs with the prompt embedded as metadata (`krea2_prompt` chunk; optional plain-text `prompt` chunk mode for Timesaver / A1111 viewers). |
 | `Krea2PromptSaver` | Krea2 Prompt Saver | Workflow-independent prompt record: appends every run to `ComfyUI/output/krea2_prompt_history.jsonl` and re-asserts metadata keys. |
 | `Krea2WeightedPhrase` | Krea2 Weighted Phrase | Transparent single-phrase primitive. |
 | `Krea2PromptAssembler` | Krea2 Prompt Assembler | Pure fragment assembler. |
 | `Krea2PromptInspector` | Krea2 Prompt Inspector | Formats trace/state JSON into a report. |
 
-**Frontend structure:** the editor is one DOM widget with mode tabs
-(Cast / Scene, plus an optional advanced Concepts tab). A collapsible
-"Prompt" footer (preview + motion + history) sits under every tab.
-Cast members are expandable cards: appearance columns (comboboxes),
-direction sections (Concepts-style, with dice / presets / shuffle),
-    LoRA triggers, quick-direction chips, and a user-provided portrait
-    reference thumbnail with profile-shot prompt setup.
+**V1 frontend:** one workspace with Identity, Performance, Placement,
+Environment, Camera, Lighting, Randomization and Advanced sections,
+a sticky compiled-output dock and a focused editor. Character identity
+and performance remain separate scopes. Four outputs: Prompt Output,
+Video Motion Prompt, Model and optional Positive Conditioning. CLIP
+opts into native conditioning; the first three slots remain compatible.
+V2 remains a separate editor and is outside V1 overhaul changes.
 
 ---
 
-## 2. Current status (as of v1.5.0)
+## 2. Current contract (v1.10.0)
 
-- 231 Python tests + Node-based frontend tests (smoke + state
-  contract) + golden prompt tests. All green.
+- Python, Node frontend, golden-prompt and artifact validation suites
+  cover the contracts. Current verification results belong in the task
+  report; do not infer runtime coverage from unit-test success.
 - Latest release notes in `CHANGELOG.md`.
 - The version lives in THREE places that must stay in sync:
   `__init__.py`, `pyproject.toml`, and the frontend cache-busting
-  query (`?v=N` in `web/krea2_prompt_wizard_v3.js`, currently `v=19`).
+  query (`?v=N` in `web/krea2_prompt_wizard_v3.js`, keep in sync with packaging tests).
   `pyproject.toml` is easy to forget (it lagged at 1.0.0 for a while;
   fixed in this round).
 
@@ -172,7 +173,7 @@ differences from real browsers:
 ### 4.5 Frontend cache busting — bump `?v=` on every frontend change
 
 `web/krea2_prompt_wizard_v3.js` imports helpers with `?v=N` queries
-(currently `v=26`). Bump N whenever you change any frontend file, and
+(check the current entrypoint). Bump N whenever you change any frontend file, and
 update `tests/test_frontend_packaging.py::test_entrypoint_loads_helpers_before_registration`.
 Stale browser caches have repeatedly caused "nothing changed / blank
 node / old UI" reports that were really cached assets.
@@ -272,6 +273,17 @@ Direction groups (frontend `DIRECTION_GROUPS` in
 in `src/job_randomizer.py`): `emotion`, `face`, `body`, `placement`.
 Keep both in sync.
 
+Presentation contracts (1.10.2): concept strengths are a 0.5-step grid
+everywhere — `weight_mapping.snap_weight_step` and the `state.mjs`
+mirror (`snapWeightStep`) must stay identical, including half-up
+rounding; raw mode is the only unsnapped path. Concept rows render as
+one −/label+value/+ pill (`preset_row.mjs`, `.krea2-pill` CSS); rows no
+longer embed Phrase editors — concepts without a library preset edit
+their phrase through a dialog. Wordy actions are icon buttons
+(`W.iconButton`/`W.iconToggle` in `workspace.mjs`); "Queue workflow"
+stays text. Concept columns use `auto-fit` so they respond to node
+width, not the browser window.
+
 ---
 
 ## 6. Adding a new category or appearance field
@@ -286,3 +298,20 @@ Keep both in sync.
    `newCharacter()` defaults, and `coerceState` / `coerce_state`
    defaults on both sides.
 5. Regenerate presets, validate, run the full suite.
+
+
+## V1 overhaul invariants
+
+Use the verification guidance in DEVELOPMENT.md and the reusable
+prompt-wizard-validation skill. Backend preview and queue compilation
+share the same contract; frontend fallback previews must not drive
+exports. Materialize preserves the complete compiled snapshot in the
+existing Prompt Assembler because legacy weighted primitives cannot
+represent direct strengths and complete structural cast/scene text.
+A missing current snapshot must leave the graph unchanged.
+
+Preserve legacy rows in recovery rather than silently dropping them.
+Migrate old light elevation into physical stage geometry. Seeded
+randomization must repeat after serialization, obey locks and avoid
+mutating protected scopes. Reuse existing preset storage and compiler
+paths. Never replace development/runtime data with harness fixtures.

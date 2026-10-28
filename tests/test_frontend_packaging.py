@@ -79,8 +79,8 @@ class FrontendPackagingTests(unittest.TestCase):
     def test_entrypoint_loads_helpers_before_registration(self):
         source = (ROOT / "web" / "krea2_prompt_wizard_v3.js").read_text(encoding="utf-8")
         self.assertIn('import { app } from "../../scripts/app.js"', source)
-        self.assertIn('await import("./js/state.mjs?v=27")', source)
-        self.assertIn('await import("./js/wizard_widget.mjs?v=27")', source)
+        self.assertIn('await import("./js/state.mjs?v=35")', source)
+        self.assertIn('await import("./js/wizard_widget.mjs?v=35")', source)
         self.assertLess(source.index("await import"), source.index("app.registerExtension"))
 
     def test_all_entrypoint_helper_modules_exist(self):
@@ -91,6 +91,8 @@ class FrontendPackagingTests(unittest.TestCase):
             "library_editor.mjs",
             "materialize.mjs",
             "inspector.mjs",
+            "workspace.mjs",
+            "lighting_scene.mjs",
             "wizard_widget.mjs",
         )
         for helper in helpers:
@@ -126,11 +128,11 @@ class FrontendPackagingTests(unittest.TestCase):
     def test_wizard_has_prompt_motion_and_model_outputs(self):
         self.assertEqual(
             Krea2PromptWizard.RETURN_TYPES,
-            ("STRING", "STRING", "MODEL"),
+            ("STRING", "STRING", "MODEL", "CONDITIONING"),
         )
         self.assertEqual(
             Krea2PromptWizard.RETURN_NAMES,
-            ("Prompt Output", "Video Motion Prompt", "Model"),
+            ("Prompt Output", "Video Motion Prompt", "Model", "Positive Conditioning"),
         )
 
     def test_nodes_use_requested_category(self):
@@ -146,7 +148,7 @@ class FrontendPackagingTests(unittest.TestCase):
         result = Krea2PromptWizard().build(json.dumps(state))
         self.assertEqual(
             result["result"],
-            ("portrait of a traveler", "", None),
+            ("portrait of a traveler", "", None, None),
         )
         self.assertEqual(json.loads(result["ui"]["krea2_resolved_state"][0])["base_prompt"], "portrait of a traveler")
         self.assertEqual(result["ui"]["krea2_prompt_output"], ["portrait of a traveler"])
@@ -252,6 +254,11 @@ class FrontendPackagingTests(unittest.TestCase):
             cwd=ROOT,
             check=True,
         )
+
+    @unittest.skipUnless(shutil.which("node"), "Node.js is required for frontend behavior")
+    def test_lighting_geometry_and_prompt_export(self):
+        for name in ("frontend_lighting_geometry.mjs", "frontend_materialize.mjs"):
+            subprocess.run([shutil.which("node"), str(ROOT / "tests" / name)], cwd=ROOT, check=True)
 
 
 if __name__ == "__main__":

@@ -36,12 +36,12 @@ class CompilerTests(unittest.TestCase):
             "label": "Direct",
             "phrase": "soft rim light",
             "intensity": 0,
-            "strength": -1.25,
+            "strength": -1.5,
             "control_mode": "scalar",
             "enabled": True,
         }]
         result = compile_state(state, _lib())
-        self.assertEqual(result.final_prompt, "(soft rim light:-1.25)")
+        self.assertEqual(result.final_prompt, "(soft rim light:-1.5)")
 
     def test_empty_state(self):
         state = empty_state()
@@ -127,7 +127,8 @@ class CompilerTests(unittest.TestCase):
         lib = _lib()
         presets = _by_id(lib)
         if "emotion.shock" in presets:
-            add_row(state, presets["emotion.shock"], intensity=75)
+            # 70 and 85 land on different 0.5 grid points (2.0 vs 2.5).
+            add_row(state, presets["emotion.shock"], intensity=70)
             add_row(state, presets["emotion.shock"], intensity=85)
         result = compile_state(state, lib)
         # Different intensities produce different fragments.

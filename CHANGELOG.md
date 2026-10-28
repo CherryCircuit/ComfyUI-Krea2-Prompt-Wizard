@@ -1,5 +1,32 @@
 # CHANGELOG
 
+## 1.10.2 — Workspace density and value-grid cleanup
+
+- **0.5 weight grid.** All GUI-reachable concept strengths now snap to the 0.5 grid (slider curve, preset application, randomizer range, typed values). Double-clicking a value no longer reveals `1.8923179439906805`-style numbers; raw-mode weights remain the exact-typing escape hatch. Backend and frontend mappings stay in lockstep, including deterministic half-up rounding.
+- **Strength pills.** Concept rows are now one compact pill: a − cap on the left, the concept name and value in the middle, a + cap on the right (hold-to-repeat, vertical value drag and click-to-type kept). Eye and delete icons sit beside the pill.
+- **Phrase fields removed from rows.** The per-concept "Phrase" textareas are gone; concepts collapse to the pill. Concepts without a library preset (recovered/imported) open a phrase dialog from the label.
+- **Narrow-width fix.** Concept columns collapse with the node's own width (`auto-fit` instead of a browser media query) and labels ellipsize on one line instead of wrapping one character per line at narrow node sizes.
+- **Icon buttons.** Wordy buttons across the workspace (Presets, Save as, Focus editor, undo/redo, Concept library, Output settings, Materialize, Create subgraph, Reset, randomize actions, each-job toggles, locks, copy/restore run, lighting add/clear) became icon buttons with tooltips; "Queue workflow" stays text. New glyphs: folder, book, gear, history, lock, workflow, undo, redo.
+- **Performance section.** The read-only chips and the nested "Edit performance" list merged into one directly editable pill list; fine tuning, subgroup presets, Interaction and Face guidance live under a details drawer.
+- **Lighting numerics as pills.** Ground distance, height above ground, intensity and azimuth use the − value + pill (0.1 m / 0.1 intensity / 15° steps; the value still drags and accepts typed exact numbers). The azimuth dial stays.
+- Frontend cache key bumped to `?v=35`.
+
+## 1.10.1 — Positive Conditioning fix
+
+- **Fixed:** wiring the wizard's `Positive Conditioning` output into conditioning nodes (e.g. Conditioning Zero Out) crashed with `'NoneType' object is not iterable` whenever Native conditioning weighting was disabled, because the node returned a Python `None` conditioning.
+- **Contract change:** a connected CLIP now opts into conditioning. With Native conditioning weighting off, the compiled prompt is encoded as clean text (supported `(phrase:number)` annotations stripped, weights not applied) and the Model passes through unchanged; with it on, native token weights apply as before. Without a CLIP connection the output stays empty and legacy three-output workflows are untouched.
+- The Prompt inspector now reports whether the last run emitted native, plain or no conditioning. Frontend cache key bumped to `?v=34`.
+
+## 1.10.0 — V1 single workspace
+
+- Replaced V1 mode tabs with one workspace, a sticky prompt dock and a focused editor.
+- Separated Identity, Performance and Placement; added scoped preset application, seed controls and locks.
+- Added named Performance starting points including Shock and Confusion; saved presets edit through the workspace and update from current controls.
+- Added optional native CLIP Positive Conditioning as the fourth output; preserved existing output slots.
+- Preserved legacy concepts through migration and recovery, with explicit warnings.
+- Materialized exports now retain the complete backend-compiled prompt, including cast, environment and direct or negative numerical weights, as an editable snapshot.
+- Added reusable validation guidance. V2 retains its separate editor and workflow.
+
 ## Unreleased - Prompt Studio refiner (LLM prompt optimization) + Wardrobe toolbar button
 
 - **The Prompt Studio (v2) now has a built-in LLM refiner** (brain Refine button): the same one-press prompt-expansion design as roadmaus/ComfyUI-Continuity, rebuilt for Krea 2 and the studio's token document.

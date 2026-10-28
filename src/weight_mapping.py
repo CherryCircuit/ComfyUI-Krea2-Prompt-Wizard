@@ -58,12 +58,29 @@ def clamp_weight(weight: float, lo: float = SAFE_WEIGHT_MIN, hi: float = SAFE_WE
     return weight
 
 
+def snap_weight_step(weight: float, step: float = 0.5) -> float:
+    """Snap a weight to the UI's adjustment grid.
+
+    The wizard GUI only adjusts concept strengths in whole steps of
+    ``step`` (default 0.5), so every GUI-reachable value is snapped to
+    the same grid here. Raw-mode weights skip this on purpose: they are
+    the expert escape hatch for arbitrary numeric weights. Half values
+    round away from zero deterministically (matching the frontend's
+    ``Math.round``) so both sides always agree.
+    """
+    if weight != weight:  # NaN
+        return weight
+    return math.floor(weight / step + 0.5) * step
+
+
 def slider_to_weight_scalar(slider: int) -> float:
     """Convert a slider value to a weight using the standard scalar curve.
 
     * 0     -> 1.0 (neutral)
     * +100  -> SAFE_WEIGHT_MAX (default 3.0)
     * -100  -> SAFE_WEIGHT_MIN (default 0.1)
+
+    The curve result is snapped to the 0.5 GUI grid before clamping.
     """
     if slider is None:
         slider = SLIDER_DEFAULT
@@ -75,7 +92,7 @@ def slider_to_weight_scalar(slider: int) -> float:
     else:
         norm = abs(slider) / 100.0
         raw = 1.0 - NEG_GAIN * (norm ** NEG_EXPONENT)
-    return clamp_weight(raw, SAFE_WEIGHT_MIN, SAFE_WEIGHT_MAX)
+    return clamp_weight(snap_weight_step(raw), SAFE_WEIGHT_MIN, SAFE_WEIGHT_MAX)
 
 
 def slider_to_weight_raw(slider: int, expert: bool = False) -> float:
@@ -116,12 +133,13 @@ def slider_to_weight_bipolar(slider: int) -> float:
     """Map a bipolar slider to a magnitude using the standard scalar curve.
 
     The result is the *emphasis magnitude* to apply to whichever phrase
-    (positive or negative) is selected by the slider sign.
+    (positive or negative) is selected by the slider sign, snapped to
+    the 0.5 GUI grid.
     """
     mag, _ = bipolar_extension(slider)
     if mag == 0:
         return 1.0
-    return 1.0 + POS_GAIN * (mag ** POS_EXPONENT)
+    return snap_weight_step(1.0 + POS_GAIN * (mag ** POS_EXPONENT))
 
 
 def resolve_bipolar_range(row: dict) -> Tuple[float, float]:
@@ -246,7 +264,12 @@ def weight_for_row(row: dict, expert: bool = False) -> float:
     """Resolve the weight for a row given its mode and intensity."""
     if "strength" in row:
         try:
-            return clamp_weight(float(row["strength"]), -3.0, 3.0)
+            value = clamp_weight(float(row["strength"]), -3.0, 3.0)
+            # Raw mode is the arbitrary-weight escape hatch: direct raw
+            # strengths compile exactly as typed, everything else snaps.
+            if mode_for_row(row) != MODE_RAW:
+                value = snap_weight_step(value)
+            return value
         except (TypeError, ValueError):
             pass
     try:

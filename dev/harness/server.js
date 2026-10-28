@@ -33,6 +33,7 @@ function write(res, status, type, body) {
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, "http://localhost:" + PORT);
   const p = url.pathname;
+  if (p === "/favicon.ico") return write(res, 204, "image/x-icon", "");
 
   if (p === "/") {
     return write(res, 200, "text/html", fs.readFileSync(path.join(__dirname, "harness.html")));

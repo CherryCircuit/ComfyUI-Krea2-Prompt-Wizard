@@ -12,6 +12,7 @@ truth for:
 from __future__ import annotations
 
 import copy
+import math
 import re
 import uuid
 from typing import Any, Dict, List, Optional, Sequence
@@ -52,6 +53,15 @@ def new_preset_id(category: str, label: str) -> str:
 def empty_state() -> Dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
+        "state_version": 2,
+        "document_revision": 0,
+        "ui_preferences": {"text_size": 14, "measurement_unit": "m"},
+        "migration_report": [],
+        "recovery_rows": [],
+        "derived_sources": {},
+        "randomization": {"seed_mode": "new_per_job", "seed": 0, "locks": {}},
+        "native_weighting_enabled": False,
+        "native_weighting_strength": 1,
         "base_prompt": "",
         "model_profile": "generic",
         "interface_mode": "simple",
@@ -95,10 +105,13 @@ def coerce_state(raw: Any) -> Dict[str, Any]:
     Missing fields are filled with defaults; corrupt fields are reset.
     Raises if the input is not a JSON object.
     """
-    if not isinstance(raw, dict):
-        raw = {}
+    from .migrations import migrate_state
+    raw = migrate_state(raw)
     state = empty_state()
     for key in (
+        "state_version", "document_revision", "ui_preferences",
+        "migration_report", "recovery_rows", "migration_backup", "derived_sources",
+        "randomization", "resolved_snapshot", "native_weighting_enabled", "native_weighting_strength", "performance_warnings",
         "schema_version",
         "base_prompt",
         "model_profile",
@@ -139,18 +152,8 @@ def coerce_state(raw: Any) -> Dict[str, Any]:
     ):
         if key in raw:
             state[key] = raw[key]
-    if isinstance(raw.get("rows"), list):
-        state["rows"] = [row for row in raw["rows"] if isinstance(row, dict)]
-        for row in state["rows"]:
-            if "strength" not in row:
-                try:
-                    legacy = max(
-                        -3.0,
-                        min(3.0, float(row.get("intensity", 0)) / 20.0),
-                    )
-                    row["strength"] = round(legacy * 4) / 4
-                except (TypeError, ValueError):
-                    row["strength"] = 0.0
+    state["base_prompt"] = str(state.get("base_prompt") or "")
+    state["rows"] = copy.deepcopy(raw.get("rows", []))
     if not isinstance(state.get("characters"), list):
         state["characters"] = []
     else:
@@ -186,6 +189,8 @@ def coerce_state(raw: Any) -> Dict[str, Any]:
                 character["randomize_direction_groups"][group_key] = bool(enabled)
         try:
             strength = float(character.get("lora_strength", 0.8))
+            if not math.isfinite(strength):
+                strength = 0.8
         except (TypeError, ValueError):
             strength = 0.8
         character["lora_strength"] = max(0.0, min(2.0, round(strength * 20) / 20))
@@ -234,46 +239,27 @@ def coerce_state(raw: Any) -> Dict[str, Any]:
 
 
 def prune_stale_rows(rows: Any, scene_sections: Any) -> List[Dict[str, Any]]:
-    """Drop rows the v2 editor no longer manages.
+    """Compatibility helper: migration recovers rows rather than pruning text."""
+    return [copy.deepcopy(row) for row in rows if isinstance(row, dict)] if isinstance(rows, list) else []
 
-    * rows without a phrase (they can never compile)
-    * stale custom light rows (``custom.light_*``) that no longer belong to
-      a light in ``scene_sections.lights`` — the lighting panel owns the
-      custom light rows and regenerates them on every change
-    * legacy phrase-styled light rows from older wizard versions
-    * duplicate custom light rows for the same light
 
-    This is the backend twin of the frontend ``pruneStaleRows`` helper so
-    old workflows and headless runs also lose the leftover concepts that
-    compiled into prompts without any visible edit control.
-    """
-    if not isinstance(rows, list):
-        return []
-    light_ids: set = set()
-    lights: Any = (scene_sections or {}).get("lights") if isinstance(scene_sections, dict) else None
-    if isinstance(lights, list):
-        for light in lights:
-            if isinstance(light, dict) and light.get("id"):
-                light_ids.add(str(light["id"]))
-    seen = set()
-    out = []
-    for row in rows:
-        if not isinstance(row, dict):
-            continue
-        if not str(row.get("phrase") or "").strip():
-            continue
-        pid = str(row.get("preset_id") or "")
-        if pid.startswith("custom.light_"):
-            light_key = pid[len("custom.light_"):]
-            if light_key not in light_ids or light_key in seen:
-                continue
-            seen.add(light_key)
-        elif row.get("category") == "lighting_direction" and re.match(
-            r"^light from the ", str(row.get("phrase") or ""), re.IGNORECASE
-        ):
-            continue
-        out.append(row)
-    return out
+def prepare_state(raw: Any, library: Any = None, *, randomize: bool = False,
+                  seed: Any = None, scope: Any = None) -> Dict[str, Any]:
+    """Prepare exactly the state compiled by previews and queued execution."""
+    from .migrations import reconcile_derived_rows
+    state = coerce_state(copy.deepcopy(raw))
+    if randomize and (scope is not None or not state.get("randomization", {}).get("replay")):
+        state["randomization"]["replay"] = False
+        from .job_randomizer import randomize_enabled_groups
+        state = randomize_enabled_groups(state, library, seed=seed, scope=scope)
+    state = reconcile_derived_rows(state)
+    snapshot = copy.deepcopy(state)
+    snapshot.pop("resolved_snapshot", None)
+    snapshot.pop("migration_backup", None)
+    state["resolved_snapshot"] = {"state": snapshot,
+        "seed": state.get("randomization", {}).get("resolved_seed"),
+        "document_revision": state.get("document_revision", 0)}
+    return state
 
 
 def add_row(
@@ -307,6 +293,8 @@ def add_row(
         "aliases": list(preset.get("aliases") or []),
         "verification": preset.get("verification", "general visual vocabulary"),
         "source": preset.get("source", "library"),
+        "origin": preset.get("origin", "authored" if preset.get("source") == "user" else "preset"),
+        "origin_action": preset.get("origin_action", "add_concept"),
         "favourite": bool(preset.get("favourite", False)),
     }
     for key in ("positive_phrase", "negative_phrase", "neutral_phrase"):
@@ -465,9 +453,9 @@ def rows_to_snapshot(rows: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
             "verification": row.get("verification", "general visual vocabulary"),
             "source": row.get("source", "library"),
         }
-        for key in ("aliases", "positive_phrase", "negative_phrase", "neutral_phrase"):
-            if key in row and row[key]:
-                snap[key] = row[key]
+        for key in ("aliases", "positive_phrase", "negative_phrase", "neutral_phrase", "strength", "legacy_weight", "origin", "origin_action", "owner_path", "verbatim", "locked"):
+            if key in row:
+                snap[key] = copy.deepcopy(row[key])
         out.append(snap)
     return out
 

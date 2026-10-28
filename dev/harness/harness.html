@@ -5,11 +5,12 @@
 <title>Krea2 Prompt Wizard — visual harness</title>
 <style>
   html, body { background: #101215; margin: 0; padding: 12px; font-family: sans-serif; }
-  #host { width: 800px; }
+  #host { width: 560px; height: 680px; }
 </style>
-<link rel="stylesheet" href="/css/wizard.css?v=27">
+<link rel="stylesheet" href="/css/wizard.css?v=33">
 </head>
 <body>
+<p style="color:#aebccc;font:13px sans-serif;margin:0 0 10px">Fixture-only browser test. Queue and local API responses are test fixtures.</p>
 <div id="host"></div>
 <script>
   /* Fake ComfyUI surface: the wizard frontend only needs these hooks. */
@@ -18,14 +19,19 @@
     api: { apiURL: (u) => u },
     extensionManager: { toast: { add() {} } },
     registerExtension() {},
+    queuePrompt() { window.__queued = (window.__queued || 0) + 1; return Promise.resolve(); },
   };
   const realFetch = window.fetch.bind(window);
   window.fetch = (url, opts) => {
     const p = String(url);
+    if (p.includes("/object_info/LoraLoader")) return Promise.resolve({ ok: true, json: async () => ({ LoraLoader: { input: { required: { lora_name: [[]] } } } }) });
     if (p.includes("krea2_prompt_wizard/library")) return realFetch("/fixtures/library.json");
     if (p.includes("krea2_prompt_wizard/master_presets")) return realFetch("/fixtures/master.json");
     if (p.includes("krea2_prompt_wizard/conflicts")) return realFetch("/fixtures/conflicts.json");
-    if (p.includes("krea2_prompt_wizard/saved_presets")) return Promise.resolve({ ok: true, json: async () => ({ presets: [] }) });
+    if (p.includes("krea2_prompt_wizard/saved_presets")) {
+      if (opts?.method === "POST") window.__fixtureSavedPresets = JSON.parse(opts.body).presets;
+      return Promise.resolve({ ok: true, json: async () => ({ presets: window.__fixtureSavedPresets || [] }) });
+    }
     if (p.includes("krea2_prompt_wizard/concept_colors")) return Promise.resolve({ ok: true, json: async () => ({ colors: {} }) });
     if (p.includes("krea2_prompt_wizard/loras")) return Promise.resolve({ ok: true, json: async () => ({ loras: [] }) });
     if (p.includes("krea2_prompt_wizard/preview")) {
@@ -45,13 +51,15 @@
   navigator.clipboard = { writeText: () => Promise.resolve() };
 </script>
 <script type="module">
-  import "/js/state.mjs?v=27";
-  import "/js/searchable_selector.mjs?v=27";
-  import "/js/preset_row.mjs?v=27";
-  import "/js/library_editor.mjs?v=27";
-  import "/js/materialize.mjs?v=27";
-  import "/js/inspector.mjs?v=27";
-  import "/js/wizard_widget.mjs?v=27";
+  import "/js/state.mjs?v=33";
+  import "/js/searchable_selector.mjs?v=33";
+  import "/js/preset_row.mjs?v=33";
+  import "/js/library_editor.mjs?v=33";
+  import "/js/materialize.mjs?v=33";
+  import "/js/inspector.mjs?v=33";
+  import "/js/workspace.mjs?v=33";
+  import "/js/lighting_scene.mjs?v=33";
+  import "/js/wizard_widget.mjs?v=33";
 
   /* Optional: load a prebuilt wizard state file (see states/). */
   let presetState = "";
@@ -77,6 +85,12 @@
   const wizard = window.KREA2.createWizardWidget(node);
   window.__wizard = wizard;
   document.getElementById("host").appendChild(wizard.root);
+  const dimensions = new URLSearchParams(window.location.search);
+  const width = Math.max(360, Math.min(1600, Number(dimensions.get("width")) || 560));
+  const height = Math.max(420, Math.min(1200, Number(dimensions.get("height")) || 680));
+  document.getElementById("host").style.width = width + "px";
+  document.getElementById("host").style.height = height + "px";
+  node.size = [width, height];
   window.__ready = false;
 
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));

@@ -89,18 +89,12 @@ const staleProbe = window.KREA2.helpers.coerceState({
   },
 });
 const staleIds = staleProbe.rows.map((row) => row.id);
-if (staleIds.includes("a")) {
-  throw new Error("Stale light rows must be pruned when the light no longer exists.");
+if (staleIds.join(",") !== "a,b,c,d,e") {
+  throw new Error("Legacy invisible, unknown and empty concepts must survive recovery without destructive pruning.");
 }
-if (staleIds.includes("d")) {
-  throw new Error("Rows without a phrase must be pruned.");
-}
-if (staleIds.includes("e")) {
-  throw new Error("Legacy phrase-styled light rows must be pruned.");
-}
-if (!staleIds.includes("b") || !staleIds.includes("c")) {
-  throw new Error("Live light rows and kept concepts must survive the stale-row prune.");
-}
+const workspaceState = window.KREA2.helpers.coerceState({ document_revision: 42, native_weighting_enabled: true, native_weighting_strength: 0.5, ui_preferences: { text_size: 18, favorites: ["favorite"], recents: ["recent"] }, derived_sources: { lights: [] }, randomization: { seed_mode: "fixed", seed: 45, locks: { characters: ["c1"], sections: ["lighting"], fields: { c1: ["age"] } } }, migration_report: ["Recovered"], recovery_rows: [{ id: "recovered", phrase: "old phrase" }], resolved_snapshot: { seed: 45 } });
+if (workspaceState.document_revision !== 42 || workspaceState.ui_preferences.text_size !== 18 || workspaceState.randomization.locks.fields.c1[0] !== "age" || workspaceState.native_weighting_strength !== 0.5 || !workspaceState.derived_sources || workspaceState.recovery_rows.length !== 1) throw new Error("Workspace state must survive round trips");
+if (state.native_weighting_enabled !== false || state.native_weighting_strength !== 1) throw new Error("Native weighting is opt in");
 
 const expandedRoundTrip = window.KREA2.helpers.coerceState({
   rows: [],
@@ -123,3 +117,8 @@ if (preview.final_prompt !== "portrait") {
 if (request.url !== "/api/krea2_prompt_wizard/preview" || request.options.method !== "POST") {
   throw new Error("The authoritative preview must use the local preview endpoint.");
 }
+
+await window.KREA2.helpers.fetchCompiledPreview({ rows: [] }, { randomize: true, seed: 123, scope: { kind: "performance", character_id: "c1" } });
+const body = JSON.parse(request.options.body);
+if (!body.randomize || body.seed !== 123 || body.scope.character_id !== "c1") throw new Error("Scoped randomization must be resolved by the backend");
+console.log("frontend state contract: recovery and randomization checks passed");

@@ -8,7 +8,7 @@ The wizard ships with seven nodes:
 | Node | Purpose |
 |---|---|
 | `Krea2 Prompt Wizard v2` | **New** token-based prompt editor — write naturally, insert preset pills, get fully expanded prompts. See `docs/STUDIO_V2.md`. |
-| `Krea2 Prompt Wizard` | The original all-in-one visual prompt builder (dashboard style). |
+| `Krea2 Prompt Wizard` | The V1 single-workspace visual prompt builder. |
 | `Krea2 Save Image` | Saves images with the exact prompt embedded as PNG metadata. |
 | `Krea2 Prompt Saver` | Records every generated prompt to a JSONL history file. |
 | `Krea2 Weighted Phrase` | A small, transparent primitive that renders one `(phrase:weight)` fragment. |
@@ -87,16 +87,30 @@ The wizard writes to no other locations on disk.
 
 ## Basic usage
 
-1. Add a `Krea2 Prompt Wizard` node.
-2. The wizard uses mode **tabs**: 🎬 **Cast** and 🎥 **Scene**, with the
-   advanced ✨ **Concepts** tab available from Node settings. A
-   collapsible **Prompt** footer (preview, motion prompt, history,
-   copy) sits at the bottom of every tab.
-3. Start in **Cast**: add characters, then direct each one individually.
-4. Use **Scene** for the main prompt, the selected scene, shot presets,
-   and camera/lighting choices.
-5. Open the **Prompt** footer for the live preview, the video motion
-   prompt, and the copy buttons.
+1. Add a `Krea2 Prompt Wizard` node and work in its single workspace.
+2. Choose a character, edit Identity, then use Performance for emotion,
+   face, body and gaze. Placement remains separate from Performance.
+3. Set Environment, Camera and Lighting; physical light height describes
+   the stage geometry, while light strength controls prompt emphasis.
+4. Review the exact compiled prompt and warnings in the sticky output
+   dock. Focus editor opens the same editor in a larger surface.
+5. Save reusable scope presets or a full workspace. Fixed random seeds
+   repeat choices; scope locks protect identity, performance and scene
+   choices. Each-job options apply only to their selected scopes.
+
+The four V1 outputs are Prompt Output, Video Motion Prompt, Model and
+Positive Conditioning. The first three preserve their existing slots.
+Positive Conditioning is optional: connect CLIP to opt into native
+ComfyUI text encoding and weighting. Without CLIP, keep using the prompt
+text in your existing workflow. Krea 2 guidance is CFG 1; numerical
+weighting syntax is not a guarantee of a particular visual result.
+
+Older workspaces migrate without silently discarding unrecognized
+concepts. Review recovered concepts and migration warnings in Advanced.
+Materialize and Create subgraph export the current backend-compiled
+prompt as an editable full-text snapshot using the bundled assembler.
+They preserve character, scene and numerical weighting text; they do
+not export live randomization or individually editable concept controls.
 
 ### Built-in LoRA support
 
@@ -105,7 +119,7 @@ Yes — the wizard can apply LoRAs for you. The node now has an optional
 
 1. Connect a model to the `Model` input (skip it if you only want the
    prompt text).
-2. In the Cast tab, open a character's **LoRA** section and pick a LoRA
+2. In Identity, open a character's **LoRA** section and pick a LoRA
    from your `loras` folder (the wizard lists them automatically), then
    set its strength.
 3. The node applies every assigned LoRA to the model in cast order and
@@ -190,7 +204,7 @@ their own emotion, facial expression, body language, position in the
 frame, face-guidance triggers, and interaction with other characters.
 Two characters in one scene no longer share one emotion.
 
-The Cast tab lists every character as its own **expandable section** —
+The Identity section lists every character as its own **expandable section** —
 one card per character with a clear divider, so you can see and direct
 the whole cast at once. Expanding a character reveals everything for
 that member together: appearance, direction, and LoRA triggers.
@@ -261,60 +275,42 @@ member's emotion, face guidance, LoRA triggers, and position are kept.
 
 Each character can also have a **portrait reference**. Click the portrait
 placeholder or drag in a JPG render made for that character. The image is
-stored as a compact thumbnail with the workflow, so the Cast tab remains
+stored as a compact thumbnail with the workflow, so the Identity section remains
 recognizable after reopening it. The portrait is a visual identity reference
 for the wizard; the prompt still comes from the character fields.
 
 Use **Use profile-shot setup** to place a ready-to-edit profile portrait recipe
 in **Additional info**. It uses the current character name and appearance
 context, a centered chest-up composition, and the lighting concepts currently
-selected in the Scene tab. The final prompt preview shows the exact prompt that
+selected in Environment. The final prompt preview shows the exact prompt that
 will be sent through the wizard.
 
-### Shot presets and scenes
+### Scene scopes and video motion
 
-The **Scene** tab includes a **Shot preset** picker. Each shot is now a
-**full preset**: it sets the scene (background name and description),
-the camera/framing, the lighting, and the atmosphere together — pick
-*Over-the-Shoulder Dialogue* and the whole scene is ready. The Scene
-tab also hosts the main prompt, the **Selected scene** dropdown (picks
-apply immediately; the name field is gone), and the camera / lighting /
-environment / style concept groups, each with dozens of bundled presets
-that load the moment you choose them.
+Environment stores the location and scene description; Camera and
+Lighting have their own controls and reusable presets. Applying a whole
+scene changes those scopes together. Use scoped presets when you want
+to replace only one part of the scene.
 
-### Video Motion Prompt (LTX-2.3)
+Video Motion Prompt remains the second output. Enable motion output and
+use Draft from cast for a starting point, then edit its text for your
+image-to-video workflow.
 
-The wizard exposes a second output, **Video Motion Prompt**. In the
-**Prompt** tab, press **Draft from cast** to generate one motion line
-per cast member from their emotion and body rows (e.g. *Mara (standing
-on the left side of the frame) beams with joy, arms crossed, looking at
-Alex*), then edit freely and enable the output. Feed the generated
-still plus this motion prompt to an image-to-video model such as LTX-2.3.
+### Performance and saved presets
 
-### Using the concept groups
+Performance presets combine emotion, face, gaze, mouth and body
+concepts for the selected character. Named starting points include
+Shock, Confusion, Anger, Joy, Fear, Curiosity, Suspicion, Embarrassment,
+Excitement and Sadness. Identity and Placement remain separate.
 
-Concepts are organized into six practical groups: Subject, Expression
-& Pose, Camera & Film, Lighting, Environment, and Style & Finish. Each
-group can be randomized independently, or you can randomize all groups.
-Randomize chooses between two and six concepts. Use the Photography /
-Artwork switch to keep incompatible style and camera choices out of the
-picker and randomizer. The full row grid lives in the **Concepts** tab.
+Save a reusable scope or a full workspace. To edit a saved snapshot,
+choose Edit in workspace, change its normal controls, then Update from
+current. This avoids editing serialized JSON. Built-in presets remain
+read-only; save a user copy to customize one. Saved presets survive
+restarting ComfyUI.
 
-### Saved presets
-
-Use **Save Full Prompt** to store the description, concepts, enabled
-states, and exact strengths together. Use **Save preset** inside a
-group to store only that group's concepts and strengths. Saved presets
-remain available after restarting ComfyUI.
-
-Characters and settings have their own reusable presets. The character
-editor includes built-in starting points and a compact avatar preview.
-Settings can also choose a fresh location for every queued job.
-
-Each group has its own **Load preset** menu beside Save and Randomize.
-Enable **Each job** for any group that should receive a fresh random
-combination every time a queued job runs. This deliberately makes the
-Wizard node execute again instead of returning a cached prompt.
+Each-job choices apply only to their selected scopes. Use fixed seeds
+for repeatable choices and locks to protect the scopes you want to keep.
 
 ### Strength behaviour
 
@@ -328,8 +324,7 @@ Click a concept name to replace it. Click a concept inside Live Preview
 to expand and locate its editable card.
 - -3 applies maximum de-emphasis.
 
-The gear button controls the range used by dice actions. It includes
-0 to +1.5, 0 to +3, and -3 to +3 profiles plus custom limits.
+Randomization controls set the minimum and maximum weight used by dice actions.
 
 Negative values **de-emphasise** the concept. To express a *different*
 emotion, add a separate concept (e.g. *Sadness*).
@@ -367,40 +362,28 @@ serves the same role as the `Krea2 Prompt Inspector` node.
 
 ### Materialize to Nodes
 
-Click *Materialize* in the wizard header to expand the current
-configuration into a group of normal ComfyUI nodes:
-
-- One `Krea2 Weighted Phrase` per selected row.
-- One `Krea2 Prompt Assembler` per category.
-- The original Wizard node is left untouched so you can still edit it.
-
-This is the recommended way to **learn** how the wizard works: every
-row, every weight, and every category is visible and editable.
+Materialize exports the current backend-compiled prompt into one bundled
+Prompt Assembler. Its full text is editable, and its final prompt output
+can connect to your existing workflow. This snapshot includes character,
+environment, direction and lighting text and preserves numerical weights.
+Later Wizard edits and randomization do not update the exported snapshot.
 
 ### Create Transparent Subgraph
 
-If your ComfyUI version supports it, click *Create Subgraph* to
-package the materialized configuration as a reusable subgraph. The
-original Wizard node is preserved.
-
-### Materialized groups are editable
-
-Every materialized node is a real ComfyUI node. You can:
-
-- Re-arrange them on the canvas.
-- Reconnect them.
-- Insert additional nodes in between.
-- Re-run the workflow to see the new prompt.
+Create Subgraph wraps the same snapshot when your ComfyUI frontend
+supports conversion. The original Wizard remains available. If conversion
+fails, the exported assembler stays on the canvas for direct use.
 
 ## Outputs
 
-The `Krea2 Prompt Wizard` exposes three outputs:
+The `Krea2 Prompt Wizard` exposes four outputs:
 
 | Output | Description |
 |---|---|
 | `Prompt Output` | The compiled final prompt. |
-| `Video Motion Prompt` | Optional per-character motion lines for image-to-video models such as LTX-2.3. Empty until enabled in the Prompt footer. |
+| `Video Motion Prompt` | Optional per-character motion lines for image-to-video models such as LTX-2.3. Empty until motion output is enabled. |
 | `Model` | The connected model with per-character LoRAs applied (if a model is connected and LoRAs are assigned). |
+| `Positive Conditioning` | Native ComfyUI encoding of the compiled prompt when optional CLIP is connected. |
 
 ## KJNodes integration (optional)
 
@@ -423,7 +406,8 @@ local ComfyUI host. The full security review is in
   It cannot verify Krea 2 outputs.
 - `(phrase:weight)` syntax is a community-reported behaviour for Krea 2.
   The official Krea 2 documentation does not formally guarantee it.
-  Use the KJNodes `Krea2 Prompt Weight` node to apply it.
+  Connect optional CLIP for native ComfyUI weighting, or use an existing
+  compatible external text encoder.
 - The bundled library contains **no Krea 2 verified** presets. All
   presets ship as *general visual vocabulary* or *community reported*.
   Run the calibration workflow to record your own local results and

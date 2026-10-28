@@ -51,8 +51,7 @@ from . import compiler as compiler_module
 from . import assembler as assembler_module
 from . import inspector as inspector_module
 from . import user_paths
-from . import migrations as migration_module
-from .job_randomizer import has_job_randomization, randomize_enabled_groups
+from .job_randomizer import has_job_randomization
 
 
 # ---------------------------------------------------------------------------
@@ -462,27 +461,29 @@ class Krea2PromptWizard:
                 "model": (
                     "MODEL",
                     {
-                        "tooltip": "Optional. Connect the model here to apply per-character LoRAs configured in the Cast tab. Without this, the Model output stays unconnected and LoRA settings only affect the prompt text.",
+                        "tooltip": "Optional model passthrough. Native weighting requires a Krea 2 model here and CLIP; use the resulting Model together with Positive Conditioning.",
                     },
                 ),
+                "clip": ("CLIP", {"tooltip": "Connect the Krea 2 Qwen3-VL CLIP to emit Positive Conditioning from the compiled prompt. Native conditioning weighting (Node settings) adds token weights on top; without it the plain prompt is encoded."}),
             },
             "hidden": {
                 "extra_pnginfo": "EXTRA_PNGINFO",
             },
         }
 
-    RETURN_TYPES = ("STRING", "STRING", "MODEL")
+    RETURN_TYPES = ("STRING", "STRING", "MODEL", "CONDITIONING")
     # A wizard with Each job enabled must run for every queue item.  Marking it
     # as an output node prevents ComfyUI from reusing a previous prompt.
     OUTPUT_NODE = True
-    RETURN_NAMES = ("Prompt Output", "Video Motion Prompt", "Model")
+    RETURN_NAMES = ("Prompt Output", "Video Motion Prompt", "Model", "Positive Conditioning")
     FUNCTION = "build"
     CATEGORY = "_Krea2 Prompt Wizard"
-    DESCRIPTION = "Visual prompt builder for Krea 2. The frontend owns the editor; the backend compiles the state to one prompt and emits a video motion prompt for image-to-video models like LTX-2.3. The Model output passes the connected model through unchanged."
+    DESCRIPTION = "Visual prompt builder for Krea 2 with optional native attention weighting. A connected CLIP emits Positive Conditioning for the compiled prompt (weighted when Native conditioning weighting is enabled); without CLIP that output is empty and downstream conditioning nodes must not consume it."
     SEARCH_ALIASES = ["krea2 wizard", "prompt wizard", "visual prompt builder", "krea2 prompt builder"]
 
     @classmethod
-    def IS_CHANGED(cls, wizard_state_json: str = "", expert_mode: bool = False, model=None):
+    def IS_CHANGED(cls, wizard_state_json: str = "", expert_mode: bool = False,
+                   model=None, clip=None, extra_pnginfo=None):
         try:
             parsed = json.loads(wizard_state_json) if wizard_state_json else {}
         except json.JSONDecodeError:
@@ -499,20 +500,14 @@ class Krea2PromptWizard:
         expert_mode: bool = False,
         model=None,
         extra_pnginfo: dict | None = None,
+        clip=None,
     ):
         parsed = json.loads(wizard_state_json) if wizard_state_json else {}
         if not isinstance(parsed, dict):
             raise ValueError("Wizard state must be a JSON object.")
         state = parsed
 
-        state = wizard_helpers.coerce_state(state)
-        if isinstance(state.get("rows"), list):
-            state["rows"] = migration_module.apply_row_preset_migrations(state["rows"])
-        # Always hand a state with job flags to the randomizer.  The helper
-        # itself decides which groups are enabled; a separate gate here was
-        # intermittently skipping otherwise valid flags during execution.
-        if isinstance(state.get("randomize_on_job"), dict):
-            state = randomize_enabled_groups(state, get_library())
+        state = wizard_helpers.prepare_state(state, get_library(), randomize=True)
 
         result = compiler_module.compile_state(state, get_library(), expert=expert_mode)
         if state.get("embed_prompt_metadata", True) and isinstance(extra_pnginfo, dict):
@@ -532,6 +527,28 @@ class Krea2PromptWizard:
         # with quantized Krea2 backends).
         model_out = model
         warnings = list(result.warnings)
+        conditioning = None
+        weighting_details = {"enabled": False, "encoded_text": None, "warnings": [], "conditioning": "none"}
+        if state.get("native_weighting_enabled", False):
+            from .krea2_weighting import encode_native
+            model_out, conditioning, weighting_details = encode_native(
+                clip, model, result.final_prompt, state.get("native_weighting_strength", 1.0)
+            )
+            weighting_details["conditioning"] = "native"
+            warnings.extend(weighting_details["warnings"])
+        elif clip is not None:
+            from .krea2_weighting import encode_plain
+            conditioning, weighting_details = encode_plain(clip, result.final_prompt)
+            weighting_details["conditioning"] = "plain"
+        if state.get("prompt_metadata_override"):
+            warnings.append("Plain prompt metadata override is enabled: the standard prompt metadata becomes text. Disable it to retain graph metadata for workflow readers.")
+        trace = dict(result.trace)
+        trace["native_weighting"] = weighting_details
+        trace["warnings"] = warnings
+        if isinstance(extra_pnginfo, dict) and state.get("embed_prompt_metadata", True):
+            extra_pnginfo["krea2_trace"] = trace
+            if weighting_details["enabled"]:
+                extra_pnginfo["krea2_encoded_prompt"] = weighting_details["encoded_text"]
 
         # Return the resolved random choices to the frontend as well as the
         # prompt.  This keeps the visible cards honest after Each job runs.
@@ -540,11 +557,17 @@ class Krea2PromptWizard:
                 "krea2_resolved_state": [json.dumps(state, ensure_ascii=False)],
                 "krea2_prompt_output": [result.final_prompt],
                 "krea2_motion_prompt": [result.motion_prompt],
+                "krea2_trace": [json.dumps(trace, ensure_ascii=False)],
+                "krea2_warnings": warnings,
+                "krea2_encoded_prompt": [weighting_details["encoded_text"] or ""],
+                "krea2_resolved_revision": [state.get("document_revision", 0)],
+                "krea2_resolved_seed": [state.get("randomization", {}).get("resolved_seed")],
             },
             "result": (
                 result.final_prompt,
                 result.motion_prompt,
                 model_out,
+                conditioning,
             ),
         }
 

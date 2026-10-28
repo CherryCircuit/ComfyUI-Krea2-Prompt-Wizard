@@ -117,7 +117,7 @@ class Krea2PromptWizardV2:
     ]
 
     @classmethod
-    def IS_CHANGED(cls, prompt_doc: str = "") -> object:
+    def IS_CHANGED(cls, prompt_doc: str = "", refined_doc: str = "") -> object:
         # Randomized documents must run fresh for every queue item so a
         # 10-15 image batch yields different picks each time (NaN is never
         # equal to itself, defeating the execution cache).

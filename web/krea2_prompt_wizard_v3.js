@@ -4,17 +4,19 @@ import { app } from "../../scripts/app.js";
 window.app = app;
 
 // These are .mjs so ComfyUI does not auto-import them independently and out of order.
-await import("./js/state.mjs?v=27");
-await import("./js/searchable_selector.mjs?v=27");
-await import("./js/preset_row.mjs?v=27");
-await import("./js/library_editor.mjs?v=27");
-await import("./js/materialize.mjs?v=27");
-await import("./js/inspector.mjs?v=27");
-await import("./js/wizard_widget.mjs?v=27");
+await import("./js/state.mjs?v=35");
+await import("./js/searchable_selector.mjs?v=35");
+await import("./js/preset_row.mjs?v=35");
+await import("./js/library_editor.mjs?v=35");
+await import("./js/materialize.mjs?v=35");
+await import("./js/inspector.mjs?v=35");
+await import("./js/workspace.mjs?v=35");
+await import("./js/lighting_scene.mjs?v=35");
+await import("./js/wizard_widget.mjs?v=35");
 
 const stylesheet = document.createElement("link");
 stylesheet.rel = "stylesheet";
-stylesheet.href = new URL("./css/wizard.css?v=27", import.meta.url).href;
+stylesheet.href = new URL("./css/wizard.css?v=35", import.meta.url).href;
 document.head.appendChild(stylesheet);
 
 app.registerExtension({
@@ -38,53 +40,8 @@ app.registerExtension({
           expertWidget.computeSize = () => [0, -4];
         }
 
-        wizard.root.addEventListener("wheel", function (event) {
-          var scrollable = event.target.closest(".krea2-wizard-categories, .krea2-searchable-list, textarea, select");
-          var atBoundary = !scrollable || (scrollable.scrollTop === 0 && event.deltaY < 0) || (scrollable.scrollTop + scrollable.clientHeight >= scrollable.scrollHeight && event.deltaY > 0);
-          if (atBoundary) {
-            var canvasEl = app && app.canvas && app.canvas.canvas;
-            if (canvasEl) {
-              canvasEl.dispatchEvent(new WheelEvent("wheel", {
-                clientX: event.clientX,
-                clientY: event.clientY,
-                deltaX: event.deltaX,
-                deltaY: event.deltaY,
-                deltaZ: event.deltaZ,
-                ctrlKey: event.ctrlKey,
-                shiftKey: event.shiftKey,
-                altKey: event.altKey,
-                metaKey: event.metaKey,
-                bubbles: true,
-                cancelable: true,
-              }));
-              event.preventDefault();
-            }
-          }
-        }, { passive: false });
-
-        wizard.root.addEventListener("mousedown", function (event) {
-          if (event.button === 1) {
-            var canvas = app && app.canvas;
-            var canvasEl = canvas && canvas.canvas;
-            if (canvasEl) {
-              var forward = function (method, mouseEvent) {
-                if (typeof canvas[method] === "function") canvas[method](mouseEvent);
-                else canvasEl.dispatchEvent(new MouseEvent(mouseEvent.type, mouseEvent));
-              };
-              forward("processMouseDown", event);
-              event.preventDefault();
-              event.stopPropagation();
-              function move(moveEvent) { forward("processMouseMove", moveEvent); }
-              function release(upEvent) {
-                forward("processMouseUp", upEvent);
-                document.removeEventListener("mousemove", move, true);
-                document.removeEventListener("mouseup", release, true);
-              }
-              document.addEventListener("mousemove", move, true);
-              document.addEventListener("mouseup", release, true);
-            }
-          }
-        }, true);
+        const containWheel = event => event.stopPropagation();
+        wizard.root.addEventListener("wheel", containWheel, { passive: true });
 
         const domWidget = this.addDOMWidget(
           "Krea2PromptWizard",
@@ -95,20 +52,26 @@ app.registerExtension({
             hideOnZoom: false,
             // v2: the tabbed editor is the full surface; the floor only
             // guards an empty state.
-            getMinHeight: () => 96,
+            getMinHeight: () => 280,
+            getMinWidth: () => 360,
           },
         );
         wizard.domWidget = domWidget;
         this.resizable = true;
-        /* Mode-pinned sizing: the compact card is 400px, the advanced
-         * editor 780px. No auto-resize is attached to rendering or clicks,
-         * so the node never shrinks itself; the resize handle stays in
-         * charge after the mode switch. */
-        const initialExpanded = !!(wizard.state && wizard.state.wizard_expanded !== false);
-        this.setSize([
-          Math.max(this.size?.[0] || 0, initialExpanded ? 780 : 400),
-          Math.max(this.size?.[1] || 0, initialExpanded ? 540 : 430),
-        ]);
+        this.setSize([560, 680]);
+        const removed = this.onRemoved;
+        this.onRemoved = function () {
+          wizard.root.removeEventListener("wheel", containWheel);
+          wizard.dispose?.();
+          return removed?.apply(this, arguments);
+        };
+        const resized = this.onResize;
+        this.onResize = function (size) {
+          const result = resized?.apply(this, arguments);
+          if (size && (size[0] < 360 || size[1] < 420)) this.setSize([Math.max(360, size[0]), Math.max(420, size[1])]);
+          wizard.resize?.(size);
+          return result;
+        };
       } catch (error) {
         console.error("[Krea2PromptWizard] widget creation failed", error);
       }
@@ -125,6 +88,7 @@ app.registerExtension({
             let parsed = {};
             try { parsed = JSON.parse(valueWidget.value); } catch (e) {}
             this.wizardWidget.setState(parsed);
+            if (Array.isArray(info?.size)) this.setSize([Math.max(360, info.size[0]), Math.max(420, info.size[1])]);
           }
         }
       } catch (e) {
@@ -142,13 +106,13 @@ app.registerExtension({
         const promptPayload = message?.krea2_prompt_output;
         const prompt = Array.isArray(promptPayload) ? promptPayload[0] : promptPayload;
         if (this.wizardWidget && typeof this.wizardWidget.recordExecution === "function") {
-          this.wizardWidget.recordExecution(prompt);
+          this.wizardWidget.recordExecution(prompt, message);
         }
         if (this.wizardWidget && typeof raw === "string") {
           const resolved = JSON.parse(raw);
           // Preserve the tab and UI state the user is currently working on;
           // only the resolved prompt content is applied.
-          this.wizardWidget.applyResolvedState(resolved);
+          this.wizardWidget.applyResolvedState(resolved, message?.krea2_resolved_revision);
           this.setDirtyCanvas?.(true, true);
         }
       } catch (error) {

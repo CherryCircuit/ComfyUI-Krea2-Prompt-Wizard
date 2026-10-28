@@ -53,15 +53,16 @@ class SliderMappingTests(unittest.TestCase):
             prev = w
 
     def test_spec_examples(self):
+        # The curve results snap to the 0.5 GUI grid before clamping.
         for slider, expected in [
             (-100, 0.1),
-            (-75, 0.34),
-            (-50, 0.58),
-            (-25, 0.80),
+            (-75, 0.5),
+            (-50, 0.5),
+            (-25, 1.0),
             (0, 1.0),
-            (25, 1.31),
-            (50, 1.78),
-            (75, 2.36),
+            (25, 1.5),
+            (50, 2.0),
+            (75, 2.5),
             (100, 3.0),
         ]:
             w = slider_to_weight_scalar(slider)
@@ -82,7 +83,7 @@ class SliderMappingTests(unittest.TestCase):
     def test_bipolar_positive(self):
         self.assertAlmostEqual(slider_to_weight_bipolar(0), 1.0)
         self.assertAlmostEqual(slider_to_weight_bipolar(100), 3.0, places=2)
-        self.assertAlmostEqual(slider_to_weight_bipolar(50), 1.78, places=1)
+        self.assertAlmostEqual(slider_to_weight_bipolar(50), 2.0, places=1)
 
 
 class FormatPhraseTests(unittest.TestCase):
@@ -152,14 +153,22 @@ class ModeResolutionTests(unittest.TestCase):
 
 
 class WeightForRowTests(unittest.TestCase):
-    def test_direct_quarter_step_strength_is_exact(self):
+    def test_direct_strengths_snap_to_the_half_grid(self):
         self.assertEqual(
             weight_for_row({"strength": -1.25, "intensity": 75, "control_mode": "scalar"}),
-            -1.25,
+            -1.0,
+        )
+        self.assertEqual(
+            weight_for_row({"strength": 1.8923179439906805, "intensity": 0, "control_mode": "scalar"}),
+            2.0,
+        )
+        self.assertEqual(
+            weight_for_row({"strength": 1.5, "intensity": 0, "control_mode": "scalar"}),
+            1.5,
         )
 
     def test_scalar_row(self):
-        self.assertAlmostEqual(weight_for_row({"intensity": 75, "control_mode": "scalar"}), 2.36, places=1)
+        self.assertAlmostEqual(weight_for_row({"intensity": 75, "control_mode": "scalar"}), 2.5, places=1)
 
     def test_bipolar_row(self):
         self.assertAlmostEqual(weight_for_row({"intensity": 100, "control_mode": "bipolar"}), 3.0, places=2)

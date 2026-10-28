@@ -6,10 +6,11 @@ import os
 from typing import Any
 
 from .compiler import compile_state
+from .wizard import prepare_state
 from .library import Library, load_library, save_user_library
 from .nodes import reload_library
 from .package_paths import CONFLICTS_PATH, MASTER_PRESETS_PATH
-from .saved_presets import load_saved_presets, save_saved_presets
+from .saved_presets import load_saved_presets, SavedPresetConflict, persist_saved_presets
 from .user_paths import atomic_write, user_concept_colors_path
 from .validation import validate_user_library
 
@@ -120,8 +121,16 @@ def register_routes() -> None:
             presets = payload.get("presets", []) if isinstance(payload, dict) else []
             if not isinstance(presets, list):
                 raise ValueError("Saved presets must be a list.")
-            save_saved_presets(presets)
-            return web.json_response({"presets": load_saved_presets()})
+            baseline = payload.get("base_presets") if "base_presets" in payload else None
+            if "base_presets" in payload and not isinstance(baseline, list):
+                raise ValueError("The saved preset baseline must be a list.")
+            saved = persist_saved_presets(presets, base_presets=baseline)
+            return web.json_response({"presets": saved})
+        except SavedPresetConflict as exc:
+            return web.json_response({
+                "error": {"code": "saved_presets.conflict", "message": str(exc)},
+                "conflict_ids": exc.conflict_ids, "presets": exc.latest,
+            }, status=409)
         except Exception as exc:
             return web.json_response(
                 {
@@ -162,8 +171,12 @@ def register_routes() -> None:
             payload = await request.json()
             state = payload.get("state", {}) if isinstance(payload, dict) else {}
             expert = bool(payload.get("expert", False)) if isinstance(payload, dict) else False
-            result = compile_state(state, load_library(), expert=expert)
-            return web.json_response(result.to_dict())
+            library = load_library()
+            state = prepare_state(state, library, randomize=bool(payload.get("randomize", False)), seed=payload.get("seed"), scope=payload.get("scope"))
+            result = compile_state(state, library, expert=expert)
+            response = result.to_dict()
+            response.update(resolved_state=state, seed=state.get("randomization", {}).get("resolved_seed"), document_revision=state.get("document_revision", 0))
+            return web.json_response(response)
         except Exception as exc:
             base_prompt = ""
             if isinstance(locals().get("state"), dict):

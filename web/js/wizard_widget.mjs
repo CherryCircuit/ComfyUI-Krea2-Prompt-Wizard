@@ -10,6 +10,7 @@
   "use strict";
 
   const K = window.KREA2;
+  const lightingScene = K.lightingScene;
   const {
     el,
     debounce,
@@ -46,7 +47,7 @@
     ETHNICITY_SKIN,
     LIGHT_PALETTE,
   } = K.constants;
-  const { render: renderRow } = K.presetRow;
+  const { render: renderPresetRow, makeStepper: makePresetStepper } = K.presetRow;
   const { show: showSearchableSelector } = K.searchableSelector;
   const { open: openLibraryEditor } = K.libraryEditor;
   const { materialize: materializeToNodes, createSubgraph: createSubgraphFromWizard } = K.materialize;
@@ -215,7 +216,7 @@
 
   /* Build indicator shown in the top bar so it is obvious which wizard
    * build is running. Bump when you ship a new build. */
-  const WIZARD_VERSION = "v2.6.0";
+  const WIZARD_VERSION = "V1 · 1.10.0";
 
   const TABS = [
     ["cast", "Cast", "users"],
@@ -426,7 +427,11 @@
     { label: "Elegant elder", character: { sex: "female", age: "elderly", identity: "An elegant older mentor with warmth, wisdom, and authority", ensemble: "business suit", hair_style: "wavy", hair_length: "chin-length", hair_color: "silver", makeup: "natural makeup", eyes: "hooded eyes", nose: "aquiline nose", mouth: "thin lips", chin: "strong chin", face_shape: "long face", body_type: "average build", fitness: "soft physique", proportions: "natural proportions" } },
   ];
 
+  let lightingSvgSequence = 0;
   function createWizardWidget(node) {
+    function expertMode() { return !!node.widgets?.find(widget => widget.name === "expert_mode")?.value; }
+    function renderRow(row, context) { return renderPresetRow(row, Object.assign({}, context, { expert: expertMode() })); }
+    const lightingSvgPrefix = "krea2-lt-" + (++lightingSvgSequence) + "-";
     const valueWidget = (node.widgets || []).find(function (w) { return w.name === "wizard_state_json"; });
     if (!valueWidget) {
       console.warn("[Krea2PromptWizard] No wizard_state_json widget found");
@@ -452,6 +457,8 @@
       state.selected_character_id = starter.id;
     }
     let savedPresets = [];
+    let acknowledgedPresets = [];
+    let presetSaveQueue = Promise.resolve();
     let masterPresets = [];
     let loras = [];
     let conflictList = [];
@@ -464,6 +471,18 @@
     let previewSequence = 0;
     let previousExpanded = null;
     let contractNextSync = false;
+    let disposed = false;
+    let revision = Number(state.document_revision) || 0;
+    let lastTransaction = null;
+    let inputTransaction = null;
+    let focusOverlay = null;
+    let focusedHome = null;
+    let activeChooser = null;
+    let activeNameDialog = null;
+    let lastRun = null;
+    let randomRequest = 0;
+    const activeDrags = new Set();
+    const W = K.workspace;
 
     // v2.3: the compact quick-edit card is hidden. The wizard always
     // renders the full tabbed editor.
@@ -471,18 +490,30 @@
 
     const root = el("div", { class: "krea2-wizard-root" });
     const executionHistory = [];
+    const executionRecords = [];
     root.krea2ExecutionHistory = executionHistory;
     root.dataset.krea2ExecutionCount = "0";
     root.dataset.krea2ExecutionHistory = "[]";
 
-    function recordExecution(prompt) {
+    function recordExecution(prompt, message) {
       if (typeof prompt !== "string" || !prompt.trim()) return;
       executionHistory.push(prompt);
       if (executionHistory.length > 100) executionHistory.splice(0, executionHistory.length - 100);
       root.dataset.krea2ExecutionCount = String(executionHistory.length);
       root.dataset.krea2ExecutionHistory = JSON.stringify(executionHistory);
       root.dataset.krea2LastOutput = prompt;
+      const rawTrace = message && message.krea2_trace;
+      let trace = null;
+      try { trace = JSON.parse(Array.isArray(rawTrace) ? rawTrace[0] : rawTrace || "null"); } catch (_) {}
+      const rawRevision = message && message.krea2_resolved_revision;
+      const rawState = message?.krea2_resolved_state;
+      let snapshot = null;
+      try { snapshot = JSON.parse(Array.isArray(rawState) ? rawState[0] : rawState || "null"); } catch (_) {}
+      lastRun = { prompt, snapshot, revision: Number(Array.isArray(rawRevision) ? rawRevision[0] : rawRevision ?? state.document_revision), trace, warnings: message?.krea2_warnings || [], encoded: message?.krea2_encoded_prompt || [] };
+      executionRecords.push(lastRun);
+      if (executionRecords.length > 100) executionRecords.shift();
       refreshExecutionHistoryControl();
+      render();
     }
 
     function refreshExecutionHistoryControl() {
@@ -523,8 +554,8 @@
     }, icon("sliders", { width: "14", height: "14" }));
     const materializeBtn = el("button", { type: "button", class: "krea2-wizard-btn", onClick: materialize }, "Materialize");
     const subgraphBtn = el("button", { type: "button", class: "krea2-wizard-btn", onClick: createSubgraph }, "Create Subgraph");
-    const undoBtn = el("button", { type: "button", class: "krea2-wizard-btn", onClick: undo, title: "Undo the last change" }, "Undo");
-    const redoBtn = el("button", { type: "button", class: "krea2-wizard-btn", onClick: redo, title: "Redo the last undone change" }, "Redo");
+    const undoBtn = el("button", { type: "button", class: "krea2-wizard-btn krea2-icon-btn", onClick: undo, title: "Undo the last change", "aria-label": "Undo" }, icon("undo", { width: "13", height: "13" }));
+    const redoBtn = el("button", { type: "button", class: "krea2-wizard-btn krea2-icon-btn", onClick: redo, title: "Redo the last undone change", "aria-label": "Redo" }, icon("redo", { width: "13", height: "13" }));
     const resetBtn = el("button", { type: "button", class: "krea2-wizard-btn", onClick: resetAll }, "Reset All");
     const savedPresetControl = buildSavedPresetControl();
     const creativeModeControl = buildCreativeModeControl();
@@ -549,13 +580,6 @@
     const ADVANCED_WIDTH = 780;
 
     function applyModeSize(advanced) {
-      if (!node || typeof node.setSize !== "function") return;
-      const current = node.size || [];
-      const targetWidth = Math.max(current[0] || 0, ADVANCED_WIDTH);
-      const targetHeight = Math.max(current[1] || 0, 540);
-      if (current[0] !== targetWidth || current[1] !== targetHeight) {
-        node.setSize([targetWidth, targetHeight]);
-      }
       if (node.setDirtyCanvas) node.setDirtyCanvas(true, true);
     }
 
@@ -662,33 +686,6 @@
      * whenever state.wizard_expanded is false. */
     const b2Shell = el("div", { class: "krea2-b2-shell" });
 
-    function renderTabBar() {
-      tabBar.innerHTML = "";
-      const tabs = TABS.slice();
-      if (state.show_concepts_tab) tabs.push(CONCEPTS_TAB);
-      if (!tabs.some(function (tab) { return tab[0] === (state.active_tab || "cast"); })) {
-        state.active_tab = tabs[0][0];
-      }
-      for (const tab of tabs) {
-        const active = (state.active_tab || "cast") === tab[0];
-        tabBar.appendChild(el("button", {
-          type: "button",
-          class: "krea2-wizard-tab krea2-v2-tab" + (active ? " is-active" : ""),
-          role: "tab",
-          "aria-selected": active ? "true" : "false",
-          onClick: function () {
-            if (state.active_tab === tab[0]) return;
-            state.active_tab = tab[0];
-            persist();
-            render();
-          },
-        }, [
-          icon(tab[2], { width: "13", height: "13" }),
-          el("span", null, tab[1]),
-        ]));
-      }
-    }
-
     root.appendChild(topBar);
     root.appendChild(editorBody);
     root.appendChild(b2Shell);
@@ -732,14 +729,17 @@
     ];
     */
 
-    fetchSavedPresets().then(function (presets) {
-      savedPresets = Array.isArray(presets) ? presets : [];
+    const savedPresetsReady = fetchSavedPresets().then(function (presets) {
+      acknowledgedPresets = cloneJson(Array.isArray(presets) ? presets : []);
+      savedPresets = mergePendingPresetEdits([], savedPresets, acknowledgedPresets);
       refreshSavedPresetSelect();
       render();
     });
 
     function setState(newState) {
       state = coerceState(newState);
+      stageDrag = null;
+      revision = Math.max(revision, Number(state.document_revision) || 0);
       if (!Array.isArray(state.rows)) state.rows = [];
       persistedState = JSON.stringify(state);
       persist();
@@ -762,18 +762,42 @@
     function markDirty() {
       const currentState = JSON.stringify(state);
       if (currentState === persistedState) return;
-      undoStack.push(persistedState);
+      const now = Date.now();
+      const sameTransaction = inputTransaction && lastTransaction && lastTransaction.target === inputTransaction && now - lastTransaction.time < 800;
+      if (!sameTransaction) undoStack.push(persistedState);
       if (undoStack.length > 50) undoStack.shift();
       redoStack = [];
       dirty = true;
-      persistedState = currentState;
+      state.randomization.replay = false;
+      state.document_revision = ++revision;
+      lastTransaction = { target: inputTransaction, time: now };
+      persistedState = JSON.stringify(state);
       persist();
       updateHistoryControls();
       renderLivePreview(true);
+      root.dataset.documentRevision = String(state.document_revision);
+      const status = root.querySelector(".krea2-workspace-status");
+      if (status) status.textContent = "Revision " + state.document_revision + " · Modified";
+      for (const badge of root.querySelectorAll(".krea2-identity-status")) {
+        const character = state.characters.find(character => character.id === badge.dataset.characterId);
+        if (character) badge.textContent = identityStatus(character);
+      }
+      const performanceBadge = root.querySelector(".krea2-performance-preset-summary");
+      const character = selectedCharacter();
+      if (performanceBadge && character) {
+        const preset = savedPresets.find(preset => preset.id === character.loaded_performance_preset_id);
+        if (preset) performanceBadge.textContent = preset.label + (performanceModified(character) ? " · Modified" : "");
+      }
     }
 
     function cloneJson(value) {
       return JSON.parse(JSON.stringify(value));
+    }
+    function trackDocumentDrag(move, release) {
+      const stop = () => { document.removeEventListener("mousemove", move); document.removeEventListener("mouseup", release); activeDrags.delete(stop); };
+      activeDrags.add(stop);
+      document.addEventListener("mousemove", move); document.addEventListener("mouseup", release);
+      return stop;
     }
 
     function diceButton(label, onClick, className) {
@@ -789,8 +813,8 @@
     function randomStrengthValue() {
       const minimum = Math.max(-3, Math.min(3, Number(state.random_strength_min) || 0));
       const maximum = Math.max(minimum, Math.min(3, Number(state.random_strength_max) || 0));
-      const steps = Math.round((maximum - minimum) * 4);
-      return Math.round((minimum + Math.floor(Math.random() * (steps + 1)) / 4) * 4) / 4;
+      const steps = Math.round((maximum - minimum) * 2);
+      return Math.round((minimum + Math.floor(Math.random() * (steps + 1)) / 2) * 2) / 2;
     }
 
     function renderNodeSettings() {
@@ -1437,95 +1461,16 @@
     }
 
     function randomizeCharacterDirection(character, group) {
-      if (!library.length) {
-        showToast("The concept library is still loading.", "warning");
-        return;
-      }
-      const rows = (character.rows || []).filter(function (row) {
-        return !group.categories.includes(row.category);
-      });
-      character.rows = rows;
-      const candidates = compatibleLibrary().filter(function (preset) {
-        return group.categories.includes(preset.category) && !preset.disabled;
-      });
-      for (let i = candidates.length - 1; i > 0; i -= 1) {
-        const j = Math.floor(Math.random() * (i + 1));
-        const swap = candidates[i];
-        candidates[i] = candidates[j];
-        candidates[j] = swap;
-      }
-      const minimum = Math.min(2, candidates.length);
-      const maximum = Math.min(6, candidates.length);
-      const count = minimum + Math.floor(Math.random() * (maximum - minimum + 1));
-      for (const preset of candidates.slice(0, count)) {
-        const row = presetToRow(preset, state);
-        row.id = uniqueCharacterRowId(character);
-        row.strength = randomStrengthValue();
-        character.rows.push(row);
-      }
-      markDirty();
-      render();
+      return resolveRandom({ kind: "group", group: group.id, character_id: character.id });
     }
 
     function saveCharacterDirectionPreset(character, groupKey, suggestedLabel) {
-      const label = String(suggestedLabel || "").trim();
-      if (!label) { showToast("Name the preset first", "warning"); return; }
-      const group = DIRECTION_GROUPS.find(function (item) { return item.id === groupKey; });
-      const rows = (character.rows || []).filter(function (row) {
-        return group.categories.includes(row.category);
-      });
-      if (!rows.length) {
-        showToast("Add at least one concept to this direction first.", "warning");
-        return;
-      }
-      const existing = savedPresets.find(function (preset) {
-        return preset.scope === "group" && preset.group === directionGroupPresetId(groupKey)
-          && String(preset.label || "").trim().toLowerCase() === label.toLowerCase();
-      }) || null;
-      if (existing && !window.confirm(
-        "A " + group.label + " preset named \u201c" + label + "\u201d already exists. Overwrite it?",
-      )) return;
-      const payload = {
-        scope: "group",
-        group: directionGroupPresetId(groupKey),
-        base_prompt: "",
-        rows: JSON.parse(JSON.stringify(rows)),
-      };
-      if (existing) {
-        Object.assign(existing, payload, { label: label });
-      } else {
-        savedPresets.push(Object.assign({ id: makeSavedPresetId("group", directionGroupPresetId(groupKey)), label: label }, payload));
-      }
-      persistSavedPresets(existing ? group.label + " preset overwritten" : group.label + " preset saved");
+      return createWorkspacePreset("group", directionGroupPresetId(groupKey));
     }
 
     function loadCharacterDirectionPreset(character, groupKey, presetId) {
-      const group = DIRECTION_GROUPS.find(function (item) { return item.id === groupKey; });
-      const preset = savedPresets.find(function (item) {
-        return item.id === presetId && item.scope === "group" && item.group === directionGroupPresetId(groupKey);
-      });
-      if (!preset) return;
-      if (!library.length) {
-        showToast("The concept library is still loading. Please try again in a moment.", "warning");
-        return;
-      }
-      const rows = (character.rows || []).filter(function (row) {
-        return !group.categories.includes(row.category);
-      });
-      for (const stored of (preset.rows || [])) {
-        const libPreset = library.find(function (p) { return p.id === stored.preset_id; });
-        if (!libPreset) continue;
-        const row = presetToRow(libPreset, state);
-        row.id = uniqueCharacterRowId(character);
-        if (Number.isFinite(Number(stored.strength))) row.strength = Number(stored.strength);
-        rows.push(row);
-      }
-      character.rows = rows;
-      if (!character.loaded_direction_presets) character.loaded_direction_presets = {};
-      character.loaded_direction_presets[groupKey] = presetId;
-      markDirty();
-      render();
-      showToast(preset.label + " loaded", "info");
+      const preset = savedPresets.find(item => item.id === presetId);
+      if (preset) applyWorkspacePreset(preset);
     }
 
     function buildCharacterDirectionPresetPicker(character, groupKey) {
@@ -1613,9 +1558,7 @@
         "aria-label": "Save " + group.label + " preset",
         onClick: function (event) {
           if (event && typeof event.stopPropagation === "function") event.stopPropagation();
-          const label = window.prompt("Name this " + group.label + " preset", "");
-          if (!label || !label.trim()) return;
-          saveCharacterDirectionPreset(character, groupKey, label.trim());
+          saveCharacterDirectionPreset(character, groupKey);
         },
       }, icon("save", { width: "12", height: "12" }));
       const randomBtn = diceButton(
@@ -1990,14 +1933,7 @@
     const scheduleAppearanceRender = debounce(function () { render(); }, 350);
 
     function randomizeAppearanceField(character, field) {
-      character[field.key] = randomChoice(field.options);
-      if (field.key === "ensemble" && character[field.key]) {
-        character.clothing_top = "";
-        character.clothing_bottom = "";
-      }
-      if ((field.key === "clothing_top" || field.key === "clothing_bottom") && character[field.key]) {
-        character.ensemble = "";
-      }
+      return resolveRandom({ kind: "field", character_id: character.id, field: field.key, pool: field.options });
     }
 
     function setAppearanceFieldEachJob(character, field, enabled) {
@@ -2322,27 +2258,7 @@
       return chips;
     }
 
-    function saveCharacterPreset(character, suggestedLabel) {
-      const label = String(suggestedLabel || character.name || "").trim();
-      if (!label) { showToast("Give the character a name first", "warning"); return; }
-      const stored = cloneJson(character);
-      delete stored.id;
-      delete stored.expanded;
-      const existing = findExistingSavedPreset("character", label);
-      if (existing && !window.confirm(
-        "A character preset named \u201c" + label + "\u201d already exists. Overwrite it?",
-      )) {
-        showToast("Character preset not saved", "info");
-        return;
-      }
-      const payload = { scope: "character", character: stored };
-      if (existing) {
-        Object.assign(existing, payload, { label: label });
-      } else {
-        savedPresets.push(Object.assign({ id: makeSavedPresetId("character", ""), label: label }, payload));
-      }
-      persistSavedPresets(existing ? "Character preset overwritten" : "Character preset saved");
-    }
+    function saveCharacterPreset() { createWorkspacePreset("character"); }
 
     function renderCharacterEditor() {
       const section = el("section", { class: "krea2-structured-section krea2-character-section" });
@@ -2400,15 +2316,7 @@
     /* Shared scene controls: dice (roll once) and shuffle (every queued job).
      * Used by both the compact B2 shell and the full scene editor. */
     function randomizeSceneOnce() {
-      const preset = randomChoice(SETTING_PRESETS);
-      const setting = state.setting && typeof state.setting === "object"
-        ? state.setting
-        : (state.setting = { enabled: false, name: "", description: "" });
-      setting.enabled = true;
-      setting.name = preset[0];
-      setting.description = preset[1];
-      markDirty();
-      render();
+      return resolveRandom({ kind: "setting", pool: SETTING_PRESETS.map(preset => ({ enabled: true, name: preset[0], description: preset[1] })) });
     }
 
     function toggleSceneShuffle(eachJobOn) {
@@ -2589,6 +2497,8 @@
       if (undoStack.length === 0) return;
       redoStack.push(JSON.stringify(state));
       state = coerceState(JSON.parse(undoStack.pop()));
+      state.document_revision = ++revision;
+      lastTransaction = null;
       dirty = true;
       persistedState = JSON.stringify(state);
       persist();
@@ -2600,6 +2510,8 @@
       if (redoStack.length === 0) return;
       undoStack.push(JSON.stringify(state));
       state = coerceState(JSON.parse(redoStack.pop()));
+      state.document_revision = ++revision;
+      lastTransaction = null;
       dirty = true;
       persistedState = JSON.stringify(state);
       persist();
@@ -2614,7 +2526,7 @@
 
     function presetToRow(preset, state) {
       const initialStrength = Math.round(Math.max(-3, Math.min(3,
-        (Number(preset.default_strength) || 0) / 20)) * 4) / 4;
+        (Number(preset.default_strength) || 0) / 20)) * 2) / 2;
       return {
         id: uniqueRowId(state),
         category: preset.category || "custom",
@@ -2628,6 +2540,8 @@
         aliases: preset.aliases || [],
         verification: preset.verification || "general visual vocabulary",
         source: preset.source || "library",
+        origin: "preset",
+        origin_action: preset.id || "add_concept",
         positive_phrase: preset.positive_phrase,
         negative_phrase: preset.negative_phrase,
         neutral_phrase: preset.neutral_phrase,
@@ -2725,29 +2639,8 @@
       return wrap;
     }
 
-    function randomizeGroup(group) {
-      if (!library.length) {
-        showToast("The concept library is still loading.", "warning");
-        return;
-      }
-      replaceGroupWithRandom(group);
-      markDirty();
-      saveConceptColors(state.concept_colors).catch(function () {});
-      render();
-      showToast(GROUP_LABELS[group] + " randomized", "info");
-    }
-
-    function randomizeAll() {
-      if (!library.length) {
-        showToast("The concept library is still loading.", "warning");
-        return;
-      }
-      if (!window.confirm("Replace all current concepts with a random combination?")) return;
-      for (const group of GROUPS) replaceGroupWithRandom(group);
-      markDirty();
-      render();
-      showToast("All concept groups randomized", "info");
-    }
+    function randomizeGroup(group) { return resolveRandom({ kind: "group", group }); }
+    function randomizeAll() { return resolveRandom({ kind: "all" }); }
 
     function buildBasePrompt() {
       const ta = el("textarea", {
@@ -2859,9 +2752,13 @@
         + Date.now().toString(36) + "_" + Math.random().toString(16).slice(2, 7);
     }
 
-    function askPresetName(message) {
-      const name = window.prompt(message, "");
-      return name && name.trim() ? name.trim() : "";
+    async function askPresetName(message) {
+      activeNameDialog?.close();
+      const dialog = K.workspace.nameDialog({ title: message });
+      activeNameDialog = dialog;
+      const name = await dialog.result;
+      if (activeNameDialog === dialog) activeNameDialog = null;
+      return disposed ? "" : name;
     }
 
     function findExistingSavedPreset(scope, label) {
@@ -2873,128 +2770,57 @@
     }
 
     function persistSavedPresets(successMessage) {
-      return saveSavedPresets(savedPresets).then(function (presets) {
-        savedPresets = presets;
-        refreshSavedPresetSelect();
-        render();
-        showToast(successMessage, "info");
-      }).catch(function (error) {
-        showToast(error.message || "Could not save preset.", "error");
+      const operation = presetSaveQueue.then(async function () {
+        await savedPresetsReady;
+        const submitted = cloneJson(savedPresets);
+        try {
+          const presets = await saveSavedPresets(submitted, cloneJson(acknowledgedPresets));
+          acknowledgedPresets = cloneJson(presets);
+          savedPresets = mergePendingPresetEdits(submitted, savedPresets, presets);
+          refreshSavedPresetSelect();
+          if (!disposed) render();
+          showToast(successMessage, "info");
+          return true;
+        } catch (error) {
+          const message = error.status === 409
+            ? (error.message || "Another node changed the same preset.") + " Your unsaved preset changes are kept in this node."
+            : error.message || "Could not save preset.";
+          showToast(message, "error");
+          return false;
+        }
       });
+      presetSaveQueue = operation.then(() => undefined);
+      return operation;
     }
 
-    function saveFullPreset() {
-      const label = askPresetName("Name this full prompt preset");
-      if (!label) return;
-      const existing = findExistingSavedPreset("full", label);
-      if (existing && !window.confirm(
-        "A full prompt preset named \u201c" + label + "\u201d already exists. Overwrite it?",
-      )) return;
-      const payload = {
-        scope: "full",
-        group: "",
-        base_prompt: state.base_prompt || "",
-        randomize_on_job: JSON.parse(JSON.stringify(state.randomize_on_job || {})),
-        creative_mode: state.creative_mode || "photo",
-        rows: JSON.parse(JSON.stringify(state.rows)),
-      };
-      if (existing) {
-        Object.assign(existing, payload, { label: label });
-      } else {
-        savedPresets.push(Object.assign({ id: makeSavedPresetId("full", ""), label: label }, payload));
+    function mergePendingPresetEdits(base, local, latest) {
+      const result = cloneJson(latest);
+      const baseById = new Map(base.map(preset => [preset.id, preset]));
+      const localById = new Map(local.map(preset => [preset.id, preset]));
+      for (const id of new Set([...baseById.keys(), ...localById.keys()])) {
+        if (JSON.stringify(baseById.get(id)) === JSON.stringify(localById.get(id))) continue;
+        const index = result.findIndex(preset => preset.id === id);
+        const edited = localById.get(id);
+        if (edited) { if (index < 0) result.push(cloneJson(edited)); else result[index] = cloneJson(edited); }
+        else if (index >= 0) result.splice(index, 1);
       }
-      persistSavedPresets(existing ? "Full prompt preset overwritten" : "Full prompt preset saved");
+      return result;
     }
+
+    function saveFullPreset() { return createWorkspacePreset("full"); }
 
     function saveGroupPreset(group) {
-      const rows = state.rows.filter(function (row) {
-        return groupForCategory(row.category) === group;
-      });
-      if (!rows.length) {
-        showToast("Add at least one concept to this group first.", "warning");
-        return;
-      }
-      const label = askPresetName("Name this " + GROUP_LABELS[group] + " preset");
-      if (!label) return;
-      const existing = savedPresets.find(function (preset) {
-        return preset.scope === "group" && preset.group === group
-          && String(preset.label || "").trim().toLowerCase() === label.toLowerCase();
-      }) || null;
-      if (existing && !window.confirm(
-        "A " + GROUP_LABELS[group] + " preset named \u201c" + label + "\u201d already exists. Overwrite it?",
-      )) return;
-      const payload = {
-        scope: "group",
-        group: group,
-        base_prompt: "",
-        rows: JSON.parse(JSON.stringify(rows)),
-      };
-      if (existing) {
-        Object.assign(existing, payload, { label: label });
-      } else {
-        savedPresets.push(Object.assign({ id: makeSavedPresetId("group", group), label: label }, payload));
-      }
-      persistSavedPresets(existing ? GROUP_LABELS[group] + " preset overwritten" : GROUP_LABELS[group] + " preset saved");
+      return createWorkspacePreset("group", group);
     }
 
     function loadSelectedSavedPreset() {
-      const preset = savedPresets.find(function (item) {
-        return item.id === savedPresetControl.select.value;
-      });
-      if (!preset) return;
-      if (preset.scope === "full") {
-        state.base_prompt = preset.base_prompt || "";
-        state.randomize_on_job = JSON.parse(JSON.stringify(preset.randomize_on_job || {}));
-        state.creative_mode = preset.creative_mode || state.creative_mode || "photo";
-        state.rows = cloneRowsWithFreshIds(preset.rows);
-        syncShotDistanceRow();
-        syncLightRows();
-      } else {
-        state.rows = state.rows.filter(function (row) {
-          return groupForCategory(row.category) !== preset.group;
-        });
-        state.rows.push.apply(state.rows, cloneRowsWithFreshIds(preset.rows));
-      }
-      markDirty();
-      render();
-      showToast(preset.label + " loaded", "info");
+      const preset = savedPresets.find(item => item.id === savedPresetControl.select.value);
+      if (preset) applyWorkspacePreset(preset);
     }
 
 function loadGroupPreset(group, presetId) {
-      const preset = savedPresets.find(function (item) {
-        return item.id === presetId && item.scope === "group" && item.group === group;
-      });
-      if (!preset) return;
-      state.rows = state.rows.filter(function (row) {
-        return groupForCategory(row.category) !== group;
-      });
-      if (!library.length) {
-        showToast("The concept library is still loading. Please try again in a moment.", "warning");
-        return;
-      }
-      var newRows = cloneRowsWithFreshIds(preset.rows).filter(function (row) {
-        return groupForCategory(row.category) === group;
-      });
-      for (var i = 0; i < newRows.length; i++) {
-        var libPreset = library.find(function (p) { return p.id === newRows[i].preset_id; });
-        if (!libPreset) continue;
-        newRows[i].label = libPreset.label || "";
-        newRows[i].phrase = libPreset.phrase || "";
-      }
-      newRows = newRows.filter(function (row) { return row.label && row.phrase; });
-      if (!newRows.length) {
-        showToast("This preset has no usable concepts for this section.", "warning");
-        return;
-      }
-      state.rows.push.apply(state.rows, newRows);
-      state.loaded_group_presets = state.loaded_group_presets || {};
-      state.loaded_group_presets[group] = presetId;
-      markDirty();
-      var raf = window.requestAnimationFrame || function (cb) { return setTimeout(cb, 0); };
-      raf(function () {
-        render();
-        showToast(preset.label + " loaded", "info");
-      });
+      const preset = savedPresets.find(item => item.id === presetId);
+      if (preset) applyWorkspacePreset(preset);
     }
 
 function buildGroupPresetPicker(group) {
@@ -3116,9 +2942,10 @@ function buildGroupPresetPicker(group) {
         class: "krea2-compact-select krea2-prompt-history",
         "aria-label": "Generated prompt history",
         onChange: function () {
-          const prompt = executionHistory[Number(historySelect.value)];
-          if (!prompt) return;
-          codeText.textContent = prompt;
+          const run = executionRecords[Number(historySelect.value)];
+          if (!run) return;
+          lastRun = run;
+          render();
         },
       });
       historySelect.appendChild(el("option", { value: "" }, "No generated prompts yet"));
@@ -3225,6 +3052,16 @@ function buildGroupPresetPicker(group) {
     function renderCodePreview(compiled) {
       const host = livePreview.codeText;
       host.innerHTML = "";
+      const spans = compiled.trace && compiled.trace.emitted_spans;
+      if (Array.isArray(spans) && spans.length) {
+        for (const span of spans) {
+          if (span.origin === "generated_separator") host.appendChild(document.createTextNode(span.text));
+          else host.appendChild(el("button", { type: "button", class: "krea2-preview-concept", title: "Edit " + span.owner_path + " · " + span.origin,
+            dataset: { ownerPath: span.owner_path }, onClick: () => focusOwner(span.owner_path),
+          }, span.text));
+        }
+        return;
+      }
       const parts = [];
       /* Reconstruct the final prompt from its fragments so every concept
        * span is hoverable and clickable, linking back to the row that
@@ -3272,14 +3109,56 @@ function buildGroupPresetPicker(group) {
     }
 
     function focusRow(rowId) {
+      const globalRow = state.rows.find(row => row.id === rowId);
+      if (globalRow && ownedDerivedRow(globalRow)) {
+        focusOwner(globalRow.preset_id === "custom.shot_distance" ? "scene_sections.shot_distance" : "scene_sections.lights[" + (state.scene_sections.lights || []).findIndex(light => "custom.light_" + light.id === globalRow.preset_id) + "]");
+        return;
+      }
+      const character = state.characters.find(character => character.rows.some(row => row.id === rowId));
+      if (character) state.selected_character_id = character.id;
+      const performanceRow = character?.rows.find(row => row.id === rowId && PERFORMANCE_CATEGORIES.includes(row.category));
+      if (performanceRow) state.collapsed.workspace_performance = false;
+      else state.collapsed.workspace_advanced = false;
+      render();
       const schedule = window.requestAnimationFrame || window.setTimeout;
       schedule(function () {
-        const card = root.querySelector('.krea2-row[data-row-id="' + rowId + '"]');
+        const section = root.querySelector('[data-section-id="' + (performanceRow ? "performance" : "advanced") + '"]');
+        const card = (section || root).querySelector('.krea2-row[data-row-id="' + rowId + '"]');
         if (!card) return;
         if (card.scrollIntoView) card.scrollIntoView({ behavior: "smooth", block: "center" });
         card.classList.add("is-focus-flash");
         window.setTimeout(function () { card.classList.remove("is-focus-flash"); }, 1200);
       }, 0);
+    }
+
+    function focusOwner(path) {
+      if (/^scene_sections\.(lights|shot_distance)/.test(path || "")) {
+        const lighting = path.includes("lights");
+        state.collapsed["workspace_" + (lighting ? "lighting" : "camera")] = false;
+        render();
+        const index = /lights\[(\d+)\]/.exec(path)?.[1];
+        const target = lighting && index !== undefined ? root.querySelector('.krea2-v2-lt-card[data-light-index="' + index + '"]') : root.querySelector('[data-section-id="camera"]');
+        target?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+        return;
+      }
+      const characterMatch = /^characters\[(\d+)\]/.exec(path || "");
+      if (characterMatch) {
+        const character = state.characters[Number(characterMatch[1])];
+        if (character) {
+          state.selected_character_id = character.id;
+          character.expanded = true;
+          const rowMatch = /\.rows\[(\d+)\]/.exec(path);
+          if (rowMatch && character.rows[Number(rowMatch[1])]) { focusRow(character.rows[Number(rowMatch[1])].id); return; }
+        }
+        state.collapsed.workspace_character = false; state.collapsed.workspace_advanced = false;
+      } else if (/^rows\[/.test(path || "")) {
+        const row = state.rows[Number(/^rows\[(\d+)\]/.exec(path)[1])];
+        if (row) { focusRow(row.id); return; }
+      } else if (/^setting|^base_prompt/.test(path || "")) state.collapsed.workspace_environment = false;
+      else state.collapsed.workspace_advanced = false;
+      render();
+      const section = characterMatch ? "character" : /^setting|^base_prompt/.test(path || "") ? "environment" : "advanced";
+      root.querySelector('[data-section-id="' + section + '"]')?.scrollIntoView?.({ behavior: "smooth", block: "start" });
     }
 
     function editRow(row) {
@@ -3316,13 +3195,21 @@ function buildGroupPresetPicker(group) {
     const schedulePreview = debounce(requestPreview, 140);
 
     function requestPreview(signature) {
+      if (disposed) return;
       if (latestPreview && latestPreview.signature === signature) return;
       const requestId = ++previewSequence;
       const previewState = JSON.parse(signature);
-      fetchCompiledPreview(previewState).then(function (compiled) {
-        if (requestId !== previewSequence) return;
-        latestPreview = { signature: signature, result: compiled };
-        if (signature === JSON.stringify(state)) renderLivePreview(false);
+      fetchCompiledPreview(previewState, { expert: expertMode() }).then(function (compiled) {
+        if (disposed || requestId !== previewSequence) return;
+        if (signature !== JSON.stringify(state)) return;
+        const migrated = compiled.resolved_state && state.state_version < 2;
+        if (migrated) {
+          state = coerceState(compiled.resolved_state);
+          persistedState = JSON.stringify(state);
+          persist();
+        }
+        latestPreview = { signature: JSON.stringify(state), result: compiled };
+        if (migrated) render(); else renderLivePreview(false);
       }).catch(function () {
         // Keep the instant local preview available if the optional API route is unavailable.
       });
@@ -3331,7 +3218,7 @@ function buildGroupPresetPicker(group) {
     function renderGroupSections(host, groups) {
       for (const group of groups) {
         const rows = state.rows.filter(function (row) {
-          return groupForCategory(row.category) === group;
+          return groupForCategory(row.category) === group && !ownedDerivedRow(row);
         });
         const collapsed = !!(state.collapsed || {})[group];
         const section = el("section", {
@@ -3613,7 +3500,7 @@ function buildGroupPresetPicker(group) {
      * word (nearest palette entry); the Hex field always shows the hex. */
     function openColorPopup(anchor, palette, current, label, onPick) {
       const existing = document.querySelector(".krea2-color-popup");
-      if (existing) existing.remove();
+      if (existing) { K.helpers.cleanupDOM(existing); existing.remove(); }
       const popup = el("div", { class: "krea2-color-popup krea2-color-popup-full" });
       popup.appendChild(el("div", { class: "krea2-color-popup-label" }, label));
 
@@ -3784,12 +3671,10 @@ function buildGroupPresetPicker(group) {
           onDrag(event);
           const move = function (e) { onDrag(e); };
           const up = function () {
-            document.removeEventListener("mousemove", move);
-            document.removeEventListener("mouseup", up);
+            stopDrag();
             commit();
           };
-          document.addEventListener("mousemove", move);
-          document.addEventListener("mouseup", up);
+          const stopDrag = trackDocumentDrag(move, up);
         });
       }
       attachDrag(hueSvg, dragHue);
@@ -3826,12 +3711,19 @@ function buildGroupPresetPicker(group) {
       });
       document.body.appendChild(popup);
       function onDocClick(e) {
-        if (!popup.contains(e.target)) {
-          popup.remove();
-          document.removeEventListener("click", onDocClick, true);
-        }
+        if (!popup.contains(e.target)) close();
       }
-      setTimeout(() => document.addEventListener("click", onDocClick, true), 0);
+      let closed = false;
+      const timer = setTimeout(() => { if (!closed) document.addEventListener("click", onDocClick, true); }, 0);
+      function close() {
+        if (closed) return;
+        closed = true;
+        clearTimeout(timer);
+        document.removeEventListener("click", onDocClick, true);
+        popup.remove();
+      }
+      K.helpers.onCleanup(anchor, close);
+      K.helpers.onCleanup(popup, close);
       return popup;
     }
 
@@ -4273,10 +4165,7 @@ function buildGroupPresetPicker(group) {
         el("span", null, "Include"),
       ]);
       const randomAll = diceButton("Randomize this entire character's look once now", function () {
-        CHARACTER_APPEARANCE.forEach(function (field) {
-          randomizeAppearanceField(character, field);
-        });
-        markDirty(); render();
+        resolveRandom({ kind: "appearance", character_id: character.id, pools: Object.fromEntries(CHARACTER_APPEARANCE.map(field => [field.key, field.options])) });
       }, "krea2-character-random-look krea2-icon-btn");
       const allFieldsEachJob = V2_APPEARANCE_FIELDS.every(function (field) {
         return !!(character.randomize_fields || {})[field.key];
@@ -4301,7 +4190,7 @@ function buildGroupPresetPicker(group) {
         class: "krea2-wizard-btn krea2-save-character",
         title: "Save this character's look as a reusable preset",
         onClick: function () { saveCharacterPreset(character, name.value || character.name); },
-      }, "Save");
+      }, "Save as");
       const remove = el("button", {
         type: "button",
         class: "krea2-wizard-btn krea2-icon-btn krea2-danger",
@@ -4324,11 +4213,19 @@ function buildGroupPresetPicker(group) {
         renderGenderPills(character),
       ]);
       const actions = el("div", { class: "krea2-character-card-actions" }, [
+        el("span", { class: "krea2-identity-status", dataset: { characterId: character.id } }, identityStatus(character)),
         enabled,
         el("div", { class: "krea2-wizard-random-controls" }, [randomAll, randomAllEachJob]),
         save,
         remove,
       ]);
+      if (savedPresets.some(preset => preset.id === character.loaded_identity_preset_id && !preset.builtin)) actions.appendChild(W.button("Update saved identity", () => {
+        const preset = savedPresets.find(preset => preset.id === character.loaded_identity_preset_id);
+        if (!preset) return;
+        preset.character = cloneJson(character);
+        character.loaded_identity_snapshot = identityFingerprint(character);
+        persistSavedPresets("Saved identity updated");
+      }));
       header.append(portrait, identity, actions, chevron);
       header.addEventListener("click", function (event) {
         const target = event && event.target;
@@ -4350,7 +4247,7 @@ function buildGroupPresetPicker(group) {
           body.appendChild(renderCharacterPresetRow(character));
           body.appendChild(renderAppearanceColumns(character));
           body.appendChild(renderAdditionalInfo(character));
-          body.appendChild(renderCharacterDirection(character));
+          body.appendChild(renderLoraSection(character));
         }
       }
       card.appendChild(header);
@@ -4374,86 +4271,7 @@ function buildGroupPresetPicker(group) {
       return wrap;
     }
 
-    function openCharacterPresetPopup(character, anchor) {
-      const existing = document.querySelector(".krea2-character-preset-popup");
-      if (existing) existing.remove();
-      const popup = el("div", { class: "krea2-character-preset-popup" });
-      popup.appendChild(el("div", { class: "krea2-searchable-header" }, [
-        el("strong", null, "Load a character"),
-        el("button", {
-          type: "button",
-          class: "krea2-searchable-close",
-          title: "Close",
-          "aria-label": "Close",
-          onClick: function () { popup.remove(); },
-        }, icon("close", { width: "12", height: "12" })),
-      ]));
-      const search = el("input", {
-        type: "text",
-        class: "krea2-searchable-query",
-        placeholder: "Search characters...",
-      });
-      const list = el("div", { class: "krea2-character-preset-list" });
-      const apply = function (entry) {
-        const stored = cloneJson(entry.preset.character || entry.preset);
-        const replacement = Object.assign(newCharacter(), stored, { id: character.id, expanded: character.expanded !== false });
-        if (!stored.name) replacement.name = character.name || entry.preset.label;
-        replacement.position = character.position || "";
-        replacement.face_guidance = character.face_guidance || "";
-        replacement.interaction = character.interaction || "";
-        replacement.rows = Array.isArray(character.rows) ? cloneJson(character.rows) : [];
-        const index = state.characters.indexOf(character);
-        state.characters[index] = replacement;
-        markDirty();
-        render();
-        popup.remove();
-      };
-      const renderList = function () {
-        list.innerHTML = "";
-        const query = (search.value || "").trim().toLowerCase();
-        const entries = [];
-        for (const preset of CHARACTER_PRESETS) {
-          entries.push({ source: "builtin", label: preset.label, preset: preset });
-        }
-        for (const preset of savedPresets.filter(function (item) { return item.scope === "character"; })) {
-          entries.push({ source: "saved", label: preset.label, preset: preset });
-        }
-        for (const preset of (state.character_presets || [])) {
-          entries.push({ source: "workflow", label: preset.label || "Character", preset: preset });
-        }
-        for (const entry of entries) {
-          if (query && !String(entry.label).toLowerCase().includes(query)) continue;
-          const sourceLabel = entry.source === "builtin" ? "Built in"
-            : entry.source === "saved" ? "My preset" : "Workflow";
-          const item = el("div", { class: "krea2-searchable-item", role: "option", tabIndex: "0" }, [
-            el("span", { class: "krea2-searchable-title" }, entry.label),
-            el("span", { class: "krea2-searchable-group" }, sourceLabel),
-          ]);
-          item.addEventListener("click", function () { apply(entry); });
-          list.appendChild(item);
-        }
-      };
-      search.addEventListener("input", renderList);
-      popup.appendChild(search);
-      popup.appendChild(list);
-      const rect = anchor.getBoundingClientRect();
-      Object.assign(popup.style, {
-        position: "fixed",
-        left: rect.left + "px",
-        top: (rect.bottom + 4) + "px",
-        zIndex: "2147483500",
-      });
-      document.body.appendChild(popup);
-      renderList();
-      function onDocClick(e) {
-        if (!popup.contains(e.target)) {
-          popup.remove();
-          document.removeEventListener("click", onDocClick, true);
-        }
-      }
-      setTimeout(() => document.addEventListener("click", onDocClick, true), 0);
-      return popup;
-    }
+    function openCharacterPresetPopup() { openWorkspaceChooser("character"); }
 
     /* Appearance wall: three labelled columns; every field keeps its title
      * and dropdown on ONE horizontal line, with a clear ×, a dice
@@ -4685,20 +4503,7 @@ function buildGroupPresetPicker(group) {
     /* Randomize one scene chip category once: replace its rows with a
      * random preset from the chip rail. */
     function randomizeSceneChips(category, chips) {
-      const options = chips.filter(function (entry) {
-        return library.some(function (preset) { return preset.id === entry[0]; });
-      });
-      if (!options.length) return;
-      const entry = options[Math.floor(Math.random() * options.length)];
-      const preset = library.find(function (item) { return item.id === entry[0]; });
-      if (!preset) return;
-      state.rows = state.rows.filter(function (row) { return row.category !== category; });
-      const row = presetToRow(preset, state);
-      row.strength = 1.2;
-      state.rows.push(row);
-      if (category === "lighting_setup") applyLightingSetupLayout(preset.id);
-      markDirty();
-      render();
+      return resolveRandom({ kind: "category", category });
     }
 
     function toggleChipShuffle(category) {
@@ -4910,16 +4715,14 @@ function buildGroupPresetPicker(group) {
       return v.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
     }
 
-    function formatLightStrength(value) {
-      const v = Math.round(Number(value) * 100) / 100;
-      return String(v);
-    }
-
     function lightPhrase(light) {
       const side = lightSideLabel(light.angleDeg);
       const metres = formatMetres(light.distanceM);
       const height = Math.round(Number(light.heightDeg) || 0);
       const colour = String(light.color || "").trim();
+      if (light.coordinatesEdited) {
+        return lightingScene.physicalPhrase(light);
+      }
       let phrase = "light from the " + side + " at " + metres + "m";
       if (height > 0) phrase += ", elevated at " + height + " degrees";
       if (colour && colour !== "white") phrase += ", in " + colour;
@@ -4965,6 +4768,8 @@ function buildGroupPresetPicker(group) {
         angleDeg: angleDeg,
         distanceM: distanceM,
         heightDeg: heightDeg,
+        ...lightingScene.physicalCoordinates({ ...light, distanceM, heightDeg }),
+        coordinatesEdited: light.coordinatesEdited === true,
         strength: strength,
         color: String(light.color || ""),
         enabled: light.enabled !== false,
@@ -5087,12 +4892,13 @@ function buildGroupPresetPicker(group) {
 
     function sceneLights() {
       state.scene_sections = state.scene_sections || {};
+      const initialized = Array.isArray(state.scene_sections.lights);
       if (!Array.isArray(state.scene_sections.lights)) state.scene_sections.lights = [];
       const stored = state.scene_sections.light_angle;
-      if (!state.scene_sections.lights.length && Number.isFinite(stored)) {
+      if (!initialized && !state.scene_sections.lights.length && Number.isFinite(stored)) {
         state.scene_sections.lights.push({ id: "light_1", angle: stored });
       }
-      if (!state.scene_sections.lights.length) {
+      if (!initialized && !state.scene_sections.lights.length) {
         /* A lighting_setup row applied by a shot preset (without the
          * lighting panel) seeds the stage from its known layout. */
         const setupRow = (state.rows || []).find(function (row) {
@@ -5141,7 +4947,7 @@ function buildGroupPresetPicker(group) {
           phrase: phrase,
           control_mode: "scalar",
           intensity: 0,
-          strength: Number(light.strength) || 1.5,
+          strength: Number.isFinite(Number(light.strength)) ? Number(light.strength) : 1.5,
           enabled: true,
           aliases: [],
           verification: "general visual vocabulary",
@@ -5151,6 +4957,13 @@ function buildGroupPresetPicker(group) {
     }
 
     function setLightState(light, changes) {
+      if (Object.keys(changes).length) {
+        Object.assign(light, lightingScene.physicalCoordinates(light));
+        light.coordinatesEdited = true;
+      }
+      for (const field of ["groundDistanceM", "heightM"]) {
+        if (Number.isFinite(Number(changes[field]))) light[field] = Math.max(0, Number(changes[field]));
+      }
       if (Number.isFinite(Number(changes.angleDeg))) {
         light.angleDeg = ((Math.round(Number(changes.angleDeg)) % 360) + 360) % 360;
       }
@@ -5176,7 +4989,7 @@ function buildGroupPresetPicker(group) {
 
     function addLight() {
       const lights = sceneLights();
-      lights.push(normalizeLight({}, lights.length));
+      lights.push(normalizeLight({ groundDistanceM: 1.5, heightM: 2, coordinatesEdited: true }, lights.length));
       syncLightRows();
       markDirty();
       render();
@@ -5287,11 +5100,7 @@ function buildGroupPresetPicker(group) {
     /* World space: the subject stands at the origin facing +z (toward the
      * default camera). x = right, y = up, z = front. */
     function lightWorldPos(light) {
-      const alpha = (Number(light.angleDeg) || 0) * Math.PI / 180;
-      const eps = (Number(light.heightDeg) || 0) * Math.PI / 180;
-      const d = Math.max(0.1, Number(light.distanceM) || 1.5);
-      const h = d * Math.cos(eps);
-      return { x: h * Math.sin(alpha), y: d * Math.sin(eps), z: h * Math.cos(alpha) };
+      return lightingScene.lightPosition(light);
     }
 
     function stageProjector(camera) {
@@ -5340,19 +5149,6 @@ function buildGroupPresetPicker(group) {
       };
     }
 
-    function stageFigurePaths(shadowRy) {
-      const r2 = function (v) { return Math.round(v * 100) / 100; };
-      return [
-        { el: "ellipse", attrs: { cx: "0", cy: r2(0.03), rx: r2(0.42), ry: "1", class: "krea2-v2-lt-shadow" }, meta: { ry: shadowRy } },
-        { el: "path", attrs: { d: "M" + r2(-0.17) + " 0 C" + r2(-0.16) + " " + r2(0.88) + " " + r2(-0.14) + " " + r2(0.9) + " " + r2(-0.03) + " " + r2(0.9) + " L" + r2(0.01) + " 0 Z", class: "krea2-v2-lt-leg" } },
-        { el: "path", attrs: { d: "M" + r2(0.01) + " 0 L" + r2(0.03) + " " + r2(0.9) + " " + r2(0.14) + " " + r2(0.88) + " " + r2(0.17) + " 0 Z", class: "krea2-v2-lt-leg" } },
-        { el: "path", attrs: { d: "M" + r2(-0.24) + " " + r2(0.9) + " C" + r2(-0.32) + " " + r2(1.4) + " " + r2(-0.26) + " " + r2(1.55) + " 0 " + r2(1.6) + " C" + r2(0.26) + " " + r2(1.55) + " " + r2(0.32) + " " + r2(1.4) + " " + r2(0.24) + " " + r2(0.9) + " Z", class: "krea2-v2-lt-torso" } },
-        { el: "path", attrs: { d: "M" + r2(-0.27) + " " + r2(1.02) + " C" + r2(-0.43) + " " + r2(1.18) + " " + r2(-0.41) + " " + r2(1.38) + " " + r2(-0.31) + " " + r2(1.26) + " C" + r2(-0.25) + " " + r2(1.12) + " " + r2(-0.24) + " " + r2(1.04) + " " + r2(-0.22) + " " + r2(1.02) + " Z", class: "krea2-v2-lt-arm" } },
-        { el: "path", attrs: { d: "M" + r2(0.27) + " " + r2(1.02) + " C" + r2(0.43) + " " + r2(1.18) + " " + r2(0.41) + " " + r2(1.38) + " " + r2(0.31) + " " + r2(1.26) + " C" + r2(0.25) + " " + r2(1.12) + " " + r2(0.24) + " " + r2(1.04) + " " + r2(0.22) + " " + r2(1.02) + " Z", class: "krea2-v2-lt-arm" } },
-        { el: "path", attrs: { d: "M" + r2(-0.05) + " " + r2(1.56) + " L" + r2(-0.05) + " " + r2(1.64) + " L" + r2(0.05) + " " + r2(1.64) + " L" + r2(0.05) + " " + r2(1.56) + " Z", class: "krea2-v2-lt-neck" } },
-        { el: "circle", attrs: { cx: "0", cy: r2(1.73), r: r2(0.15), class: "krea2-v2-lt-head" } },
-      ];
-    }
 
     function renderLightStage() {
       const camera = (stageDrag && stageDrag.camera) || stageCamera();
@@ -5364,33 +5160,29 @@ function buildGroupPresetPicker(group) {
         viewBox: "0 0 " + STAGE.w + " " + STAGE.h,
         width: "100%",
         class: "krea2-v2-light-stage",
-        "aria-label": "Lighting stage: drag the background to orbit the camera; drag a bulb to move a light; scroll to zoom; double-click to reset the view",
+        "aria-label": "Lighting stage: drag the background to orbit the camera; drag a bulb to move a light; Alt+wheel to zoom; scroll to move through the workspace; double-click to reset the view",
       });
       const defs = svgEl("defs");
-      const bgRadial = svgEl("radialGradient", { id: "krea2-lt-bg" });
+      const bgRadial = svgEl("radialGradient", { id: lightingSvgPrefix + "bg" });
       bgRadial.appendChild(svgEl("stop", { offset: "0%", "stop-color": "#2b3440" }));
       bgRadial.appendChild(svgEl("stop", { offset: "100%", "stop-color": "#14191f" }));
       defs.appendChild(bgRadial);
-      const floorGrad = svgEl("radialGradient", { id: "krea2-lt-floor" });
+      const floorGrad = svgEl("radialGradient", { id: lightingSvgPrefix + "floor" });
       floorGrad.appendChild(svgEl("stop", { offset: "0%", "stop-color": "#39434f" }));
       floorGrad.appendChild(svgEl("stop", { offset: "78%", "stop-color": "#252d36" }));
       floorGrad.appendChild(svgEl("stop", { offset: "100%", "stop-color": "#1c232b" }));
       defs.appendChild(floorGrad);
-      const figGrad = svgEl("linearGradient", { id: "krea2-lt-fig", x1: "0", y1: "0", x2: "0", y2: "1" });
-      figGrad.appendChild(svgEl("stop", { offset: "0%", "stop-color": "#99a3ae" }));
-      figGrad.appendChild(svgEl("stop", { offset: "100%", "stop-color": "#59646f" }));
-      defs.appendChild(figGrad);
-      const glowF = svgEl("filter", { id: "krea2-lt-bloom", x: "-120%", y: "-120%", width: "340%", height: "340%" });
+      const glowF = svgEl("filter", { id: lightingSvgPrefix + "bloom", x: "-120%", y: "-120%", width: "340%", height: "340%" });
       glowF.appendChild(svgEl("feGaussianBlur", { stdDeviation: "4" }));
       defs.appendChild(glowF);
-      const softF = svgEl("filter", { id: "krea2-lt-soft", x: "-60%", y: "-60%", width: "220%", height: "220%" });
+      const softF = svgEl("filter", { id: lightingSvgPrefix + "soft", x: "-60%", y: "-60%", width: "220%", height: "220%" });
       softF.appendChild(svgEl("feGaussianBlur", { stdDeviation: "2.2" }));
       defs.appendChild(softF);
       svg.appendChild(defs);
 
       svg.appendChild(svgEl("rect", {
         x: "0", y: "0", width: String(STAGE.w), height: String(STAGE.h),
-        rx: "10", fill: "url(#krea2-lt-bg)",
+        rx: "10", fill: "url(#" + lightingSvgPrefix + "bg)",
       }));
 
       const r2 = function (v) { return Math.round(v * 100) / 100; };
@@ -5407,7 +5199,7 @@ function buildGroupPresetPicker(group) {
           }
           return d + " Z";
         };
-        svg.appendChild(svgEl("path", { d: circlePath(4.1, 72), fill: "url(#krea2-lt-floor)" }));
+        svg.appendChild(svgEl("path", { d: circlePath(4.1, 72), fill: "url(#" + lightingSvgPrefix + "floor)" }));
         for (let ring = 1; ring <= 4; ring += 1) {
           svg.appendChild(svgEl("path", {
             d: circlePath(ring, 60),
@@ -5423,14 +5215,10 @@ function buildGroupPresetPicker(group) {
             class: "krea2-v2-lt-tick",
           }));
         }
-        const dirLabel = function (label, x, z) {
-          const p = project({ x: x, y: 0.02, z: z });
-          return svgText(r2(p.x), r2(p.y), label, "krea2-v2-lt-dir");
-        };
-        svg.appendChild(dirLabel("W", -3.55, 0));
-        svg.appendChild(dirLabel("E", 3.55, 0));
-        svg.appendChild(dirLabel("N", 0, -3.55));
-        svg.appendChild(dirLabel("S", 0, 3.55));
+      }
+      for (const [label, x, z] of [["Subject right", -2.7, 0], ["Subject left", 2.7, 0], ["Back", 0, -2.7], ["Front", 0, 2.7]]) {
+        const p = project({ x, y: .02, z });
+        svg.appendChild(svgText(r2(p.x), r2(p.y), label, "krea2-v2-lt-dir"));
       }
 
       /* --- Lights: bulbs + beams sorted around the figure's depth ------ */
@@ -5445,9 +5233,9 @@ function buildGroupPresetPicker(group) {
           world: world,
           p: project(world),
           depth: project(world).z,
-          on: light.enabled !== false,
+          on: light.enabled !== false && Number(light.strength) !== 0,
           hex: lightHex(light.color),
-          strength: Math.max(0.2, Math.min(3, Number(light.strength) || 1.5)),
+          strength: Number.isFinite(Number(light.strength)) ? Number(light.strength) : 1.5,
         });
       });
       iconsets.sort(function (a, b) { return a.depth - b.depth; });
@@ -5480,7 +5268,7 @@ function buildGroupPresetPicker(group) {
             cx: r2(p.x), cy: r2(p.y),
             rx: r2(figure.pxPerM * 0.42), ry: r2(figure.pxPerM * 0.19),
             class: "krea2-v2-lt-glow",
-            filter: "url(#krea2-lt-bloom)",
+            filter: "url(#" + lightingSvgPrefix + "bloom)",
             style: "fill: " + entry.hex + "; opacity: " + Math.min(0.75, 0.16 + entry.strength * 0.15) + ";",
           }));
           /* Azimuth marker: ground point straight beneath the bulb. */
@@ -5499,7 +5287,7 @@ function buildGroupPresetPicker(group) {
         bulb.appendChild(svgEl("rect", { x: r2(p.x - r * 0.45), y: r2(p.y + r * 0.85), width: r2(r * 0.9), height: r2(r * 0.72), rx: r2(r * 0.2), class: "krea2-v2-lt-bulb-base", style: "fill: " + bulbColour + ";" }));
         bulb.appendChild(svgEl("line", { x1: r2(p.x - r * 0.3), y1: r2(p.y + r * 1.62), x2: r2(p.x + r * 0.3), y2: r2(p.y + r * 1.62), stroke: "#c3cad4", "stroke-width": "1.4", "stroke-linecap": "round" }));
         if (entry.on) {
-          bulb.appendChild(svgEl("circle", { cx: r2(p.x), cy: r2(p.y - r * 0.15), r: r2(r * 0.52), class: "krea2-v2-lt-bulb-filament", fill: "#eef2f7", style: "filter: url(#krea2-lt-soft);" }));
+          bulb.appendChild(svgEl("circle", { cx: r2(p.x), cy: r2(p.y - r * 0.15), r: r2(r * 0.52), class: "krea2-v2-lt-bulb-filament", fill: "#eef2f7", style: "filter: url(#" + lightingSvgPrefix + "soft);" }));
         }
         g.appendChild(bulb);
         bulbRegistry.push({ node: bulb, entry: entry });
@@ -5510,21 +5298,18 @@ function buildGroupPresetPicker(group) {
         return g;
       };
 
-      const behind = iconsets.filter(function (e) { return e.depth < figDepth; });
-      const inFront = iconsets.filter(function (e) { return e.depth >= figDepth; });
+      const behind = iconsets.filter(function (e) { return e.depth >= figDepth; });
+      const inFront = iconsets.filter(function (e) { return e.depth < figDepth; });
       behind.forEach(function (entry) { svg.appendChild(drawLight(entry)); });
 
       /* --- The mannequin (turns with the camera) ------------------------ */
-      const figureEl = svgEl("g", {
-        class: "krea2-v2-lt-figure",
-        transform: "translate(" + r2(figure.feet.x) + " " + r2(figure.feet.y) + ") scale(" + r2(figure.sx) + " " + r2(figure.sy) + ")",
-      });
-      for (const piece of stageFigurePaths(figure.shadowRy)) {
-        const node = svgEl(piece.el, piece.attrs);
-        if (piece.meta && piece.meta.ry !== undefined && Number.isFinite(Number(piece.meta.ry))) {
-          node.setAttribute("ry", String(r2(Number(piece.meta.ry) / figure.pxPerM)));
-        }
-        figureEl.appendChild(node);
+      const figureEl = svgEl("g", { class: "krea2-v2-lt-figure", "aria-label": "Shaded three dimensional portrait bust facing Front" });
+      for (const triangle of lightingScene.shadedBust(project, lights, lightHex)) {
+        figureEl.appendChild(svgEl("polygon", {
+          points: triangle.points.map(point => r2(point.x) + "," + r2(point.y)).join(" "),
+          fill: triangle.fill, stroke: triangle.fill, "stroke-width": ".25",
+          "pointer-events": "none",
+        }));
       }
       svg.appendChild(figureEl);
 
@@ -5545,7 +5330,7 @@ function buildGroupPresetPicker(group) {
           const label = stageDrag.viewLabel;
           if (label) {
             label.textContent = "Azimuth " + Math.round(((stageDrag.camera.azim % 360) + 360) % 360)
-              + "\u00b0 \u00b7 Elevation " + Math.round(stageDrag.camera.elev) + "\u00b0 \u2014 drag to orbit \u00b7 scroll to zoom \u00b7 double-click to reset";
+              + "\u00b0 \u00b7 Elevation " + Math.round(stageDrag.camera.elev) + "\u00b0 \u2014 drag to orbit \u00b7 Alt+wheel to zoom \u00b7 double-click to reset";
           }
         },
       };
@@ -5558,7 +5343,7 @@ function buildGroupPresetPicker(group) {
           elev: Math.round(stageDrag.camera.elev),
           radius: Math.round(stageDrag.camera.radius * 10) / 10,
         };
-        markDirty();
+        persist();
         render();
       };
 
@@ -5577,24 +5362,27 @@ function buildGroupPresetPicker(group) {
           stageDrag.refresh();
         };
         const onUp = function () {
-          document.removeEventListener("mousemove", onMove);
-          document.removeEventListener("mouseup", onUp);
+          stopDrag();
           commitCamera();
         };
-        document.addEventListener("mousemove", onMove);
-        document.addEventListener("mouseup", onUp);
+        const stopDrag = trackDocumentDrag(onMove, onUp);
       };
       svg.addEventListener("mousedown", orbitStart);
       svg.addEventListener("dblclick", function (event) {
         if (event && typeof event.stopPropagation === "function") event.stopPropagation();
         state.scene_sections = state.scene_sections || {};
         state.scene_sections.stage_camera = { azim: 0, elev: 25, radius: 6.4 };
-        markDirty();
+        stageDrag = null;
+        persist();
         render();
       });
       svg.addEventListener("wheel", function (event) {
+        if (!event.altKey) return;
+        if (event && typeof event.preventDefault === "function") event.preventDefault();
         if (event && typeof event.stopPropagation === "function") event.stopPropagation();
         stageDrag.camera.radius = Math.max(3.2, Math.min(11, stageDrag.camera.radius * (1 + (event.deltaY || 0) * 0.0012)));
+        state.scene_sections.stage_camera = cloneJson(stageDrag.camera);
+        persist();
         stageDrag.refresh();
       }, { passive: false });
 
@@ -5629,17 +5417,17 @@ function buildGroupPresetPicker(group) {
           z: fwd.z * pz + right.z * px + up.z * py,
         });
         if (dir.y >= -0.001) return;
-        const t = -eye.y / dir.y;
+        const height = lightingScene.physicalCoordinates(entry.light).heightM;
+        const t = (height - eye.y) / dir.y;
+        if (t <= 0) return;
         const gx = eye.x + t * dir.x;
         const gz = eye.z + t * dir.z;
         const horiz = Math.sqrt(gx * gx + gz * gz);
         if (horiz < 0.05) return;
         entry.light.angleDeg = ((Math.round(Math.atan2(gx, gz) * 180 / Math.PI) % 360) + 360) % 360;
-        const eps = (Number(entry.light.heightDeg) || 0) * Math.PI / 180;
-        entry.light.distanceM = Math.max(
-          LIGHT_METERS_MIN,
-          Math.min(LIGHT_METERS_MAX, horiz / Math.max(0.2, Math.cos(eps))),
-        );
+        entry.light.groundDistanceM = horiz;
+        entry.light.heightM = height;
+        entry.light.coordinatesEdited = true;
         stageDrag.refresh();
       };
 
@@ -5652,14 +5440,12 @@ function buildGroupPresetPicker(group) {
           dragBulb(event, entry.entry);
           const onMove = function (moveEvent) { dragBulb(moveEvent, entry.entry); };
           const onUp = function () {
-            document.removeEventListener("mousemove", onMove);
-            document.removeEventListener("mouseup", onUp);
+            stopDrag();
             syncLightRows();
             markDirty();
             render();
           };
-          document.addEventListener("mousemove", onMove);
-          document.addEventListener("mouseup", onUp);
+          const stopDrag = trackDocumentDrag(onMove, onUp);
         });
         entry.node.addEventListener("mouseenter", function () {
           highlightLightCard(entry.entry.index, true);
@@ -5727,12 +5513,10 @@ function buildGroupPresetPicker(group) {
         doDrag(event);
         const onMove = function (moveEvent) { doDrag(moveEvent); };
         const onUp = function () {
-          document.removeEventListener("mousemove", onMove);
-          document.removeEventListener("mouseup", onUp);
+          stopDrag();
           setLightState(light, { angleDeg: light.angleDeg });
         };
-        document.addEventListener("mousemove", onMove);
-        document.addEventListener("mouseup", onUp);
+        const stopDrag = trackDocumentDrag(onMove, onUp);
       });
       return wrapOuter;
     }
@@ -5746,12 +5530,16 @@ function buildGroupPresetPicker(group) {
       ]);
     }
 
-    function renderLightSlider(attrs, onCommit) {
-      const slider = el("input", { type: "range", class: "krea2-v2-lt-slider", ...attrs });
-      slider.addEventListener("change", function (event) {
-        onCommit(Number(event.target.value));
-      });
-      return slider;
+    /* Light-card numeric pill: [− | value | +] sharing the concept pill
+     * stepper (hold-to-repeat, vertical drag, click to type). Steps are
+     * physical (0.1 m / 0.1 intensity / 15°); typing stays exact. */
+    function makeLightPill(opts) {
+      const stepper = makePresetStepper(Object.assign({ snapTyped: false }, opts));
+      return el("div", { class: "krea2-pill krea2-pill-light" }, [stepper.minus, stepper.valueEl, stepper.plus]);
+    }
+
+    function lightNumberFormat(value) {
+      return String(Math.round(Number(value) * 100) / 100);
     }
 
     function renderLightCards() {
@@ -5814,41 +5602,41 @@ function buildGroupPresetPicker(group) {
         ]);
         card.appendChild(head);
 
-        /* Distance (metres): slider + numeric readout, beyond 2m allowed. */
-        const distanceValue = el("input", {
-          type: "number",
-          class: "krea2-compact-input krea2-v2-lt-num",
-          min: String(LIGHT_METERS_MIN),
-          max: String(LIGHT_METERS_MAX),
-          step: String(LIGHT_DISTANCE_STEP),
-          value: String(light.distanceM),
-          "aria-label": "Light " + (index + 1) + " distance in metres",
-          onChange: function (event) {
-            setLightState(light, { distanceM: Number(event.target.value) });
+        const units = state.ui_preferences.measurement_unit === "ft" ? "ft" : "m";
+        const coordinates = lightingScene.physicalCoordinates(light);
+        const distance = lightingScene.displayDistance(coordinates.groundDistanceM, units);
+        const height = lightingScene.displayDistance(coordinates.heightM, units);
+        /* Numeric entry accepts any distance; the stage clamps to its own
+         * bounds. Units only affect display. */
+        const distancePill = makeLightPill({
+          value: distance,
+          step: 0.1, min: 0, max: 100, typedMin: 0, typedMax: 100,
+          format: lightNumberFormat,
+          label: "Light " + (index + 1) + " horizontal distance in " + units,
+          onCommit: function (value) {
+            setLightState(light, { groundDistanceM: lightingScene.metresFromDisplay(value, units) });
           },
-        }, String(light.distanceM));
-        const distanceSlider = renderLightSlider({
-          min: String(LIGHT_METERS_MIN), max: String(LIGHT_METERS_MAX),
-          step: String(LIGHT_DISTANCE_STEP), value: String(light.distanceM),
-          "aria-label": "Light " + (index + 1) + " distance",
-        }, function (value) {
-          setLightState(light, { distanceM: value });
         });
-        card.appendChild(renderLightControlRow("ruler", "Distance", distanceSlider, distanceValue));
+        card.appendChild(renderLightControlRow("ruler", "Ground distance (" + units + ")", distancePill));
 
-        /* Angle: dial plus degree readout. */
-        const angleValue = el("span", { class: "krea2-v2-lt-num-text" }, Math.round(light.angleDeg) + "\u00b0");
-        card.appendChild(renderLightControlRow("dial", "Angle", renderAngleDial(light), angleValue));
-
-        /* Height (elevation degrees). */
-        const heightValue = el("span", { class: "krea2-v2-lt-num-text" }, Math.round(light.heightDeg) + "\u00b0");
-        const heightSlider = renderLightSlider({
-          min: "0", max: String(LIGHT_HEIGHT_MAX), step: "5", value: String(light.heightDeg),
-          "aria-label": "Light " + (index + 1) + " elevation",
-        }, function (value) {
-          setLightState(light, { heightDeg: value });
+        /* Angle: dial plus degree pill. */
+        const anglePill = makeLightPill({
+          value: Math.round(light.angleDeg),
+          step: 15, min: -360, max: 360, typedMin: -360, typedMax: 360,
+          format: value => String(Math.round(value)) + "\u00b0",
+          label: "Light " + (index + 1) + " azimuth in degrees",
+          onCommit: value => setLightState(light, { angleDeg: Number(value) }),
         });
-        card.appendChild(renderLightControlRow("height", "Height", heightSlider, heightValue));
+        card.appendChild(renderLightControlRow("dial", "Azimuth (degrees)", renderAngleDial(light), anglePill));
+
+        const heightPill = makeLightPill({
+          value: height,
+          step: 0.1, min: 0, max: 100, typedMin: 0, typedMax: 100,
+          format: lightNumberFormat,
+          label: "Light " + (index + 1) + " height above ground in " + units,
+          onCommit: value => setLightState(light, { heightM: lightingScene.metresFromDisplay(value, units) }),
+        });
+        card.appendChild(renderLightControlRow("height", "Height above ground (" + units + ")", heightPill));
 
         /* Colour: swatch button + hex readout. */
         const colourBtn = el("button", {
@@ -5868,14 +5656,16 @@ function buildGroupPresetPicker(group) {
         card.appendChild(renderLightControlRow("palette", "Colour", colourBtn, hexText));
 
         /* Intensity. */
-        const intensityValue = el("span", { class: "krea2-v2-lt-num-text" }, formatLightStrength(light.strength));
-        const intensitySlider = renderLightSlider({
-          min: "0", max: "3", step: "0.05", value: String(light.strength),
-          "aria-label": "Light " + (index + 1) + " intensity",
-        }, function (value) {
-          setLightState(light, { strength: Math.round(value * 100) / 100 });
+        const intensityPill = makeLightPill({
+          value: light.strength,
+          step: 0.1, min: 0, max: 3, typedMin: 0, typedMax: 3,
+          format: lightNumberFormat,
+          label: "Light " + (index + 1) + " intensity",
+          onCommit: function (value) {
+            setLightState(light, { strength: Math.round(value * 100) / 100 });
+          },
         });
-        card.appendChild(renderLightControlRow("sun", "Intensity", intensitySlider, intensityValue));
+        card.appendChild(renderLightControlRow("sun", "Intensity", intensityPill));
 
         cards.appendChild(card);
       });
@@ -6085,21 +5875,7 @@ function buildGroupPresetPicker(group) {
     }
 
     /* Save the current stage as a lighting preset (scope "lighting"). */
-    function saveLightingSetup() {
-      const label = askPresetName("Name this lighting setup");
-      if (!label) return;
-      const existing = findExistingSavedPreset("lighting", label);
-      if (existing && !window.confirm(
-        "A lighting preset named \u201c" + label + "\u201d already exists. Overwrite it?",
-      )) return;
-      const payload = { scope: "lighting", lights: cloneJson(sceneLights()) };
-      if (existing) {
-        Object.assign(existing, payload, { label: label });
-      } else {
-        savedPresets.push(Object.assign({ id: makeSavedPresetId("lighting", ""), label: label }, payload));
-      }
-      persistSavedPresets(existing ? "Lighting preset overwritten" : "Lighting setup saved");
-    }
+    function saveLightingSetup() { createWorkspacePreset("lighting"); }
 
     /* Lighting colour palette button (used inside the light cards). */
     function renderLightColorButton(light, index) {
@@ -6242,10 +6018,11 @@ function buildGroupPresetPicker(group) {
         el("span", { class: "krea2-structured-spacer" }),
         el("button", {
           type: "button",
-          class: "krea2-wizard-btn krea2-v2-lt-save",
+          class: "krea2-wizard-btn krea2-icon-btn krea2-v2-lt-save",
           title: "Save the current lighting setup as a reusable preset",
+          "aria-label": "Save the current lighting setup as a reusable preset",
           onClick: function () { saveLightingSetup(); },
-        }, [icon("save", { width: "11", height: "11" }), el("span", null, "Save Lighting Setup")]),
+        }, icon("save", { width: "11", height: "11" })),
       ]);
       wrap.appendChild(head);
       /* Preset rail. */
@@ -6272,36 +6049,45 @@ function buildGroupPresetPicker(group) {
       ground.appendChild(el("option", { value: "ground" }, "Ground"));
       ground.appendChild(el("option", { value: "hidden" }, "Hidden"));
       ground.value = "hidden" === (state.scene_sections || {}).stage_ground ? "hidden" : "ground";
+      const units = el("select", { class: "krea2-compact-select", "aria-label": "Light distance units",
+        onChange: event => { state.ui_preferences.measurement_unit = event.target.value; markDirty(); render(); } });
+      units.appendChild(el("option", { value: "m" }, "Metres"));
+      units.appendChild(el("option", { value: "ft" }, "Feet"));
+      units.value = state.ui_preferences.measurement_unit === "ft" ? "ft" : "m";
       const cam = stageCamera();
       const view = el("span", {
         class: "krea2-v2-lt-view-label",
-        title: "Drag the background to orbit the camera; drag a bulb to move a light; scroll to zoom; double-click to reset.",
-      }, "Azimuth " + cam.azim + "\u00b0 \u00b7 Elevation " + cam.elev + "\u00b0 \u2014 drag to orbit \u00b7 scroll to zoom");
+        title: "Drag the background to orbit the camera; drag a bulb to move a light; Alt+wheel to zoom; scroll to move through the workspace; double-click to reset.",
+      }, "Azimuth " + cam.azim + "\u00b0 \u00b7 Elevation " + cam.elev + "\u00b0 \u2014 drag to orbit \u00b7 Alt+wheel to zoom");
       if (stageDrag) stageDrag.viewLabel = view;
-      stageFoot.append(ground, view);
+      stageFoot.append(ground, units, view);
       wrap.appendChild(stageFoot);
       wrap.appendChild(el("button", {
         type: "button",
-        class: "krea2-wizard-btn krea2-v2-add-light",
+        class: "krea2-wizard-btn krea2-icon-btn krea2-v2-add-light",
+        title: "Add a light",
+        "aria-label": "Add a light",
         onClick: addLight,
-      }, "+ Add Light"));
+      }, icon("plus", { width: "13", height: "13" })));
       if ((state.scene_sections && state.scene_sections.lights || []).length) {
         wrap.appendChild(el("button", {
           type: "button",
-          class: "krea2-wizard-btn krea2-danger krea2-v2-clear-lights",
+          class: "krea2-wizard-btn krea2-icon-btn krea2-danger krea2-v2-clear-lights",
           title: "Remove every light from the prompt",
+          "aria-label": "Remove every light from the prompt",
           onClick: function () {
             state.scene_sections = state.scene_sections || {};
             state.scene_sections.lights = [];
+            delete state.scene_sections.light_angle;
             syncLightRows();
             markDirty();
             render();
           },
-        }, "Clear lights"));
+        }, icon("trash", { width: "12", height: "12" })));
       }
       wrap.appendChild(el("div", { class: "krea2-v2-lt-tip" }, [
         icon("bulb", { width: "10", height: "10" }),
-        el("span", null, "Tip: Drag light icons on the stage to reposition. Use the controls to fine-tune each light."),
+        el("span", null, "Drag bulbs to move lights; orbit changes only the view. Left/right refer to the subject. Shading illustrates direction and relative strength; it is not a physical lighting simulation."),
       ]));
       return wrap;
     }
@@ -6569,110 +6355,6 @@ function buildGroupPresetPicker(group) {
 
     /* Final Prompt Preview: header bar (click = collapse) above a fully
      * desaturated gray monospace code area. Shared by both tabs. */
-    function renderFinalPreview() {
-      const open = state.final_preview_open !== false;
-      const section = el("section", {
-        class: "krea2-v2-final-preview" + (open ? " is-open" : ""),
-      });
-      const header = el("div", { class: "krea2-v2-block-head krea2-clickable-head" }, [
-        el("strong", null, "Final Prompt Preview"),
-        el("span", { class: "krea2-v2-block-hint" },
-          state.pretty_preview ? "grouped concept cards (Pretty mode)" : "plain weighted prompt code"),
-        el("span", { class: "krea2-structured-spacer" }),
-        el("button", {
-          type: "button",
-          class: "krea2-wizard-btn krea2-icon-btn krea2-v2-preview-copy",
-          title: "Copy compiled prompt",
-          "aria-label": "Copy compiled prompt",
-          onClick: function (event) {
-            if (event && typeof event.stopPropagation === "function") event.stopPropagation();
-            copy(livePreview.codeText.textContent);
-          },
-        }, icon("copy", { width: "12", height: "12" })),
-        el("span", { class: "krea2-v2-chevron", "aria-hidden": "true" },
-          icon(open ? "chevron_down" : "chevron_right", { width: "12", height: "12" })),
-      ]);
-      header.addEventListener("click", function (event) {
-        const target = event && event.target;
-        if (target && typeof target.closest === "function" && target.closest("button")) return;
-        state.final_preview_open = state.final_preview_open === false;
-        markDirty();
-        render();
-      });
-      const body = el("div", { class: "krea2-v2-final-preview-body" });
-      if (open) {
-        body.appendChild(livePreview.root);
-      }
-      section.appendChild(header);
-      section.appendChild(body);
-      return section;
-    }
-
-    function renderCastTab() {
-      structuredHost.innerHTML = "";
-      // No section chrome (background/border) and no cast-level dice: each
-      // character has its own.
-      const section = el("section", { class: "krea2-character-section krea2-v2-cast" });
-      const add = el("button", { type: "button", class: "krea2-wizard-btn", onClick: function () {
-        const character = newCharacter();
-        state.characters.push(character);
-        state.selected_character_id = character.id;
-        markDirty();
-        renderStructuredEditors();
-      } }, "+ Character");
-      const exportBtn = el("button", { type: "button", class: "krea2-wizard-btn krea2-quiet-btn", onClick: exportStructuredPresets }, "Export");
-      const importInput = el("input", { type: "file", accept: "application/json", hidden: true, onChange: importStructuredPresets });
-      const importBtn = el("button", { type: "button", class: "krea2-wizard-btn krea2-quiet-btn", onClick: function () { importInput.click(); } }, "Import");
-      section.appendChild(el("div", { class: "krea2-structured-heading" }, [
-        el("strong", null, "Cast"),
-        el("span", { class: "krea2-v2-cast-count" },
-          (state.characters || []).length + ((state.characters || []).length === 1 ? " character" : " characters")),
-        el("span", { class: "krea2-structured-spacer" }),
-        add, exportBtn, importBtn, importInput,
-      ]));
-      if (!state.characters.length) {
-        const starter = el("select", { class: "krea2-compact-select", "aria-label": "Add a preset character" });
-        starter.appendChild(el("option", { value: "" }, "Start with a preset character..."));
-        CHARACTER_PRESETS.forEach(function (preset, presetIndex) { starter.appendChild(el("option", { value: String(presetIndex) }, preset.label)); });
-        starter.addEventListener("change", function () {
-          const preset = CHARACTER_PRESETS[Number(starter.value)];
-          if (!preset) return;
-          const character = Object.assign(newCharacter(), cloneJson(preset.character), { name: preset.label });
-          state.characters.push(character); state.selected_character_id = character.id;
-          markDirty(); renderStructuredEditors();
-        });
-        section.appendChild(el("div", { class: "krea2-character-empty-row" }, [starter, el("span", { class: "krea2-structured-empty" }, "or create a blank character") ]));
-      } else {
-        state.characters.forEach(function (character, index) {
-          section.appendChild(renderCharacterCard(character, index));
-        });
-      }
-      castHost.appendChild(section);
-      castHost.appendChild(renderFinalPreview());
-    }
-
-    function renderSceneTab() {
-      sceneHost.appendChild(renderSceneSettingSection());
-      const stack = el("div", { class: "krea2-v2-scene-stack" });
-      /* Camera is full-width; Lighting is its own full-width panel below
-       * it (the stage needs the room); Environment stacks underneath. */
-      stack.appendChild(renderSceneSubsection("camera", "Camera", "camera",
-        renderCameraContent));
-      stack.appendChild(renderSceneSubsection("lighting", "Lighting", "bulb",
-        renderLightingContent));
-      stack.appendChild(renderSceneSubsection("environment", "Environment", "globe",
-        renderEnvironmentContent));
-      sceneHost.appendChild(stack);
-      sceneHost.appendChild(renderFinalPreview());
-    }
-
-    function renderConceptsTab() {
-      conceptsHost.appendChild(el("div", { class: "krea2-wizard-add-row" }, [addConcept, masterPresetSelect]));
-      categoryBody.innerHTML = "";
-      renderGroupSections(categoryBody, GROUPS);
-      conceptsHost.appendChild(categoryBody);
-    }
-
     function renderMotionSection() {
       const section = el("section", { class: "krea2-motion-section" });
       const enabled = !!state.motion_prompt_enabled;
@@ -6738,722 +6420,6 @@ function buildGroupPresetPicker(group) {
       return section;
     }
 
-    /* ------------------------------------------------------------------
-     * v2.0 B2 compact shell: the primary surface of the wizard.
-     * One rounded overview card with title, prompt preview + copy, a
-     * one-line Scene · Shot summary, collapsed cast rows with chips, and
-     * a LoRA summary. Every advanced control stays reachable through the
-     * expanded editor.
-     * ------------------------------------------------------------------ */
-    function characterHasChips(character) {
-      if (String(character.lora_name || "").trim()) return true;
-      return Array.isArray(character.rows) && character.rows.some(function (row) {
-        return row && row.enabled !== false;
-      });
-    }
-
-    function b2CastRow(character) {
-      const row = el("div", {
-        class: "krea2-b2-cast-row" + (character.enabled === false ? " is-disabled" : ""),
-        role: "button",
-        tabindex: "0",
-        title: "Open the full editor at " + (character.name || "this character"),
-        onClick: function () {
-          state.wizard_expanded = true;
-          if (character.expanded === false) character.expanded = true;
-          markDirty();
-          render();
-        },
-      });
-      row.append(
-        buildCharacterAvatar(character),
-        el("span", { class: "krea2-b2-cast-row-name" }, character.name || "Character"),
-      );
-      if (characterHasChips(character)) row.appendChild(characterChips(character));
-      row.appendChild(el("span", { class: "krea2-b2-cast-row-chevron" }, "›"));
-      return row;
-    }
-
-    /* Shared B2 building blocks used by both the compact shell and the
-     * expanded editor so the two surfaces stay visually identical. */
-    function b2MetaCounts(compiled) {
-      const enabledCharacters = (state.characters || []).filter(function (character) {
-        return character && character.enabled !== false;
-      });
-      const activeConcepts = (state.rows || []).filter(function (row) {
-        return row && row.enabled !== false;
-      }).length;
-      const activeLoras = enabledCharacters.filter(function (character) {
-        return String(character.lora_name || "").trim();
-      }).length;
-      const promptText = (compiled && compiled.final_prompt) || "";
-      const tokens = promptText.trim() ? promptText.trim().split(/\s+/).length : 0;
-      return {
-        tokens: tokens,
-        cast: enabledCharacters.length,
-        concepts: activeConcepts,
-        loras: activeLoras,
-      };
-    }
-
-    function b2TitleHeader(meta) {
-      return el("div", { class: "krea2-b2-title" }, [
-        el("span", { class: "krea2-b2-title-name" }, "Krea2 Prompt Wizard"),
-        el("span", { class: "krea2-b2-title-meta" },
-          meta.tokens + " words · " + meta.cast + " cast · "
-          + meta.concepts + " concepts · " + meta.loras + " LoRA"),
-      ]);
-    }
-
-    function b2PromptRow(promptText) {
-      return el("div", { class: "krea2-b2-prompt" }, [
-        el("span", { class: "krea2-b2-label" }, "Prompt"),
-        el("div", { class: "krea2-b2-prompt-text", title: promptText || "" },
-          promptText || "No generation prompt yet"),
-        el("button", {
-          type: "button",
-          class: "krea2-wizard-btn krea2-b2-prompt-copy",
-          title: "Copy compiled prompt",
-          "aria-label": "Copy compiled prompt",
-          onClick: function () { copy(promptText); },
-        }, "📋 Copy"),
-      ]);
-    }
-
-    function b2LoraRow() {
-      const enabledCharacters = (state.characters || []).filter(function (character) {
-        return character && character.enabled !== false;
-      });
-      const loraNames = enabledCharacters.map(function (character) {
-        return String(character.lora_name || "").trim();
-      }).filter(Boolean);
-      return el("div", { class: "krea2-b2-lora-row" }, [
-        el("span", { class: "krea2-b2-label" }, "LoRA"),
-        el("div", { class: "krea2-b2-lora-summary" },
-          loraNames.length ? loraNames.join(" · ") : "— none —"),
-      ]);
-    }
-
-    /* The compact expanded-state card. It shows only the four appearance
-     * fields in a 2-column grid, quick directions, the LoRA select and
-     * strength slider, and the concept chips — never the full appearance
-     * wall or the direction sections of the legacy renderer. */
-    const B2_APPEARANCE_FIELDS = (function () {
-      const byKey = {};
-      CHARACTER_APPEARANCE.forEach(function (field) { byKey[field.key] = field; });
-      return [
-        { key: "hair_style", label: "Hair", options: byKey.hair_style.options },
-        { key: "eyes", label: "Eyes", options: byKey.eyes.options },
-        { key: "body_type", label: "Build", options: byKey.body_type.options },
-        { key: "fitness", label: "Fit", options: byKey.fitness.options },
-      ];
-    })();
-
-    function b2LoraControls(character) {
-      const strength = buildLoraStrengthControl(character);
-      return el("div", { class: "krea2-b2-lora-controls" }, [
-        el("span", { class: "krea2-b2-field-label" }, "LoRA"),
-        buildLoraSelect(character),
-        el("span", { class: "krea2-b2-lora-strength-label" }, "strength"),
-        strength.input,
-        strength.value,
-      ]);
-    }
-
-    function renderB2CompactCharacterCard(character, index) {
-      const expanded = character.expanded !== false;
-      const card = el("section", {
-        class: "krea2-character-card krea2-b2-character-card" + (expanded ? " is-expanded" : ""),
-        dataset: { characterId: character.id },
-      });
-      const header = el("div", { class: "krea2-character-card-header" });
-      const avatar = buildCharacterAvatar(character);
-      const name = el("input", {
-        type: "text",
-        class: "krea2-compact-input krea2-character-name",
-        value: character.name || "",
-        "aria-label": "Character name",
-        onInput: function (event) { character.name = event.target.value; markDirty(); },
-      });
-      const summary = el("span", { class: "krea2-character-summary" }, characterSummary(character) || "No appearance set yet");
-      const enabled = el("label", { class: "krea2-inline-check", title: "Include this character in the prompt" }, [
-        el("input", { type: "checkbox", checked: character.enabled !== false, onChange: function (event) { character.enabled = !!event.target.checked; markDirty(); render(); } }),
-        el("span", null, "Include"),
-      ]);
-      const randomAll = diceButton("Randomize this entire character's look once now", function () {
-        CHARACTER_APPEARANCE.forEach(function (field) {
-          randomizeAppearanceField(character, field);
-        });
-        markDirty(); render();
-      }, "krea2-character-random-look krea2-icon-btn");
-      const allFieldsEachJob = B2_APPEARANCE_FIELDS.every(function (field) {
-        return !!(character.randomize_fields || {})[field.key];
-      });
-      const randomAllEachJob = el("button", {
-        type: "button",
-        class: "krea2-wizard-btn krea2-icon-btn krea2-shuffle krea2-character-random-each-job" + (allFieldsEachJob ? " is-active" : ""),
-        title: allFieldsEachJob
-          ? "This character's appearance changes for every queued job. Click to keep it fixed."
-          : "Randomize this character's appearance for every queued job.",
-        "aria-label": "Randomize this character's appearance every queued job",
-        "aria-pressed": allFieldsEachJob ? "true" : "false",
-        onClick: function () {
-          B2_APPEARANCE_FIELDS.forEach(function (field) {
-            setAppearanceFieldEachJob(character, field, !allFieldsEachJob);
-          });
-          markDirty(); render();
-        },
-      }, icon("shuffle", { width: "13", height: "13" }));
-      const save = el("button", {
-        type: "button",
-        class: "krea2-wizard-btn krea2-save-character",
-        title: "Save this character's look as a reusable preset",
-        onClick: function () { saveCharacterPreset(character, name.value || character.name); },
-      }, "Save");
-      const remove = el("button", { type: "button", class: "krea2-wizard-btn krea2-icon-btn krea2-danger", title: "Delete character", "aria-label": "Delete character", onClick: function () {
-        if (!window.confirm("Delete \u201c" + (character.name || "this character") + "\u201d from the cast?")) return;
-        state.characters = state.characters.filter(function (item) { return item.id !== character.id; });
-        if (state.selected_character_id === character.id) {
-          state.selected_character_id = state.characters.length ? state.characters[0].id : null;
-        }
-        markDirty(); render();
-      } }, "×");
-      const expandBtn = el("button", {
-        type: "button",
-        class: "krea2-character-expand krea2-icon-btn",
-        title: expanded ? "Collapse this character" : "Expand this character",
-        "aria-label": expanded ? "Collapse" : "Expand",
-        onClick: function () {
-          character.expanded = character.expanded === false;
-          persist(); render();
-        },
-      }, expanded ? "Collapse" : "Expand");
-      const identity = el("div", { class: "krea2-character-card-identity" }, [name, summary]);
-      if (!expanded) {
-        identity.appendChild(characterChips(character));
-      }
-      const actions = el("div", { class: "krea2-character-card-actions" }, [
-        enabled,
-        el("div", { class: "krea2-wizard-random-controls" }, [randomAll, randomAllEachJob]),
-        save,
-        remove,
-        expandBtn,
-      ]);
-      header.append(avatar, identity, actions);
-
-      const body = el("div", { class: "krea2-b2-character-body" });
-      if (expanded) {
-        const grid = el("div", { class: "krea2-b2-appearance-grid" });
-        for (const field of B2_APPEARANCE_FIELDS) {
-          const combobox = comboboxForField(character, field);
-          grid.appendChild(el("label", { class: "krea2-b2-appearance-field" }, [
-            el("span", { class: "krea2-b2-field-label" }, field.label),
-            combobox.input,
-            combobox.datalist,
-          ]));
-        }
-        body.appendChild(grid);
-
-        const quick = el("div", { class: "krea2-b2-quick-directions" }, [
-          el("div", { class: "krea2-direction-label" }, "Quick directions"),
-          renderQuickDirectionChips(character),
-        ]);
-        body.appendChild(quick);
-
-        body.appendChild(b2LoraControls(character));
-
-        body.appendChild(el("div", { class: "krea2-b2-concept-chips" }, [
-          el("div", { class: "krea2-direction-label" }, "Direction & LoRA"),
-          characterChips(character),
-        ]));
-      }
-      card.appendChild(header);
-      card.appendChild(body);
-      return card;
-    }
-
-    /* Compact concept card. Quick edits only: preset, cast faces, four
-     * appearance fields per cast member, scene concept chips, randomize
-     * and a single Generate action. Everything else lives in Advanced. */
-    function b2SelectedCharacter() {
-      return state.characters.find(function (character) {
-        return character.id === state.selected_character_id;
-      }) || state.characters[0] || null;
-    }
-
-    function b2AvatarStrip() {
-      const strip = el("div", { class: "krea2-b2-avatars" });
-      for (const character of state.characters) {
-        const selected = character.id === (b2SelectedCharacter() || {}).id;
-        const tile = el("button", {
-          type: "button",
-          class: "krea2-b2-avatar-tile" + (selected ? " is-selected" : ""),
-          title: "Edit " + (character.name || "this character") + "\u2019s look",
-          "aria-label": "Select " + (character.name || "character"),
-          onClick: function () {
-            state.selected_character_id = character.id;
-            markDirty();
-            render();
-          },
-        }, [
-          buildCharacterAvatar(character),
-        ]);
-        strip.appendChild(tile);
-      }
-      strip.appendChild(el("button", {
-        type: "button",
-        class: "krea2-b2-avatar-tile krea2-b2-avatar-add",
-        title: "Add a character",
-        "aria-label": "Add a character",
-        onClick: function () {
-          const character = newCharacter();
-          character.expanded = true;
-          state.characters.push(character);
-          state.selected_character_id = character.id;
-          markDirty();
-          render();
-        },
-      }, "+"));
-      return strip;
-    }
-
-    function b2ConflictCount() {
-      const activeSceneRows = state.rows.filter(function (row) {
-        return row && row.enabled !== false;
-      });
-      const sceneIds = activeSceneRows.map(function (row) { return row.preset_id; });
-      let count = activeSceneRows.filter(function (row) {
-        return conflictsWithAny(row.preset_id, sceneIds.filter(function (id) { return id !== row.preset_id; }));
-      }).length;
-      for (const character of state.characters) {
-        const rows = (character.rows || []).filter(function (row) {
-          return row && row.enabled !== false;
-        });
-        const ids = rows.map(function (row) { return row.preset_id; });
-        count += rows.filter(function (row) {
-          return conflictsWithAny(row.preset_id, ids.filter(function (id) { return id !== row.preset_id; }));
-        }).length;
-      }
-      return count;
-    }
-
-    function renderB2Shell() {
-      b2Shell.innerHTML = "";
-      const compiled = compilePreview(state);
-      const promptText = (compiled && compiled.final_prompt) || "";
-      const meta = b2MetaCounts(compiled);
-
-      const header = b2TitleHeader(meta);
-      header.appendChild(el("span", { class: "krea2-structured-spacer" }));
-      header.appendChild(el("button", {
-        type: "button",
-        class: "krea2-wizard-btn krea2-icon-btn",
-        title: "Copy compiled prompt",
-        "aria-label": "Copy compiled prompt",
-        onClick: function () { copy(promptText); },
-      }, "📋"));
-      const promptRow = b2PromptRow(promptText);
-
-      /* Preset card: shot preset + scene dice + per-job shuffle. */
-      const sceneShuffleOn = !!(state.randomize_on_job || {}).setting;
-      const presetCard = el("div", { class: "krea2-b2-card krea2-b2-preset-card" }, [
-        el("div", { class: "krea2-b2-card-head" }, [
-          el("span", { class: "krea2-b2-label" }, "Preset"),
-          el("span", { class: "krea2-structured-spacer" }),
-          diceButton("Randomize the scene", randomizeSceneOnce),
-          el("button", {
-            type: "button",
-            class: "krea2-wizard-btn krea2-icon-btn krea2-shuffle" + (sceneShuffleOn ? " is-active" : ""),
-            title: sceneShuffleOn
-              ? "Shuffle on: a fresh scene is chosen for every queued job. Click to stop."
-              : "Shuffle off: the scene stays fixed. Click to fit a fresh scene every queued job.",
-            "aria-label": "Randomize the scene every queued job",
-            onClick: function () { toggleSceneShuffle(sceneShuffleOn); },
-          }, icon("shuffle", { width: "13", height: "13" })),
-        ]),
-        masterPresetSelect,
-      ]);
-
-      /* Cast card: faces + quick look edits for the selected member. */
-      const castCount = (state.characters || []).length;
-      const castHead = el("div", { class: "krea2-b2-card-head" }, [
-        el("span", { class: "krea2-b2-label" }, "Characters"),
-        el("span", { class: "krea2-b2-cast-count" },
-          castCount + (castCount === 1 ? " character" : " characters")),
-        el("span", { class: "krea2-structured-spacer" }),
-      ]);
-      const castCard = el("div", { class: "krea2-b2-card krea2-b2-cast-card" }, [castHead]);
-      if (!castCount) {
-        castCard.appendChild(el("div", { class: "krea2-b2-empty-cast" },
-          "No cast yet — add a character."));
-        castCard.appendChild(b2AvatarStrip());
-      } else {
-        castCard.appendChild(b2AvatarStrip());
-        const character = b2SelectedCharacter();
-        if (character) {
-          const allFieldsEachJob = B2_APPEARANCE_FIELDS.every(function (field) {
-            return !!(character.randomize_fields || {})[field.key];
-          });
-          const quick = el("div", { class: "krea2-b2-quick-look" }, [
-            el("label", { class: "krea2-inline-check", title: "Include this character in the prompt" }, [
-              el("input", {
-                type: "checkbox",
-                checked: character.enabled !== false,
-                onChange: function (event) { character.enabled = !!event.target.checked; markDirty(); render(); },
-              }),
-              el("span", null, "Include"),
-            ]),
-            diceButton("Randomize this character\u2019s look once now", function () {
-              CHARACTER_APPEARANCE.forEach(function (field) {
-                randomizeAppearanceField(character, field);
-              });
-              markDirty();
-              render();
-            }, "krea2-character-random-look krea2-icon-btn"),
-            el("button", {
-              type: "button",
-              class: "krea2-wizard-btn krea2-icon-btn krea2-shuffle" + (allFieldsEachJob ? " is-active" : ""),
-              title: allFieldsEachJob
-                ? "This character\u2019s appearance changes for every queued job. Click to keep it fixed."
-                : "Randomize this character\u2019s appearance for every queued job.",
-              "aria-label": "Randomize this character\u2019s appearance every queued job",
-              "aria-pressed": allFieldsEachJob ? "true" : "false",
-              onClick: function () {
-                B2_APPEARANCE_FIELDS.forEach(function (field) {
-                  setAppearanceFieldEachJob(character, field, !allFieldsEachJob);
-                });
-                markDirty();
-                render();
-              },
-            }, icon("shuffle", { width: "13", height: "13" })),
-          ]);
-          const grid = el("div", { class: "krea2-b2-appearance-grid" });
-          for (const field of B2_APPEARANCE_FIELDS) {
-            const combobox = comboboxForField(character, field);
-            grid.appendChild(el("label", { class: "krea2-b2-appearance-field" }, [
-              el("span", { class: "krea2-b2-field-label" }, field.label),
-              combobox.input,
-              combobox.datalist,
-            ]));
-          }
-          castCard.appendChild(quick);
-          castCard.appendChild(grid);
-          castCard.appendChild(el("div", { class: "krea2-b2-concept-chips" }, [
-            el("div", { class: "krea2-direction-label" }, "Direction & LoRA"),
-            characterChips(character),
-          ]));
-        }
-      }
-
-      /* Quick concept chips: lighting, framing, atmosphere and style. */
-      const conceptCard = el("div", { class: "krea2-b2-card krea2-b2-concept-card" }, [
-        el("div", { class: "krea2-b2-card-head" }, [
-          el("span", { class: "krea2-b2-label" }, "Concepts"),
-          el("span", { class: "krea2-b2-scene-concepts-hint" },
-            "lighting \u00b7 framing \u00b7 atmosphere \u00b7 style"),
-        ]),
-        renderChipRow("Lighting", "lighting_setup", SCENE_CHIPS.lighting_setup),
-        renderChipRow("Framing", "framing", SCENE_CHIPS.framing),
-        renderChipRow("Atmosphere", "atmosphere", SCENE_CHIPS.atmosphere),
-        renderChipRow("Style", "style", SCENE_CHIPS.style),
-      ]);
-
-      const conflictCount = b2ConflictCount();
-      const conflictsRow = el("div", {
-        class: "krea2-b2-conflicts" + (conflictCount ? "" : " is-quiet"),
-      }, conflictCount
-        ? "\u26a0 " + conflictCount + " potential conflict" + (conflictCount === 1 ? "" : "s")
-        : "No concept conflicts detected");
-
-      const generate = el("button", {
-        type: "button",
-        class: "krea2-b2-generate",
-        title: "Copy the compiled prompt (queue the run to generate)",
-        onClick: function () {
-          copy(promptText);
-          showToast("Compiled prompt copied \u2014 run the queue to generate", "info");
-        },
-      }, "Generate Prompt");
-
-      b2Shell.append(header, promptRow, presetCard, castCard, conceptCard, conflictsRow, generate);
-    }
-
-    /* ------------------------------------------------------------------
-     * v2.0 B2 expanded shell: the same glass-card shell grows into the
-     * full stacked editor. The legacy tab bar, tab hosts and footer stay
-     * out of the way; every editor is re-rendered inside B2 cards so the
-     * expanded node keeps the B2 styling.
-     * ------------------------------------------------------------------ */
-    function b2BuiltinSceneSelect() {
-      const select = el("select", {
-        class: "krea2-compact-select krea2-b2-scene-select",
-        "aria-label": "Scene setting",
-        title: "Pick a scene — it applies immediately",
-        onChange: function (event) {
-          const preset = SETTING_PRESETS[Number(event.target.value)];
-          if (!preset) return;
-          if (!state.setting || typeof state.setting !== "object") {
-            state.setting = { enabled: false, name: "", description: "" };
-          }
-          state.setting.enabled = true;
-          state.setting.name = preset[0];
-          state.setting.description = preset[1];
-          markDirty();
-          render();
-        },
-      });
-      const setting = state.setting || {};
-      select.appendChild(el("option", { value: "" },
-        "Selected scene: " + (setting.enabled && setting.name ? setting.name : "— choose one —")));
-      SETTING_PRESETS.slice().sort(function (a, b) {
-        return String(a[0]).toLowerCase().localeCompare(String(b[0]).toLowerCase());
-      }).forEach(function (preset, index) {
-        select.appendChild(el("option", { value: String(SETTING_PRESETS.indexOf(preset)) }, preset[0]));
-      });
-      return select;
-    }
-
-    function renderB2ExpandedShell() {
-      b2Shell.innerHTML = "";
-      const compiled = compilePreview(state);
-      const promptText = (compiled && compiled.final_prompt) || "";
-      const meta = b2MetaCounts(compiled);
-
-      /* 1. B2 title header with compact actions and a Collapse control. */
-      const title = b2TitleHeader(meta);
-      title.appendChild(el("span", { class: "krea2-structured-spacer" }));
-      title.appendChild(el("button", {
-        type: "button",
-        class: "krea2-wizard-btn krea2-icon-btn",
-        title: "Copy compiled prompt",
-        "aria-label": "Copy compiled prompt",
-        onClick: function () { copy(promptText); },
-      }, "📋"));
-      title.appendChild(el("button", {
-        type: "button",
-        class: "krea2-wizard-btn krea2-b2-collapse",
-        title: "Collapse the editor back to the compact overview",
-        "aria-label": "Collapse the editor",
-        onClick: function () {
-          state.wizard_expanded = false;
-          markDirty();
-          render();
-        },
-      }, "Collapse editor"));
-
-      /* 2. Compact prompt card at the top with copy. */
-      const promptRow = b2PromptRow(promptText);
-
-      /* 3. Scene + Shot card: editable Type / Setting / Shot rows plus the
-       * Include, dice and shuffle controls and the global concept groups. */
-      const setting = state.setting && typeof state.setting === "object"
-        ? state.setting
-        : { enabled: false, name: "", description: "" };
-      const sceneShuffleOn = !!(state.randomize_on_job || {}).setting;
-      const sceneDetailOn = state.scene_collapsed !== true;
-      const sceneHead = el("div", { class: "krea2-b2-card-head" }, [
-        el("span", { class: "krea2-b2-label" }, "Scene · Shot"),
-        el("label", { class: "krea2-inline-check", title: "Include this scene in the prompt" }, [
-          el("input", {
-            type: "checkbox",
-            checked: !!setting.enabled,
-            onChange: function (event) {
-              if (!state.setting || typeof state.setting !== "object") {
-                state.setting = { enabled: false, name: "", description: "" };
-              }
-              state.setting.enabled = !!event.target.checked;
-              markDirty();
-              render();
-            },
-          }),
-          el("span", null, "Include"),
-        ]),
-        diceButton("Randomize the scene", randomizeSceneOnce),
-        el("button", {
-          type: "button",
-          class: "krea2-wizard-btn krea2-icon-btn krea2-shuffle" + (sceneShuffleOn ? " is-active" : ""),
-          title: sceneShuffleOn
-            ? "Shuffle on: a fresh scene is chosen for every queued job. Click to stop."
-            : "Shuffle off: the scene stays fixed. Click to pick a fresh scene every queued job.",
-          "aria-label": "Randomize the scene every queued job",
-          onClick: function () { toggleSceneShuffle(sceneShuffleOn); },
-        }, icon("shuffle", { width: "13", height: "13" })),
-        el("span", { class: "krea2-structured-spacer" }),
-        el("button", {
-          type: "button",
-          class: "krea2-wizard-btn krea2-b2-scene-expand",
-          title: sceneDetailOn ? "Collapse the scene description" : "Expand the scene description",
-          "aria-label": sceneDetailOn ? "Collapse scene description" : "Expand scene description",
-          "aria-expanded": sceneDetailOn ? "true" : "false",
-          onClick: function () {
-            state.scene_collapsed = sceneDetailOn;
-            markDirty();
-            render();
-          },
-        }, sceneDetailOn ? "Collapse detail" : "Expand detail"),
-      ]);
-      const sceneRows = el("div", { class: "krea2-b2-scene-rows" }, [
-        el("div", { class: "krea2-b2-field-row krea2-b2-field-type" }, [
-          el("span", { class: "krea2-b2-field-label" }, "Type"),
-          creativeModeControl,
-        ]),
-        el("div", { class: "krea2-b2-field-row krea2-b2-field-setting" }, [
-          el("span", { class: "krea2-b2-field-label" }, "Setting"),
-          b2BuiltinSceneSelect(),
-        ]),
-        el("div", { class: "krea2-b2-field-row krea2-b2-field-shot" }, [
-          el("span", { class: "krea2-b2-field-label" }, "Shot"),
-          masterPresetSelect,
-        ]),
-      ]);
-      const scenePrompt = el("div", { class: "krea2-b2-scene-prompt" });
-      scenePrompt.appendChild(basePromptControl.root);
-      const sceneDetail = el("div", {
-        class: "krea2-b2-scene-detail" + (sceneDetailOn ? "" : " is-hidden"),
-      });
-      const description = el("textarea", {
-        class: "krea2-compact-textarea krea2-scene-description",
-        rows: "2",
-        "aria-label": "Scene description",
-        placeholder: "Describe the scene's background and atmosphere…",
-        onInput: function (event) {
-          if (!state.setting || typeof state.setting !== "object") {
-            state.setting = { enabled: false, name: "", description: "" };
-          }
-          state.setting.description = event.target.value;
-          autoExpandTextarea(event);
-          markDirty();
-        },
-      }, setting.description || "");
-      autoExpandTextarea({ target: description });
-      sceneDetail.appendChild(el("div", { class: "krea2-scene-detail-row" }, [
-        el("span", { class: "krea2-b2-field-label" }, "Description"),
-        description,
-      ]));
-
-      categoryBody.innerHTML = "";
-      renderGroupSections(categoryBody, SCENE_GROUPS);
-      const sceneConcepts = el("div", { class: "krea2-b2-scene-concepts" }, [
-        el("div", { class: "krea2-b2-card-head" }, [
-          el("span", { class: "krea2-b2-label" }, "Concepts"),
-          el("span", { class: "krea2-b2-scene-concepts-hint" },
-            "subject · camera · lighting · environment · style"),
-        ]),
-        categoryBody,
-      ]);
-      const sceneCard = el("div", { class: "krea2-b2-card krea2-b2-scene-card" }, [
-        sceneHead,
-        sceneRows,
-        scenePrompt,
-        sceneDetail,
-        sceneConcepts,
-      ]);
-
-      /* 4. Cast section: compact expanded-state cards with the four-field
-       * appearance grid, quick directions, LoRA select and concept chips,
-       * wrapped in the B2 card, plus a global LoRA summary row. */
-      const castCount = (state.characters || []).length;
-      const castHead = el("div", { class: "krea2-b2-card-head" }, [
-        el("span", { class: "krea2-b2-label krea2-b2-cast-label" }, "Cast"),
-        el("span", { class: "krea2-b2-cast-count" },
-          castCount + (castCount === 1 ? " character" : " characters")),
-        el("span", { class: "krea2-structured-spacer" }),
-        diceButton("Randomize every character's full look once now", function () {
-          (state.characters || []).forEach(function (character) {
-            CHARACTER_APPEARANCE.forEach(function (field) {
-              randomizeAppearanceField(character, field);
-            });
-          });
-          markDirty();
-          render();
-        }, "krea2-cast-random-all"),
-        el("button", {
-          type: "button",
-          class: "krea2-wizard-btn krea2-b2-add-character",
-          onClick: function () {
-            const character = newCharacter();
-            character.expanded = true;
-            state.characters.push(character);
-            state.selected_character_id = character.id;
-            markDirty();
-            render();
-          },
-        }, "+ Character"),
-      ]);
-      const castList = el("div", { class: "krea2-b2-cast-list" });
-      if (!castCount) {
-        castList.appendChild(el("div", { class: "krea2-b2-empty-cast" },
-          "No cast yet — add a character to start."));
-      } else {
-        state.characters.forEach(function (character, index) {
-          castList.appendChild(renderB2CompactCharacterCard(character, index));
-        });
-      }
-      const castCard = el("div", { class: "krea2-b2-card krea2-b2-cast-card" }, [
-        castHead,
-        castList,
-        b2LoraRow(),
-      ]);
-
-      /* 6. Final Prompt Preview card at the bottom: the single prompt
-       * preview surface of the expanded shell. */
-      const finalHead = el("div", { class: "krea2-b2-card-head" }, [
-        el("span", { class: "krea2-b2-label" }, "Final Prompt Preview"),
-        el("span", { class: "krea2-structured-spacer" }),
-        el("button", {
-          type: "button",
-          class: "krea2-wizard-btn krea2-b2-prompt-copy",
-          title: "Copy compiled prompt",
-          "aria-label": "Copy compiled prompt",
-          onClick: function () { copy(promptText); },
-        }, "📋 Copy"),
-      ]);
-      const finalBody = el("div", { class: "krea2-b2-final-body" });
-      if (state.show_motion_prompt) {
-        finalBody.appendChild(renderMotionSection());
-      }
-      finalBody.appendChild(livePreview.root);
-      const finalPreview = el("div", {
-        class: "krea2-b2-card krea2-b2-final-preview",
-      }, [finalHead, finalBody]);
-
-      b2Shell.append(title, promptRow, sceneCard, castCard, finalPreview);
-    }
-
-    /* Footer: collapsible prompt section shown on every tab. */
-    function renderFooter() {
-      footerHost.innerHTML = "";
-      const open = state.footer_open === true;
-      const header = el("div", { class: "krea2-footer-header" }, [
-        el("button", {
-          type: "button",
-          class: "krea2-wizard-btn krea2-footer-toggle",
-          onClick: function () {
-            state.footer_open = !open;
-            persist();
-            render();
-          },
-        }, (open ? "Collapse" : "Expand") + " Prompt"),
-        el("span", { class: "krea2-structured-spacer" }),
-      ]);
-      footerHost.appendChild(header);
-      if (!open) return;
-      const body = el("div", { class: "krea2-footer-body" });
-      if (state.show_motion_prompt) {
-        body.appendChild(renderMotionSection());
-      }
-      showWorkToggle.textContent = state.show_work ? "Hide Work" : "Show Work";
-      const promptHeader = el("div", { class: "krea2-prompt-header" }, [
-        el("strong", null, "Preview"),
-        el("span", { class: "krea2-structured-spacer" }),
-        showWorkToggle,
-      ]);
-      body.appendChild(promptHeader);
-      body.appendChild(livePreview.root);
-      body.appendChild(showWork);
-      footerHost.appendChild(body);
-    }
-
     function render() {
       try {
         renderUnsafe();
@@ -7466,45 +6432,458 @@ function buildGroupPresetPicker(group) {
           el("strong", null, "The wizard hit an error while rendering."),
           el("code", null, String(error && error.message ? error.message : error)),
         ]);
-        castHost.appendChild(fatal);
-        renderFooter();
+        editorBody.innerHTML = "";
+        editorBody.appendChild(fatal);
       }
     }
 
-    function renderUnsafe() {
-      const advanced = true;  // v2.3: the compact card is hidden
-      basePromptControl.input.value = state.base_prompt || "";
-      sizeBasePrompt();
-      root.classList.remove("krea2-wizard-compact", "krea2-wizard-expanded");
-      root.classList.add(advanced ? "krea2-wizard-expanded" : "krea2-wizard-compact");
-      b2Shell.innerHTML = "";
-      if (!advanced) {
-        /* Compact: the concept card only — faces + quick edits + prompt.
-         * Clear the advanced hosts so no stale expanded DOM is retained. */
-        tabBar.innerHTML = "";
-        castHost.innerHTML = "";
-        sceneHost.innerHTML = "";
-        conceptsHost.innerHTML = "";
-        structuredHost.innerHTML = "";
-        categoryBody.innerHTML = "";
-        footerHost.innerHTML = "";
-        renderB2Shell();
+    const PERFORMANCE_CATEGORIES = ["emotion", "emotion_trigger", "face", "face_trigger", "gaze", "mouth", "body", "subject_movement"];
+
+    function selectedCharacter() {
+      return state.characters.find(character => character.id === state.selected_character_id) || state.characters[0];
+    }
+    function rowDisplayLabel(row) {
+      return row.label && row.label !== row.preset_id ? row.label : library.find(preset => preset.id === row.preset_id)?.label || row.label || row.phrase || row.category;
+    }
+    function ownedDerivedRow(row) {
+      const lightId = String(row.preset_id || "").startsWith("custom.light_") ? String(row.preset_id).slice("custom.light_".length) : "";
+      if (lightId && (state.scene_sections.lights || []).some(light => String(light.id) === lightId)) return true;
+      return row.preset_id === "custom.shot_distance" && state.scene_sections.shot_distance !== undefined;
+    }
+
+    function identityFingerprint(character) {
+      const snapshot = cloneJson(character);
+      for (const key of Object.keys(snapshot)) if (key.startsWith("loaded_") || ["id", "rows", "position", "interaction", "face_guidance", "expanded", "additional_open", "concepts_open", "quick_open", "loras_open", "collapsed_direction", "randomize_direction_groups"].includes(key)) delete snapshot[key];
+      return JSON.stringify(snapshot);
+    }
+    function identityStatus(character) {
+      if (!character.loaded_identity_preset_id) return "Unsaved identity";
+      const label = savedPresets.find(preset => preset.id === character.loaded_identity_preset_id)?.label || "Loaded identity";
+      return label + (character.loaded_identity_snapshot !== identityFingerprint(character) ? " · Modified" : "");
+    }
+
+    function workspaceSection(id, title, summary, content, defaultOpen) {
+      const key = "workspace_" + id;
+      const open = state.collapsed[key] === undefined ? !!defaultOpen : !state.collapsed[key];
+      const section = W.section(id, title, summary, open, () => { state.collapsed[key] = open; persist(); render(); }, content);
+      section.id = "krea2-section-" + id;
+      return section;
+    }
+
+    function workspaceRows(rows, owner) {
+      const host = el("div", { class: "krea2-workspace-rows" });
+      for (const row of rows.filter(row => !ownedDerivedRow(row))) {
+        const item = el("div", { class: "krea2-workspace-row", dataset: { rowId: row.id } });
+        item.appendChild(renderRow(row, {
+          presets: library, conceptColors: state.concept_colors, markDirty, refresh: render,
+          removeRow: id => { owner.rows = owner.rows.filter(entry => entry.id !== id); markDirty(); render(); },
+          editRow: () => editWorkspaceRow(row, owner), onHover: setRowHover,
+          persistConceptColors: () => saveConceptColors(state.concept_colors || {}).catch(() => {}),
+        }));
+        host.appendChild(item);
+      }
+      if (!rows.length) host.appendChild(el("p", { class: "krea2-workspace-empty" }, "No concepts applied."));
+      return host;
+    }
+
+    /* Concept pills show only the label and strength. Rows that do not come
+     * from the library (recovered or imported concepts) keep their stored
+     * phrase editable through a dialog on the label. */
+    function editWorkspaceRow(row, owner) {
+      const libraryMatch = library.some(preset => preset.id === row.preset_id);
+      if (libraryMatch) {
+        showSearchableSelector({ presets: compatibleLibrary(), title: "Replace concept", multiSelect: false,
+          onPick: preset => { const id = row.id; const strength = row.strength; const replacement = presetToRow(preset, state); Object.assign(row, replacement, { id, strength }); markDirty(); render(); },
+          onClose: render,
+        });
         return;
       }
-      renderNodeSettings();
-      castHost.innerHTML = "";
-      sceneHost.innerHTML = "";
-      conceptsHost.innerHTML = "";
-      structuredHost.innerHTML = "";
-      categoryBody.innerHTML = "";
-      footerHost.innerHTML = "";
-      tabBar.innerHTML = "";
-      renderTabBar();
-      if ((state.active_tab || "cast") === "scene") {
-        renderSceneTab();
-      } else {
-        renderCastTab();
+      W.textDialog({
+        title: "Edit phrase",
+        label: "Phrase",
+        note: "This concept has no library preset (recovered or imported), so its exact phrase is edited here.",
+        value: row.phrase || "",
+        multiline: true,
+        onSave: value => { row.phrase = value; markDirty(); render(); },
+      });
+    }
+
+    function workspaceAdd(owner, categories) {
+      return W.iconButton("plus", "Add concepts", () => showSearchableSelector({
+        presets: compatibleLibrary(), title: "Add concepts", categories, multiSelect: true,
+        selectedIds: owner.rows.map(row => row.preset_id),
+        onToggle: (preset, selected) => {
+          if (selected && !owner.rows.some(row => row.preset_id === preset.id)) owner.rows.push(presetToRow(preset, state));
+          else if (!selected) owner.rows = owner.rows.filter(row => row.preset_id !== preset.id);
+          markDirty();
+        }, onClose: render,
+      }));
+    }
+
+    function workspaceCharacterPicker() {
+      const picker = el("select", { class: "krea2-compact-select", "aria-label": "Selected character", onChange: event => { state.selected_character_id = event.target.value; persist(); render(); } });
+      state.characters.forEach((character, index) => picker.appendChild(el("option", { value: character.id }, (character.name || "Character " + (index + 1)) + (character.enabled === false ? " · excluded" : ""))));
+      picker.value = selectedCharacter()?.id || "";
+      return el("div", { class: "krea2-workspace-actions krea2-workspace-cast-picker" }, [picker,
+        W.iconButton("plus", "Add character", () => { const character = newCharacter(); state.characters.push(character); state.selected_character_id = character.id; markDirty(); render(); }),
+        W.iconButton("users", "Load a saved identity onto the selected character", () => openWorkspaceChooser("character")),
+      ]);
+    }
+
+    function performanceContent() {
+      const character = selectedCharacter();
+      if (!character) return el("p", null, "Add a character to direct their performance.");
+      const flags = character.randomize_direction_groups || {};
+      const currentPreset = savedPresets.find(preset => preset.id === character.loaded_performance_preset_id);
+      const modified = performanceModified(character);
+      const host = el("div", null, [el("p", { class: "krea2-performance-preset-summary" }, currentPreset ? currentPreset.label + (modified ? " · Modified" : "") : "Direct " + (character.name || "selected character")),
+        el("div", { class: "krea2-workspace-actions" }, [workspaceAdd(character, PERFORMANCE_CATEGORIES),
+          W.iconButton("folder", "Performance presets", () => openWorkspaceChooser("performance")),
+          W.iconButton("save", "Save performance as preset", () => createWorkspacePreset("performance")),
+          W.iconButton("dice", "Randomize performance", () => resolveRandom({ kind: "performance", character_id: character.id })),
+          W.iconToggle("shuffle", "New performance picks on every job", ["emotion", "face", "body"].every(key => flags[key]), checked => { character.randomize_direction_groups = Object.assign({}, flags, { emotion: checked, face: checked, body: checked }); markDirty(); render(); }),
+          lockControl("characters", character.id),
+        ]),
+      ]);
+      if (currentPreset && !currentPreset.builtin) host.appendChild(W.iconButton("save", "Update saved performance from current controls", () => updateWorkspacePreset(currentPreset)));
+      const rows = character.rows.filter(row => PERFORMANCE_CATEGORIES.includes(row.category));
+      if (rows.length) host.appendChild(workspaceRows(rows, character));
+      else host.appendChild(el("p", { class: "krea2-workspace-empty" }, "Choose a performance preset or add concepts."));
+      const fine = el("details", null, [el("summary", null, "Fine tuning and subgroup presets")]);
+      for (const group of DIRECTION_GROUPS) fine.appendChild(renderCharacterDirectionBlock(character, group.id));
+      fine.appendChild(W.field("Interaction", character.interaction, value => { character.interaction = value; markDirty(); }));
+      fine.appendChild(W.field("Face guidance", character.face_guidance, value => { character.face_guidance = value; markDirty(); }, true));
+      host.appendChild(fine);
+      return host;
+    }
+
+    function environmentContent() {
+      const setting = state.setting;
+      const host = el("div", null, [
+        W.check("Include environment description", setting.enabled, checked => { setting.enabled = checked; markDirty(); }),
+        W.field("Environment name", setting.name, value => { setting.name = value; markDirty(); }),
+        W.field("Environment description", setting.description, value => { setting.description = value; setting.enabled = true; markDirty(); }, true),
+        W.field("Additional scene notes", state.base_prompt, value => { state.base_prompt = value; markDirty(); }, true),
+        el("div", { class: "krea2-workspace-actions" }, [W.iconButton("folder", "Environment presets", () => openWorkspaceChooser("setting")), W.iconButton("save", "Save environment as preset", () => createWorkspacePreset("setting")), W.iconButton("dice", "Randomize setting", () => randomizeSceneOnce()), W.iconToggle("shuffle", "New setting on every job", !!state.randomize_on_job.setting, checked => { state.randomize_on_job.setting = checked; markDirty(); render(); })]),
+      ]);
+      const base = String(state.base_prompt || "").trim();
+      if (base && base === String(setting.description || "").trim()) host.appendChild(el("div", { class: "krea2-workspace-warning" }, [el("p", null, "This legacy description exists in both scene notes and environment. Keep both until you choose to consolidate."), W.button("Keep environment copy only", () => { state.base_prompt = ""; markDirty(); render(); })]));
+      renderGroupSections(host, ["environment"]);
+      return host;
+    }
+
+    function lockControl(kind, id) {
+      const locks = state.randomization.locks;
+      const values = locks[kind] || [];
+      return W.iconToggle("lock", "Lock randomization", values.includes(id), checked => { locks[kind] = checked ? Array.from(new Set(values.concat(id))) : values.filter(value => value !== id); markDirty(); render(); });
+    }
+
+    function randomControls() {
+      const settings = state.randomization;
+      const seedMode = el("select", { class: "krea2-compact-select", "aria-label": "Random seed mode", onChange: event => { settings.seed_mode = event.target.value; markDirty(); } }, [el("option", { value: "new_per_job" }, "New seed each job"), el("option", { value: "fixed" }, "Fixed seed")]);
+      seedMode.value = settings.seed_mode;
+      const host = el("div", null, [el("div", { class: "krea2-workspace-actions" }, [seedMode,
+        el("input", { type: "number", step: "1", class: "krea2-compact-input", "aria-label": "Random seed", value: settings.seed, onChange: event => { settings.seed = Math.max(0, Math.trunc(Number(event.target.value) || 0)); markDirty(); } }),
+        W.iconButton("dice", "Randomize all unlocked scopes now", () => resolveRandom({ kind: "all" })),
+      ]), el("p", null, "Locks protect selected scopes. Fixed seeds repeat the same choices; each-job flags apply only to their own field or section.")]);
+      for (const group of GROUPS) host.appendChild(el("div", { class: "krea2-workspace-actions" }, [el("span", null, GROUP_LABELS[group]), lockControl("sections", group)]));
+      const character = selectedCharacter();
+      if (character) {
+        const fields = settings.locks.fields[character.id] || [];
+        const choices = el("div", { class: "krea2-workspace-lock-fields" });
+        CHARACTER_APPEARANCE.forEach(field => choices.appendChild(W.check("Lock " + field.label, fields.includes(field.key), checked => { settings.locks.fields[character.id] = checked ? Array.from(new Set(fields.concat(field.key))) : fields.filter(key => key !== field.key); markDirty(); render(); })));
+        host.appendChild(el("details", null, [el("summary", null, "Field locks for " + (character.name || "selected character")), choices]));
       }
+      host.appendChild(W.field("Random weight minimum", state.random_strength_min, value => { state.random_strength_min = Math.max(-3, Math.min(3, Number(value) || 0)); markDirty(); }));
+      host.appendChild(W.field("Random weight maximum", state.random_strength_max, value => { state.random_strength_max = Math.max(state.random_strength_min, Math.min(3, Number(value) || 0)); markDirty(); }));
+      return host;
+    }
+
+    async function resolveRandom(scope) {
+      const request = ++randomRequest;
+      const expected = state.document_revision;
+      try {
+        const result = await fetchCompiledPreview(cloneJson(state), { expert: expertMode(), randomize: true, scope, seed: state.randomization.seed_mode === "fixed" ? state.randomization.seed : undefined });
+        if (disposed || request !== randomRequest || state.document_revision !== expected) return;
+        if (!result.resolved_state) throw new Error("The backend did not return resolved random choices.");
+        state = coerceState(result.resolved_state); markDirty(); render();
+      } catch (error) { showToast(error.message || "Randomization failed", "error"); }
+    }
+
+    function presetEntries(scope, group) {
+      const entries = savedPresets.concat(state.character_presets || [], state.setting_presets || []);
+      if (!scope || scope === "character") entries.push(...CHARACTER_PRESETS.map((entry,index) => Object.assign({ id: "builtin_character_" + index, scope: "character", builtin: true }, entry)));
+      if (!scope || scope === "setting") entries.push(...SETTING_PRESETS.map((entry,index) => ({ id: "builtin_setting_" + index, scope: "setting", builtin: true, label: entry[0], setting: { enabled: true, name: entry[0], description: entry[1] } })));
+      if (!scope || scope === "lighting") entries.push(...LIGHTING_PRESETS.map(entry => ({ id: entry.id, scope: "lighting", builtin: true, label: entry.label, lights: cloneJson(entry.lights) })));
+      if (!scope) entries.push(...compatibleLibrary().map(entry => ({ id: entry.id, scope: "group", group: groupForCategory(entry.category), builtin: true, label: entry.label, rows: [presetToRow(entry, state)], single_concept: true })));
+      const deduped = new Map(entries.map(entry => [entry.id, entry]));
+      return Array.from(deduped.values()).filter(entry => (!scope || entry.scope === scope || (scope === "performance" && entry.scope === "character_direction")) && (!group || entry.group === group));
+    }
+
+    function snapshotPreset(scope, group) {
+      const character = selectedCharacter();
+      if (scope === "full") return { scope, state: cloneJson(state), rows: cloneJson(state.rows), base_prompt: state.base_prompt };
+      if (scope === "character") return { scope, character: cloneJson(character || newCharacter()) };
+      if (scope === "setting") return { scope, setting: cloneJson(state.setting) };
+      if (scope === "performance") return { scope, rows: cloneJson((character?.rows || []).filter(row => PERFORMANCE_CATEGORIES.includes(row.category))) };
+      if (scope === "lighting") return { scope, lights: cloneJson(sceneLights()) };
+      if (scope === "group" && String(group).startsWith("direction_")) {
+        const categories = DIRECTION_GROUPS.find(entry => "direction_" + entry.id === group)?.categories || [];
+        return { scope, group, rows: cloneJson((character?.rows || []).filter(row => categories.includes(row.category))) };
+      }
+      return { scope: "group", group, rows: cloneJson(state.rows.filter(row => groupForCategory(row.category) === group)) };
+    }
+
+    function performanceFingerprint(character) {
+      return canonicalPerformanceSnapshot(character.rows.filter(row => PERFORMANCE_CATEGORIES.includes(row.category)));
+    }
+    function canonicalPerformanceSnapshot(rows) {
+      return JSON.stringify(rows.map(row => ({ category: row.category, preset_id: row.preset_id, phrase: row.phrase || library.find(preset => preset.id === row.preset_id)?.phrase || "", strength: K.helpers.defaultWeightForRow(row, expertMode()), enabled: row.enabled !== false })));
+    }
+    function performanceModified(character) {
+      let snapshot = character.loaded_performance_snapshot;
+      try { snapshot = canonicalPerformanceSnapshot(JSON.parse(snapshot)); } catch (_) {}
+      return snapshot !== performanceFingerprint(character);
+    }
+    function updateWorkspacePreset(preset, label) {
+      const index = savedPresets.findIndex(entry => entry.id === preset.id && !entry.builtin);
+      if (index < 0) return;
+      savedPresets[index] = Object.assign({}, preset, snapshotPreset(preset.scope, preset.group), { id: preset.id, label: label || preset.label });
+      const character = selectedCharacter();
+      const performanceSnapshot = character && preset.scope === "performance" ? performanceFingerprint(character) : null;
+      const identitySnapshot = character && preset.scope === "character" ? identityFingerprint(character) : null;
+      return persistSavedPresets("Saved preset updated").then(accepted => {
+        if (!accepted || !character) return accepted;
+        if (performanceSnapshot !== null) character.loaded_performance_snapshot = performanceSnapshot;
+        if (identitySnapshot !== null) character.loaded_identity_snapshot = identitySnapshot;
+        persist();
+        if (!disposed) render();
+        return accepted;
+      });
+    }
+
+    async function createWorkspacePreset(scope, group) {
+      const label = await askPresetName("Save " + scope + " preset");
+      if (!label) return;
+      savedPresets.push(Object.assign(snapshotPreset(scope, group), { id: makeSavedPresetId(scope, group), label }));
+      return persistSavedPresets("Preset saved");
+    }
+
+    function applyWorkspacePreset(preset, options) {
+      const before = cloneJson(state);
+      const character = selectedCharacter();
+      const copiedRows = rows => cloneRowsWithFreshIds(rows || []).map(row => Object.assign(row, { origin: "preset", origin_action: preset.id || "apply_preset" }));
+      try {
+        if (preset.scope === "full") {
+          state = coerceState(cloneJson(preset.state || Object.assign({}, state, preset)));
+          state.rows = copiedRows(state.rows);
+          for (const storedCharacter of state.characters) storedCharacter.rows = copiedRows(storedCharacter.rows);
+        } else if (preset.scope === "character" && character) {
+          const stored = cloneJson(preset.character || {});
+          const identity = Object.assign(newCharacter(), stored, { id: character.id, position: character.position, interaction: character.interaction, face_guidance: character.face_guidance, rows: options?.includePerformance ? copiedRows(stored.rows) : cloneJson(character.rows) });
+          if (!options?.includePerformance) {
+            for (const key of ["loaded_performance_preset_id", "loaded_performance_snapshot"]) {
+              delete identity[key];
+              if (key in character) identity[key] = cloneJson(character[key]);
+            }
+          }
+          identity.loaded_identity_preset_id = preset.id;
+          identity.loaded_identity_snapshot = identityFingerprint(identity);
+          state.characters[state.characters.indexOf(character)] = identity;
+        } else if (preset.scope === "performance" || preset.scope === "character_direction") {
+          if (!character) throw new Error("Select a character first.");
+          const incoming = copiedRows(preset.rows).filter(row => PERFORMANCE_CATEGORIES.includes(row.category));
+          if (options?.combine) {
+            for (const row of incoming) { const match = character.rows.find(current => current.preset_id === row.preset_id && current.category === row.category); if (match) Object.assign(match, row, { id: match.id }); else character.rows.push(row); }
+          } else character.rows = character.rows.filter(row => !PERFORMANCE_CATEGORIES.includes(row.category)).concat(incoming);
+          character.loaded_performance_preset_id = preset.id;
+          character.loaded_performance_snapshot = performanceFingerprint(character);
+        } else if (preset.scope === "setting") state.setting = cloneJson(preset.setting);
+        else if (preset.scope === "lighting") { state.scene_sections.lights = cloneJson(preset.lights || []); syncLightRows(); }
+        else if (preset.scope === "group") {
+          const incoming = copiedRows(preset.rows);
+          if (preset.single_concept) state.rows = state.rows.filter(row => row.preset_id !== incoming[0]?.preset_id).concat(incoming);
+          else if (String(preset.group).startsWith("direction_") && character) {
+            const categories = DIRECTION_GROUPS.find(group => "direction_" + group.id === preset.group)?.categories || [];
+            character.rows = character.rows.filter(row => !categories.includes(row.category)).concat(incoming);
+          } else state.rows = state.rows.filter(row => groupForCategory(row.category) !== preset.group).concat(incoming);
+        }
+        state.ui_preferences.recents = [preset.id].concat((state.ui_preferences.recents || []).filter(id => id !== preset.id)).slice(0, 20);
+        markDirty(); render();
+      } catch (error) { state = before; showToast(error.message, "error"); }
+    }
+
+    function openWorkspaceChooser(scope, group) {
+      activeChooser?.close();
+      const options = { includePerformance: false, combine: false };
+      const controls = el("div", { class: "krea2-workspace-actions" });
+      if (scope === "character") controls.appendChild(W.check("Include saved performance", false, checked => { options.includePerformance = checked; }));
+      if (scope === "performance") controls.appendChild(W.check("Combine with current performance", false, checked => { options.combine = checked; }));
+      activeChooser = W.chooser({ title: scope ? "Choose " + scope + " preset" : "All saved presets", controls,
+        entries: () => presetEntries(scope, group), preferences: () => state.ui_preferences,
+        favorite: id => { const items = state.ui_preferences.favorites || []; state.ui_preferences.favorites = items.includes(id) ? items.filter(value => value !== id) : items.concat(id); persist(); },
+        apply: preset => applyWorkspacePreset(preset, options), create: () => createWorkspacePreset(scope || "full", group),
+        edit: preset => {
+          applyWorkspacePreset(preset, options);
+          const id = preset.scope === "performance" || preset.scope === "character_direction" ? "performance" : preset.scope === "character" ? "character" : preset.scope === "setting" ? "environment" : preset.scope === "lighting" ? "lighting" : "advanced";
+          state.collapsed["workspace_" + id] = false;
+          if (id === "character" && selectedCharacter()) selectedCharacter().expanded = true;
+          persist(); render();
+        },
+        update: updateWorkspacePreset,
+        save: (preset, duplicate) => { const payload = cloneJson(preset); if (duplicate || payload.builtin) { payload.id = makeSavedPresetId(payload.scope, payload.group); delete payload.builtin; savedPresets.push(payload); } else { const index = savedPresets.findIndex(entry => entry.id === payload.id); if (index >= 0) savedPresets[index] = payload; } persistSavedPresets("Preset saved"); },
+        remove: preset => { savedPresets = savedPresets.filter(entry => entry.id !== preset.id); state.character_presets = state.character_presets.filter(entry => entry.id !== preset.id); state.setting_presets = state.setting_presets.filter(entry => entry.id !== preset.id); markDirty(); persistSavedPresets("Preset deleted"); },
+        error: message => showToast(message, "error"), onClose: () => { activeChooser = null; },
+      });
+    }
+
+    function focusEditor() {
+      if (focusOverlay) { closeFocusedEditor(); return; }
+      focusedHome = root.parentNode;
+      focusOverlay = el("div", { class: "krea2-workspace-focus-overlay", role: "dialog", "aria-modal": "true", "aria-label": "Focused Prompt Wizard" });
+      focusOverlay.appendChild(root); document.body.appendChild(focusOverlay);
+      root.classList.add("is-focused"); render();
+    }
+    function closeFocusedEditor() {
+      if (!focusOverlay) return;
+      if (focusedHome) focusedHome.appendChild(root);
+      root.classList.remove("is-focused"); focusOverlay.remove(); focusOverlay = null; focusedHome = null;
+      render();
+    }
+
+    function inspectorContent() {
+      const host = el("div", null, [el("strong", null, "Current document preview"), W.check("Show compile trace", state.show_work, checked => { state.show_work = checked; persist(); render(); }), livePreview.root, showWork]);
+      const warnings = (latestPreview?.result?.warnings || []).concat(lastRun?.warnings || []);
+      if (warnings.length) host.appendChild(el("div", { class: "krea2-workspace-warning" }, warnings.map(warning => el("p", null, typeof warning === "string" ? warning : warning.message || JSON.stringify(warning)))));
+      if (lastRun) {
+        host.appendChild(el("strong", null, "Actual last run · revision " + lastRun.revision));
+        if (lastRun.revision !== state.document_revision) host.appendChild(el("p", { class: "krea2-workspace-warning" }, "The current document has changed since this run. Its result has not replaced your edits."));
+        host.appendChild(el("div", { class: "krea2-workspace-actual-prompt" }, lastRun.prompt));
+        const nativeWeighting = lastRun.trace?.native_weighting;
+        if (nativeWeighting) {
+          const assignments = Array.isArray(nativeWeighting.token_weights) ? nativeWeighting.token_weights : [];
+          const positions = new Set(assignments.map(pair => pair[0]));
+          host.appendChild(el("p", { class: "krea2-workspace-native-summary" }, nativeWeighting.enabled
+            ? "Native weighting enabled · strength " + (nativeWeighting.strength ?? 1) + " · " + positions.size + " matched token positions."
+            : nativeWeighting.conditioning === "plain"
+              ? "Native weighting disabled · Positive Conditioning carries the plain encoded prompt."
+              : "Native weighting disabled · no CLIP connected, so Positive Conditioning is empty."));
+          if (nativeWeighting.enabled) {
+            if (nativeWeighting.strength === 0) host.appendChild(el("p", null, "Strength zero encodes the clean text without changing token weights."));
+            host.appendChild(el("strong", null, "Text actually encoded"));
+            host.appendChild(el("div", { class: "krea2-workspace-actual-prompt" }, String(nativeWeighting.encoded_text ?? "")));
+            if (!assignments.length) host.appendChild(el("p", null, "No weighted phrases matched visible tokens; the model passed through unchanged."));
+            if (assignments.length) {
+              const details = el("details", null, [el("summary", null, "Matched token weights")]);
+              const groups = new Map();
+              assignments.forEach(([position, multiplier, bias]) => {
+                const key = multiplier + ":" + bias;
+                if (!groups.has(key)) groups.set(key, { multiplier, bias, positions: [] });
+                groups.get(key).positions.push(position);
+              });
+              for (const group of groups.values()) {
+                details.appendChild(el("p", null, "Token positions " + group.positions.join(", ")
+                  + " · value multiplier " + group.multiplier + " · attention boost " + group.bias));
+              }
+              host.appendChild(details);
+            }
+          }
+        }
+      host.appendChild(W.iconButton("copy", "Copy the actual last-run prompt", () => copy(lastRun.prompt)));
+      if (lastRun.snapshot) host.appendChild(W.iconButton("history", "Restore the exact last-run snapshot", () => {
+          const preferences = state.ui_preferences;
+          state = coerceState(cloneJson(lastRun.snapshot));
+          state.ui_preferences = preferences;
+          markDirty();
+          state.randomization.replay = true;
+          persistedState = JSON.stringify(state); persist(); render();
+        }));
+      } else host.appendChild(el("p", null, "No workflow has run yet."));
+      return host;
+    }
+
+    function renderWorkspace() {
+      for (const stop of Array.from(activeDrags)) stop();
+      K.helpers.cleanupDOM(topBar);
+      K.helpers.cleanupDOM(editorBody);
+      K.helpers.cleanupDOM(footerHost);
+      topBar.innerHTML = "";
+      topBar.appendChild(el("strong", { class: "krea2-workspace-title" }, "Prompt Wizard"));
+      topBar.appendChild(el("span", { class: "krea2-workspace-build" }, WIZARD_VERSION));
+      topBar.appendChild(W.iconButton("book", "Presets", () => openWorkspaceChooser()));
+      topBar.appendChild(W.iconButton("save", "Save workspace as preset", () => createWorkspacePreset("full")));
+      topBar.appendChild(undoBtn); topBar.appendChild(redoBtn);
+      topBar.appendChild(W.iconButton("expand", focusOverlay ? "Close the focused editor" : "Open the focused editor", focusEditor));
+      const textSize = el("select", { class: "krea2-compact-select", "aria-label": "Editor text size", onChange: event => { state.ui_preferences.text_size = Number(event.target.value); persist(); render(); } });
+      [13,14,16,18,20].forEach(size => textSize.appendChild(el("option", { value: String(size) }, size + " px")));
+      textSize.value = String(state.ui_preferences.text_size); topBar.appendChild(textSize);
+      root.style.fontSize = state.ui_preferences.text_size + "px";
+      root.dataset.documentRevision = String(state.document_revision);
+      editorBody.innerHTML = ""; editorBody.appendChild(workspaceCharacterPicker());
+      const character = selectedCharacter();
+      editorBody.appendChild(workspaceSection("character", "Character", character ? characterSummary(character) || "Identity and appearance" : "No cast", () => character ? renderCharacterCard(character, state.characters.indexOf(character)) : el("p", null, "Add a character or load an identity."), false));
+      const perfRows = (character?.rows || []).filter(row => PERFORMANCE_CATEGORIES.includes(row.category));
+      const each = Object.values(character?.randomize_direction_groups || {}).some(Boolean);
+      editorBody.appendChild(workspaceSection("performance", "Performance", perfRows.length + " concepts" + (each ? " · each job" : "") + " · " + (character?.name || "selected character"), performanceContent, true));
+      editorBody.appendChild(workspaceSection("lighting", "Lighting", ((state.scene_sections?.lights || []).length) + " lights · " + state.rows.filter(row => groupForCategory(row.category) === "lighting").length + " concepts" + (state.randomize_on_job.lighting ? " · each job" : ""), () => { const host = renderLightingContent(); renderGroupSections(host, ["lighting"]); return host; }, true));
+      editorBody.appendChild(workspaceSection("environment", "Environment", state.setting.name || "Description, atmosphere and movement", environmentContent, true));
+      editorBody.appendChild(workspaceSection("camera", "Camera", state.rows.filter(row => groupForCategory(row.category) === "camera_film").length + " concepts" + (state.randomize_on_job.camera_film ? " · each job" : ""), () => { const host = renderCameraContent(); renderGroupSections(host, ["camera_film"]); return host; }, false));
+      editorBody.appendChild(workspaceSection("style", "Style & Finish", state.rows.filter(row => groupForCategory(row.category) === "style_finish").length + " concepts" + (state.randomize_on_job.style_finish ? " · each job" : ""), () => { const host = el("div"); renderGroupSections(host, ["style_finish"]); return host; }, false));
+      editorBody.appendChild(workspaceSection("random", "Randomization", state.randomization.seed_mode === "fixed" ? "Fixed seed " + state.randomization.seed : "New seed each job", randomControls, false));
+      editorBody.appendChild(workspaceSection("advanced", "Advanced & Recovered concepts", state.rows.length + " global concepts · strength pills · recovered phrases stay editable", () => {
+        const host = el("div", null, [workspaceAdd(state), W.iconButton("book", "Concept library", openLibrary), W.iconButton("gear", "Output settings", () => { state.settings_open = !state.settings_open; persist(); render(); }), W.iconButton("download", "Materialize: write the compiled prompt back as an editable snapshot", materialize), W.iconButton("workflow", "Create a subgraph from the current workspace", createSubgraph), W.iconButton("trash", "Reset the workspace to defaults", resetAll, { class: "krea2-wizard-btn krea2-icon-btn krea2-danger" })]);
+        host.appendChild(W.check("Native conditioning weighting", state.native_weighting_enabled, checked => { state.native_weighting_enabled = checked; markDirty(); render(); }));
+        host.appendChild(el("label", { class: "krea2-workspace-field" }, [
+          el("span", null, "Native weighting strength"),
+          el("input", { type: "number", min: "0", max: "4", step: "0.05",
+            class: "krea2-compact-input", "aria-label": "Native weighting strength",
+            value: String(state.native_weighting_strength ?? 1),
+            onInput: event => {
+              if (event.target.value === "" || !Number.isFinite(Number(event.target.value))) return;
+              state.native_weighting_strength = Math.max(0, Math.min(4, Number(event.target.value)));
+              markDirty();
+            },
+            onChange: event => { event.target.value = String(state.native_weighting_strength); },
+          }),
+        ]));
+        host.appendChild(el("p", null, "Connect CLIP and use Positive Conditioning for native weighting. The original prompt and first three outputs stay available."));
+        host.appendChild(workspaceRows(state.rows, state));
+        if (character) {
+          host.appendChild(W.field("Placement", character.position, value => { character.position = value; markDirty(); }));
+          ["identity", "subject", "expression", "clothing", "adult_description", "lora_triggers"].forEach(key => { host.appendChild(W.field("Character " + key.replace(/_/g, " "), character[key], value => { character[key] = value; markDirty(); }, true)); });
+          const appearance = el("details", null, [el("summary", null, "All appearance fields")]);
+          CHARACTER_APPEARANCE.forEach(field => appearance.appendChild(W.field(field.label, character[field.key], value => { character[field.key] = value; markDirty(); })));
+          host.appendChild(appearance);
+          host.appendChild(workspaceRows(character.rows, character));
+        }
+        if (state.recovery_rows.length) { host.appendChild(el("strong", null, "Recovered concepts")); host.appendChild(workspaceRows(state.recovery_rows, { get rows() { return state.recovery_rows; }, set rows(value) { state.recovery_rows = value; } })); }
+        if (state.migration_report.length) host.appendChild(el("details", null, [el("summary", null, "Migration notes"), el("p", null, state.migration_report.map(item => typeof item === "string" ? item : item.message || JSON.stringify(item)).join(" · "))]));
+        host.appendChild(renderMotionSection());
+        renderNodeSettings(); host.appendChild(settingsHost);
+        return host;
+      }, false));
+      editorBody.appendChild(workspaceSection("inspector", "Prompt inspector", lastRun ? "Current preview and actual run" : "Current preview · no run yet", inspectorContent, false));
+      footerHost.innerHTML = "";
+      footerHost.appendChild(el("span", { class: "krea2-workspace-status" }, "Revision " + state.document_revision + (dirty ? " · Modified" : " · Saved document")));
+      footerHost.appendChild(W.button("Prompt inspector", () => { state.collapsed.workspace_inspector = false; render(); root.querySelector('[data-section-id="inspector"]')?.scrollIntoView?.({ block: "start", behavior: "smooth" }); }));
+      footerHost.appendChild(W.button("Queue workflow", async event => {
+        const button = event?.currentTarget;
+        if (button) button.disabled = true;
+        try { if (typeof window.app?.queuePrompt !== "function") throw new Error("ComfyUI queue is unavailable."); await window.app.queuePrompt(0, 1); }
+        catch (error) { showToast(error.message || "The workflow could not be queued.", "error"); }
+        finally { if (button) button.disabled = false; }
+      }, { class: "krea2-wizard-btn krea2-workspace-queue" }));
+      autoHeight();
+    }
+
+    function autoHeight() {
+      for (const input of root.querySelectorAll("textarea")) { input.style.height = "auto"; input.style.height = Math.max(48, input.scrollHeight || 0) + "px"; input.style.overflow = "hidden"; input.style.resize = "none"; }
+    }
+
+    function renderUnsafe() {
+      if (disposed) return;
+      root.classList.add("krea2-workspace", "krea2-wizard-expanded");
+      renderWorkspace();
       updateHistoryControls();
       renderLivePreview(true);
       applyPreviewMode();
@@ -7566,14 +6945,20 @@ function buildGroupPresetPicker(group) {
       });
     }
 
-    function materialize() {
-      const result = materializeToNodes(state, {});
-      if (result) showToast("Materialized " + (result.nodes ? result.nodes.length : 0) + " nodes.", "info");
+    async function materialize() {
+      try {
+        const snapshot = cloneJson(state);
+        const compiled = await fetchCompiledPreview(snapshot, { expert: expertMode(), randomize: false });
+        materializeToNodes(snapshot, { compiledPrompt: compiled.final_prompt });
+      } catch (error) { showToast(error.message || "Could not export prompt snapshot.", "error"); }
     }
 
-    function createSubgraph() {
-      const result = createSubgraphFromWizard(state, {});
-      if (result) showToast("Subgraph created.", "info");
+    async function createSubgraph() {
+      try {
+        const snapshot = cloneJson(state);
+        const compiled = await fetchCompiledPreview(snapshot, { expert: expertMode(), randomize: false });
+        createSubgraphFromWizard(snapshot, { compiledPrompt: compiled.final_prompt });
+      } catch (error) { showToast(error.message || "Could not export prompt snapshot.", "error"); }
     }
 
     function resetAll() {
@@ -7584,6 +6969,22 @@ function buildGroupPresetPicker(group) {
       render();
       applyModeSize(true);
     }
+
+    function onWorkspaceInput(event) { inputTransaction = event.target; autoHeight(); }
+    function onWorkspaceChange() { inputTransaction = null; lastTransaction = null; }
+    function onWorkspaceWheel(event) { event.stopPropagation(); }
+    function onWorkspaceKey(event) {
+      if (event.key === "Escape" && focusOverlay) closeFocusedEditor();
+      if (!(event.ctrlKey || event.metaKey) || !root.contains(event.target)) return;
+      if (event.key.toLowerCase() === "z") { event.preventDefault(); event.shiftKey ? redo() : undo(); }
+      if (event.key.toLowerCase() === "y") { event.preventDefault(); redo(); }
+    }
+    root.addEventListener("input", onWorkspaceInput, true);
+    root.addEventListener("change", onWorkspaceChange, true);
+    root.addEventListener("wheel", onWorkspaceWheel, { passive: true });
+    document.addEventListener("keydown", onWorkspaceKey);
+    const resizeObserver = typeof ResizeObserver === "function" ? new ResizeObserver(() => autoHeight()) : null;
+    resizeObserver?.observe(root);
 
     render();
     fetchLibrary().then(function (presets) {
@@ -7624,7 +7025,9 @@ function buildGroupPresetPicker(group) {
        * WITHOUT disturbing what the user is looking at: the active tab, the
        * prompt footer, collapse flags, and per-character expand states are
        * UI state that must survive job executions. */
-      applyResolvedState: function (resolved) {
+      applyResolvedState: function (resolved, rawRevision) {
+        const executionRevision = Number(Array.isArray(rawRevision) ? rawRevision[0] : rawRevision ?? resolved?.document_revision ?? state.document_revision);
+        if (executionRevision !== state.document_revision) { render(); return false; }
         const previous = JSON.stringify(state);
         const merged = coerceState(resolved || {});
         const uiKeys = [
@@ -7632,7 +7035,7 @@ function buildGroupPresetPicker(group) {
           "selected_character_id", "show_work",
           "show_motion_prompt", "show_face_guidance", "show_concepts_tab",
           "scene_collapsed", "wizard_expanded",
-          "scene_sections", "final_preview_open", "pretty_preview",
+          "ui_preferences", "final_preview_open", "pretty_preview",
           "character_creator",
         ];
         for (const key of uiKeys) {
@@ -7656,9 +7059,31 @@ function buildGroupPresetPicker(group) {
         persistedState = JSON.stringify(state);
         persist();
         render();
+        return true;
       },
+      resize: function () { autoHeight(); },
+      dispose: function () {
+        disposed = true; ++previewSequence; ++randomRequest;
+        schedulePreview.cancel?.();
+        scheduleAppearanceRender.cancel?.();
+        for (const stop of Array.from(activeDrags)) stop();
+        K.helpers.cleanupDOM(root);
+        activeChooser?.close();
+        activeNameDialog?.close();
+        if (focusOverlay) { if (focusedHome) focusedHome.appendChild(root); focusOverlay.remove(); focusOverlay = null; }
+        resizeObserver?.disconnect();
+        root.removeEventListener("input", onWorkspaceInput, true);
+        root.removeEventListener("change", onWorkspaceChange, true);
+        root.removeEventListener("wheel", onWorkspaceWheel);
+        document.removeEventListener("keydown", onWorkspaceKey);
+      },
+      getState: function () { return cloneJson(state); },
+      applyPreset: applyWorkspacePreset,
+      randomize: resolveRandom,
+      focusEditor: focusEditor,
       recordExecution: recordExecution,
       getExecutionHistory: function () { return executionHistory.slice(); },
+      getExecutionRecords: function () { return cloneJson(executionRecords); },
     };
   }
 

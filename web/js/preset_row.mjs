@@ -16,6 +16,7 @@
     displayStrength,
     storedStrength,
     formatStepValue,
+    onCleanup,
   } = K.helpers;
 
   const ROW_MIN = -3;
@@ -33,7 +34,7 @@
 
   function showColorPicker(anchor, presetId, onPick) {
     const existing = document.querySelector(".krea2-color-picker-menu");
-    if (existing) existing.remove();
+    if (existing) { K.helpers.cleanupDOM(existing); existing.remove(); }
     const menu = el("div", { class: "krea2-color-picker-menu" });
     for (const entry of COLOR_TAGS) {
       menu.appendChild(el("button", {
@@ -44,7 +45,7 @@
         onClick: function (e) {
           e.stopPropagation();
           onPick(entry[0]);
-          menu.remove();
+          close();
         },
       }, icon("dot", { color: entry[1], width: "14", height: "14" })));
     }
@@ -56,7 +57,7 @@
       onClick: function (e) {
         e.stopPropagation();
         onPick("");
-        menu.remove();
+        close();
       },
     }, "Clear"));
     const rect = anchor.getBoundingClientRect();
@@ -76,12 +77,19 @@
     });
     document.body.appendChild(menu);
     function onDocClick(e) {
-      if (!menu.contains(e.target)) {
-        menu.remove();
-        document.removeEventListener("click", onDocClick, true);
-      }
+      if (!menu.contains(e.target)) close();
     }
-    setTimeout(() => document.addEventListener("click", onDocClick, true), 0);
+    let closed = false;
+    const timer = setTimeout(() => { if (!closed) document.addEventListener("click", onDocClick, true); }, 0);
+    function close() {
+      if (closed) return;
+      closed = true;
+      clearTimeout(timer);
+      document.removeEventListener("click", onDocClick, true);
+      menu.remove();
+    }
+    onCleanup(anchor, close);
+    onCleanup(menu, close);
   }
 
   /* Click-and-hold auto-repeat for the − / + pills. */
@@ -96,6 +104,7 @@
       document.removeEventListener("mouseleave", stop);
       button.classList.remove("is-repeating");
     }
+    onCleanup(button, stop);
     button.addEventListener("mousedown", function (event) {
       if (event.button !== 0) return;
       event.preventDefault();
@@ -110,6 +119,8 @@
   /* Vertical drag surrogate for the center value: up = +step per 10px,
    * down = -step per 10px, released on mouseup. */
   function attachValueDrag(valueEl, getValue, setValue, step) {
+    let stopDrag = null;
+    onCleanup(valueEl, () => { if (stopDrag) stopDrag(); });
     valueEl.addEventListener("mousedown", function (event) {
       if (event.button !== 0) return;
       event.preventDefault();
@@ -130,7 +141,9 @@
         valueEl.classList.remove("is-dragging");
         document.body.classList.remove("krea2-ns-resize");
         if (moved) valueEl.dataset.dragMoved = "1";
+        stopDrag = null;
       }
+      stopDrag = onUp;
       document.addEventListener("mousemove", onMove);
       document.addEventListener("mouseup", onUp);
     });
@@ -194,6 +207,7 @@
     const typedMax = Number.isFinite(Number(opts.typedMax)) ? Number(opts.typedMax) : max;
     const format = opts.format || formatStepValue;
     const onCommit = opts.onCommit || function () {};
+    const snapTyped = opts.snapTyped !== false;
     const snap = function (v) {
       return Math.round(Math.max(min, Math.min(max, Number(v))) / step) * step;
     };
@@ -229,7 +243,9 @@
       onCommit(current);
     }
     function setValueTyped(next) {
-      current = Math.max(typedMin, Math.min(typedMax, Number(next)));
+      let value = Math.max(typedMin, Math.min(typedMax, Number(next)));
+      if (snapTyped) value = Math.round(value / step) * step;
+      current = value;
       valueEl.textContent = format(current);
       valueEl.setAttribute("aria-valuenow", String(current));
       onCommit(current);
@@ -250,6 +266,8 @@
   }
 
   function renderRow(row, ctx) {
+    const libraryEntry = (ctx.presets || []).find(preset => preset.id === row.preset_id);
+    const displayLabel = row.label && row.label !== row.preset_id ? row.label : libraryEntry?.label || row.label || row.phrase || "Concept";
     const color = ctx.conceptColors && ctx.conceptColors[row.preset_id] || "";
     const wrap = el("div", {
       class: "krea2-row" + (color ? " is-starred-" + color : ""),
@@ -262,6 +280,7 @@
       title: "Drag concept to reorder",
       "aria-label": "Drag concept to reorder",
     }, icon("grip", { width: "12", height: "12" }));
+    if (!ctx.onReorder) dragHandle.style.display = "none";
 
     const starBtn = el("button", {
       type: "button",
@@ -285,24 +304,32 @@
     const label = el("button", {
       type: "button",
       class: "krea2-row-label",
-      title: "Replace this concept",
+      title: displayLabel + " — click to replace this concept",
       onClick: function () { ctx.editRow(row); },
-    }, row.label || row.preset_id || "Concept");
+    }, displayLabel);
 
-    const initial = storedStrength(displayStrength(row));
-    row.strength = initial;
+    const initial = displayStrength(row, ctx.expert);
 
     const stepper = makeStepper({
       value: initial,
       step: ROW_STEP,
       min: ROW_MIN,
       max: ROW_MAX,
+      snapTyped: row.control_mode !== "raw",
       label: "Concept strength",
+      format: value => (value > 0 ? "+" : "") + K.helpers.formatWeight(value),
       onCommit: function (value) {
         row.strength = value;
         ctx.markDirty();
       },
     });
+
+    const pill = el("div", { class: "krea2-pill" }, [
+      stepper.minus,
+      label,
+      stepper.valueEl,
+      stepper.plus,
+    ]);
 
     const enabled = el("button", {
       type: "button",
@@ -337,10 +364,7 @@
     wrap.appendChild(el("div", { class: "krea2-row-head" }, [
       dragHandle,
       starBtn,
-      label,
-      stepper.minus,
-      stepper.valueEl,
-      stepper.plus,
+      pill,
       enabled,
       remove,
     ]));
@@ -354,8 +378,10 @@
       if (ctx.onHover) ctx.onHover(row.id, false);
     });
 
+    let cancelReorder = null;
+    onCleanup(wrap, () => { if (cancelReorder) cancelReorder(); });
     dragHandle.addEventListener("mousedown", function (event) {
-      if (event.button !== 0) return;
+      if (event.button !== 0 || typeof ctx.onReorder !== "function") return;
       var parent = wrap.parentNode;
       if (!parent) return;
       var rect = wrap.getBoundingClientRect();
@@ -425,7 +451,9 @@
         });
       }
 
-      function onUp() {
+      function finish(commit) {
+        if (!cancelReorder) return;
+        cancelReorder = null;
         if (rafId) { window.cancelAnimationFrame(rafId); rafId = null; }
         document.removeEventListener("mousemove", onMove);
         document.removeEventListener("mouseup", onUp);
@@ -436,9 +464,10 @@
           var property = ["position", "left", "top", "width", "height", "zIndex", "pointerEvents"][pi];
           wrap.style[property] = "";
         }
-        ctx.onReorder(parent);
+        if (commit) ctx.onReorder(parent);
       }
-
+      function onUp() { finish(true); }
+      cancelReorder = () => finish(false);
       document.addEventListener("mousemove", onMove);
       document.addEventListener("mouseup", onUp);
       event.preventDefault();

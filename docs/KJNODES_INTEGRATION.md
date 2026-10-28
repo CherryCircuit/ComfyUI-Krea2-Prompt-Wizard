@@ -1,111 +1,39 @@
-# KJNodes Integration
+# Krea 2 weighting
 
-KJNodes (`kijai/ComfyUI-KJNodes`) is an optional companion pack that
-ships a `Krea2PromptWeight` node. The Krea2PromptWeight node
-implements `(phrase:weight)` weighting for Krea 2 by patching the
-attention layers of the underlying MMDiT model.
+The wizard supports two explicit choices. Existing workflows continue to emit weighted prompt text for an external KJNodes `Krea2PromptWeight` node. Native weighting is off by default; when off it does not patch the model and encodes the plain prompt only when a CLIP is connected.
 
-The wizard **does not** implement `(phrase:weight)` by itself. It
-generates the syntax and emits it through `Prompt Output`. Whether the
-syntax is actually applied to the model depends on the consumer of
-the `Prompt Output` output.
+## Positive Conditioning and native weighting
 
-## When to use KJNodes
+Connecting the Krea 2 Qwen3-VL CLIP opts the wizard into emitting Positive Conditioning; no state toggle is required for the output to exist. With Native conditioning weighting off, the compiled prompt is encoded as clean text (supported `(phrase:number)` annotations are stripped, the numbers are not applied) and the Model passes through unchanged. With Native conditioning weighting on, the annotated prompt is encoded and the token weights patch a model clone, replacing an external `Krea2PromptWeight` node on the direct wizard branch.
 
-| Consumer of Prompt Output | Behaviour |
-|---|---|
-| A standard `CLIPTextEncode` node | The syntax is treated as literal text. Weights are not applied. This is **not** recommended for Krea 2. |
-| A `Krea2PromptWeight` node from KJNodes | The syntax is parsed and applied to the model via attention patching. **This is the recommended consumer for Krea 2.** |
-| A `ComfyUI` native `(word:weight)` attention editor | The syntax is not parsed by the Qwen3-VL encoder; the wizard's output is treated as literal text. |
-| A `Krea 2 Prompt Weight` (capitalised differently) | The display name "Krea2 Prompt Weight" matches the wizard's expected integration partner. |
+The output is valid conditioning for downstream nodes such as Conditioning Zero Out and samplers whenever a CLIP is connected. Without CLIP the output is empty (None) and downstream conditioning nodes must not consume it; the inspector reports which of the three states (native, plain, none) the last run produced.
 
-## KJNodes references
+Open Advanced & Recovered concepts to enable Native conditioning weighting and set its strength, connect the Krea 2 Model and Qwen3-VL CLIP, and connect the wizard Model and Positive Conditioning outputs to the sampler. Use those outputs together. The first three outputs retain their original positions: Prompt Output, Video Motion Prompt, Model. Positive Conditioning is appended at position four. The optional CLIP input is appended without moving existing widgets.
 
-| Field | Value |
-|---|---|
-| Class name | `Krea2PromptWeight` |
-| Display name | `Krea2 Prompt Weight` |
-| Repository | `kijai/ComfyUI-KJNodes` |
-| Commit | `e27a505` (initial commit: `1271209`, refinement: `780930c`) |
-| Inputs | `clip`, `model`, `text`, `strength` |
-| Outputs | `model`, `conditioning` |
-| Experimental | `true` |
-| Recommended sampler CFG | `1.0` |
+Native weighting removes supported annotations from the text before encoding, maps the phrases to Qwen user-content tokens, and patches a clone of the model. It requires compatible Krea 2 attention blocks and fails with an actionable message for missing inputs or an unsupported model. Negative conditioning stays external. The upstream recommendation is sampler CFG 1.0; the wizard never changes sampler settings.
 
-The tooltip on the KJNodes node reads:
+The settings are serialized inside wizard state as `native_weighting_enabled` (default false) and `native_weighting_strength` (default 1.0, range 0–4). Strength zero still encodes cleaned text and installs the upstream neutral attention patch when tokens match. No matched visible tokens also passes the model through.
 
-> "Set sampler CFG to 1.0."
+## Exact upstream behavior
 
-> "Removal (weight<0) is the reliable direction; emphasis (weight>1) works but is looser."
+The accepted syntax is flat `(phrase:number)`, including negative and fractional numbers. Spaces after the colon, explicit plus signs and nested expressions are unsupported. Invalid annotations may remain literal; the inspector warns instead of silently claiming they applied.
 
-The wizard does not modify the model or the conditioning; it only
-generates the prompt text. The KJNodes node is responsible for
-applying the prompt to the Krea 2 model.
+Phrase lookup tries a leading-space variant first, then the plain variant. It matches every occurrence inside the user-content span and aligns positions to the visible conditioning after truncation. For weights above one, the value factor remains one and the attention bias is twice strength times the amount above one. At or below one, the value factor is one plus strength times the amount below one, with zero attention bias.
 
-## Wizard behaviour
+Repeated weighted phrases preserve upstream behavior: repeated value multipliers compound, while later nonzero biases replace earlier biases at the same position. The inspector exposes encoded text, token assignments, pinned source revision and warnings for repeated phrases, unsupported syntax, unmatched or truncated tokens and existing attention patches.
 
-The wizard's `Prompt Output` output is identical regardless of whether
-KJNodes is installed. The wizard is **unaware** of KJNodes and does
-not check for it. The user is responsible for wiring the
-`Prompt Output` into the right consumer.
+## Existing workflows and combined text
 
-The bundled `subgraphs/Krea2_Prompt_Wizard_KJNodes.json` blueprint
-demonstrates the recommended wiring. It uses the wizard to generate
-the prompt and the KJNodes `Krea2PromptWeight` node to apply it.
+No links are automatically rewritten. Continue using external KJNodes when text is combined with other nodes after the wizard; native conditioning only encodes the wizard's own final prompt. An explicit conversion is appropriate only for direct wizard-to-weighting branches. Do not apply an external weighting node again to the native patched Model; inspect warnings and wiring when combining patches.
 
-## Subgraph wiring
+KJNodes does not need to be installed for native weighting. The external node remains an optional companion.
 
-```
-[Krea2 Prompt Wizard]
-    .Prompt Output
-        |
-        v
-[Krea2PromptWeight]
-    .text = Prompt Output
-    .clip = CLIP
-    .model = MODEL
-    .strength = 1.0
-        |
-        v
-    .conditioning
-        |
-        v
-[KSampler]
-    cfg = 1.0
-```
+## Source and license
 
-## Failure cases
+The isolated native implementation is adapted from kijai/ComfyUI-KJNodes `nodes/model_optimization_nodes.py`, class `Krea2PromptWeight`, at installed commit `d3cfe21625e5170126ce06fbfcfe1d88108688c3`, inspected 2026-10-07. The parser, token lookup and attention implementation retain upstream semantics. Local changes add lazy imports, validation, diagnostics and isolated integration.
 
-The wizard's prompt is independent of the model. The KJNodes node
-may fail to apply the weighting if:
+Copyright belongs to kijai and ComfyUI-KJNodes contributors. KJNodes is GNU GPL version 3; the derivative is distributed under GPL-3.0-only, compatible with the existing project license. The earlier Apache-2.0 attribution was incorrect. Source attribution and the modification date are retained in the isolated module.
 
-- The Qwen3-VL encoder does not produce the expected tokenisation for
-  the wizard's phrases.
-- The user supplies a phrase that is not in the Qwen3-VL vocabulary.
-- The model architecture does not match the Krea 2 MMDiT (i.e. the
-  user is using a different Krea 2 model checkpoint).
+## Verification
 
-In all cases, the wizard's `Prompt Output` is unchanged. The trace
-JSON accurately reflects what the wizard produced.
-
-## Compatibility matrix
-
-| Model profile | Wizard | Standard `CLIPTextEncode` | KJNodes `Krea2PromptWeight` |
-|---|---|---|---|
-| Krea 2 Turbo | OK | Literal text | Recommended |
-| Krea 2 Raw | OK | Literal text | Recommended |
-| Generic | OK | Standard weighting | Untested |
-
-## Verifying the integration
-
-To verify the integration is working:
-
-1. Open the bundled `workflows/example_basic.json`.
-2. Connect `Krea2PromptWizard.Prompt Output` to a `CLIPTextEncode` node
-   and a `KSampler`.
-3. Run the workflow. Inspect the generated image and the prompt.
-4. Open the bundled `subgraphs/Krea2_Prompt_Wizard_KJNodes.json`. The
-   subgraph uses `Krea2PromptWeight` instead of `CLIPTextEncode`.
-5. Compare the prompts the two workflows generate. The prompts
-   should be identical; the difference is whether the weighting is
-   applied to the model.
+Dedicated CPU tests compare encoding and model patch assignments against the installed upstream implementation, exercise scalar weight ranges, repeated phrases, token truncation, input errors, clone isolation and disabled-mode slot compatibility. Runtime image quality remains dependent on the actual Krea 2 checkpoint and encoder; native enablement is an explicit user choice.

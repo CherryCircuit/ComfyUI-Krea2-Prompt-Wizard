@@ -2,14 +2,15 @@
 
 This document records the exact source repositories, commit SHAs, branches, and
 inspection dates used to build **ComfyUI-Krea2-Prompt-Wizard**. Sources are
-inspected via `git ls-remote` / `HEAD` endpoints on GitHub. All sources were
-retrieved from the default public branch on the inspection date.
+inspected via `git ls-remote` / `HEAD` endpoints on GitHub. The original sources were
+retrieved from the default public branch. The KJNodes entry was refreshed from
+the local installed checkout on 2026-10-07 for the native weighting port.
 
 | Repository | Branch | Commit SHA | Retrieved | Commit author |
 |---|---|---|---|---|
 | `Comfy-Org/ComfyUI` | `master` | `f966a2b` | 2026-07-25 | comfyanonymous |
 | `Comfy-Org/ComfyUI_frontend` | `main` | `1039660` | 2026-07-25 | huang47 |
-| `kijai/ComfyUI-KJNodes` | `main` | `e27a505` | 2026-07-25 | kijai |
+| `kijai/ComfyUI-KJNodes` | installed checkout | `d3cfe21625e5170126ce06fbfcfe1d88108688c3` | 2026-10-07 | kijai |
 | `Comfy-Org/workflow_templates` | `main` | `c56b99f` | 2026-07-25 | comfyui-wiki |
 | `krea-ai/krea-2` | `main` | `db3984f` | 2026-07-25 | Abhinay1997 |
 
@@ -65,14 +66,15 @@ the current API surface and behaviour documented in this project:
 |---|---|
 | `Comfy-Org/ComfyUI` | GPL-3.0 |
 | `Comfy-Org/ComfyUI_frontend` | GPL-3.0 |
-| `kijai/ComfyUI-KJNodes` | Apache-2.0 |
+| `kijai/ComfyUI-KJNodes` | GPL-3.0 |
 | `krea-ai/krea-2` | Krea Community License (model weights); repository MIT |
 | `Comfy-Org/workflow_templates` | GPL-3.0 |
 
-No code is copied from these repositories. APIs are documented and called
-through stable, documented Python/JavaScript entry points. Only behaviour
-requirements are referenced (e.g. parser regex behaviour, attention patching
-mechanism, weight-clamping semantics); the implementation is original.
+The isolated native Krea 2 weighting module is adapted from KJNodes at the
+pinned installed revision above, retaining attribution and GPL notices. It was
+modified on 2026-10-07 for lazy runtime imports, validation, inspector warnings
+and isolated integration. No runtime KJNodes installation is required. Other
+entries record the older API inspections and do not claim current versions.
 
 ## Build policy
 

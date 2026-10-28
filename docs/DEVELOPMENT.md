@@ -41,7 +41,7 @@ To run a single test file:
 python3 -m unittest tests.test_weights -v
 ```
 
-The test suite (222 tests) covers weight mapping, validation, library
+The test suite covers weight mapping, validation, library
 IO, conflict detection, the wizard state builder, the compiler, the
 assembler, the inspector, migrations, workflow snapshots, per-character
 cast compilation, the LoRA / Prompt Saver / Save Image pipeline,
@@ -159,7 +159,7 @@ Before merging any change, verify:
 1. Update the version in `pyproject.toml` **and** `__init__.py`
    (both must match; `pyproject.toml` has lagged behind before).
 2. Update `CHANGELOG.md`.
-3. Re-run the build scripts.
+3. Rebuild generated artifacts only when their source inputs changed.
 4. Run the test suite.
 5. Run the validators.
 6. Create a release archive with `scripts/build_release.py`.
@@ -168,3 +168,33 @@ The release archive is a tarball named
 `ComfyUI-Krea2-Prompt-Wizard-<version>.tar.gz`. It includes the
 project files but excludes development artefacts (tests, scripts,
 documentation, build outputs).
+
+
+## V1 workspace verification
+
+V1 uses one workspace with Identity, Performance, Placement, Environment,
+Camera, Lighting, Randomization and Advanced sections. The backend
+preview is authoritative; export its current compiled snapshot without
+reshuffling. Native CLIP conditioning is optional and must match the
+upstream encoder for the same text. Preserve the first three output
+slots and keep Positive Conditioning fourth. V2 is a separate contract.
+
+On the installed Windows environment, use
+`E:/ComfyUI_Feb2026/python_embeded/python.exe -B` for Python checks;
+this runtime includes torch. Avoid writing tracked bytecode. Run the
+existing unittest suite, Node packaging tests and library/workflow
+validators. Do not regenerate unchanged library or workflow data.
+`node tests/frontend_materialize.mjs` checks exported text against the
+real backend assembler.
+
+For visual work, verify the existing harness at 360, 560 and 900 pixel
+node widths, with canvas zoom 0.5, 0.75, 1 and 1.5. Check keyboard focus,
+chooser dismissal, focused-editor lifecycle, migration recovery and
+physical light height. The harness uses test fixtures and does not prove
+ComfyUI runtime integration. Also verify real ComfyUI preview, workflow
+save/reload, queue outputs, seeded repeatability, locks and optional
+native conditioning parity. Report image inference only when exercised.
+Use an isolated ComfyUI instance and copied user data; preserve the live
+8188 server and original user files. Temporary sockets and test folders
+may require sandbox escalation. The test harness normally uses 8137;
+8199 is suitable for an isolated runtime if free.

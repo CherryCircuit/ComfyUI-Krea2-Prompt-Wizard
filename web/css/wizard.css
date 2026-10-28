@@ -219,6 +219,12 @@ body.dark {
 
 .krea2-icon-btn svg { display: block; }
 
+.krea2-icon-btn.is-active {
+  background: var(--krea2-accent);
+  border-color: var(--krea2-accent);
+  color: #fff;
+}
+
 .krea2-quiet-btn { color: var(--krea2-text-dim); }
 
 .krea2-danger:hover {
@@ -884,10 +890,12 @@ body.dark {
   min-width: 0;
 }
 
-/* Concepts Applied: three side-by-side groups with their own controls. */
+/* Concepts Applied: side-by-side groups that collapse with the NODE's
+ * width (auto-fit tracks the container, not the browser window, so
+ * resizing the node works). */
 .krea2-v2-concept-columns {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
   gap: 8px;
   min-width: 0;
 }
@@ -933,7 +941,7 @@ body.dark {
 }
 
 .krea2-v2-concept-columns .krea2-row-head {
-  grid-template-columns: 16px 16px minmax(0, 1fr) 26px 46px 26px 24px;
+  grid-template-columns: 14px 14px minmax(0, 1fr) 22px 22px;
 }
 
 .krea2-v2-concept-columns .krea2-row-visibility { display: none; }
@@ -1277,14 +1285,13 @@ body.dark {
  * --------------------------------------------------------------------------- */
 .krea2-v2-scene-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 8px;
   min-width: 0;
 }
 
 @media (max-width: 900px) {
   .krea2-v2-scene-grid { grid-template-columns: 1fr; }
-  .krea2-v2-concept-columns { grid-template-columns: 1fr; }
 }
 
 /* ---------------------------------------------------------------------------
@@ -1313,12 +1320,51 @@ body.dark {
 
 .krea2-row-head {
   display: grid;
-  grid-template-columns: 16px 16px minmax(0, 1fr) 26px 46px 26px 24px 24px;
+  grid-template-columns: 14px 14px minmax(0, 1fr) 22px 22px;
   gap: 4px;
   align-items: center;
   padding: 4px 5px;
   min-width: 0;
 }
+
+/* Strength pill: [− cap | concept label | value | + cap]. One rounded
+ * control per concept; the caps step, the value drags vertically and
+ * opens an editor on click, exactly like the old separated controls. */
+.krea2-pill {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 48px 22px;
+  align-items: stretch;
+  height: 26px;
+  min-width: 0;
+  background: var(--krea2-bg-strong, #10141a);
+  border: 1px solid var(--krea2-border, #38424e);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.krea2-pill .krea2-row-step-minus,
+.krea2-pill .krea2-row-step-plus {
+  width: auto;
+  height: auto;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.krea2-pill .krea2-row-step-plus { border-left: 1px solid var(--krea2-border, #38424e); }
+
+.krea2-pill .krea2-row-value {
+  width: auto;
+  height: auto;
+  min-height: 0;
+  border: 0;
+  border-left: 1px solid var(--krea2-border, #38424e);
+  border-radius: 0;
+  background: transparent;
+}
+
+.krea2-pill .krea2-row-label { align-self: center; padding: 2px 8px; }
 
 .krea2-row-drag,
 .krea2-star-btn,
@@ -3933,6 +3979,14 @@ body.krea2-ns-resize * { cursor: ns-resize !important; }
 }
 .krea2-v2-lt-row-icon { display: inline-flex; color: var(--krea2-text-faint); flex: 0 0 auto; }
 .krea2-v2-lt-row-label { font-size: 10px; color: var(--krea2-text-dim); flex: 0 0 54px; }
+.krea2-v2-lt-row .krea2-pill {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 200px;
+  height: 24px;
+  border-radius: 12px;
+}
+.krea2-v2-lt-row .krea2-pill-light { grid-template-columns: 22px minmax(0, 1fr) 22px; }
 .krea2-v2-lt-slider { flex: 1 1 auto; min-width: 0; accent-color: var(--krea2-accent); }
 .krea2-v2-lt-num {
   width: 54px;
@@ -4056,3 +4110,69 @@ body.krea2-ns-resize * { cursor: ns-resize !important; }
 .krea2-v2-lt-gallery-foot { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
 .krea2-v2-lt-gallery-tip { font-size: 9.5px; color: var(--krea2-text-faint); }
 .krea2-v2-lt-gallery-apply { background: #2f6feb; border-color: #2f6feb; color: #fff; }
+/* V1 unified workspace: toolbar/footer are fixed siblings of the sole scroll body. */
+.krea2-wizard-root.krea2-workspace {
+  display:flex; flex-direction:column; height:100%; min-height:0; width:100%; min-width:0;
+  box-sizing:border-box; overflow:hidden; container-type:inline-size; font-size:14px;
+  background:var(--krea2-bg,#161a20); color:var(--krea2-text,#e4e8ed);
+}
+.krea2-workspace *, .krea2-workspace *::before, .krea2-workspace *::after { box-sizing:border-box; min-width:0; }
+.krea2-workspace .krea2-wizard-top, .krea2-workspace .krea2-wizard-footer { flex:0 0 auto; display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:0; padding:8px; background:var(--krea2-panel,#20262f); border-bottom:1px solid var(--krea2-border,#38424e); }
+.krea2-workspace .krea2-wizard-footer { border-top:1px solid var(--krea2-border,#38424e); border-bottom:0; }
+.krea2-workspace .krea2-wizard-editor { flex:1 1 0; min-height:0; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; padding:10px; display:flex; flex-direction:column; gap:10px; }
+.krea2-workspace .krea2-b2-shell { display:none; }
+.krea2-workspace input, .krea2-workspace textarea, .krea2-workspace select, .krea2-workspace button { font:inherit; max-width:100%; }
+.krea2-workspace textarea { width:100%; overflow:hidden !important; resize:none !important; max-height:none !important; min-height:48px; }
+.krea2-workspace [class*="hint"], .krea2-workspace [class*="label"], .krea2-workspace [class*="heading"], .krea2-workspace [class*="title"], .krea2-workspace [class*="summary"], .krea2-workspace [class*="note"], .krea2-workspace [class*="tip"], .krea2-workspace [class*="value"] { font-size:inherit; }
+.krea2-workspace button { min-height:32px; white-space:normal; }
+.krea2-workspace input:not([type="checkbox"]):not([type="range"]):not([type="color"]), .krea2-workspace select { min-height:32px; }
+.krea2-workspace-section { border:1px solid var(--krea2-border,#38424e); border-radius:10px; background:var(--krea2-panel,#20262f); padding:10px; width:100%; display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; column-gap:12px; }
+.krea2-workspace-heading { display:inline; border:0; padding:0; background:none; font-weight:650; color:var(--krea2-text,#e4e8ed); text-align:left; cursor:pointer; }
+.krea2-workspace-heading::before { content:'›'; display:inline-block; width:18px; color:var(--krea2-accent,#81b5ef); }
+.krea2-workspace-heading[aria-expanded="true"]::before { content:'⌄'; }
+.krea2-workspace-summary { display:block; color:var(--krea2-text-dim,#a9b4c3); margin:0; line-height:1.45; overflow-wrap:anywhere; }
+.krea2-workspace-section-body { grid-column:1 / -1; }
+.krea2-workspace-section-body:not(:empty) { padding-top:8px; }
+.krea2-workspace-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:8px 0; }
+.krea2-workspace-field { display:flex; flex-direction:column; gap:6px; margin:10px 0; }
+.krea2-workspace-field>span { color:var(--krea2-text-dim,#a9b4c3); }
+.krea2-workspace-row { border:1px solid var(--krea2-border,#38424e); border-radius:8px; padding:8px; margin:8px 0; overflow-wrap:anywhere; }
+.krea2-workspace-warning { background:#543e1b; color:#ffe3a1; border-radius:8px; padding:10px; margin:8px 0; overflow-wrap:anywhere; }
+.krea2-workspace-actual-prompt { white-space:pre-wrap; overflow-wrap:anywhere; padding:10px; border:1px solid var(--krea2-border,#38424e); margin:8px 0; }
+.krea2-workspace-status { flex:1; color:var(--krea2-text-dim,#a9b4c3); }
+.krea2-workspace-queue { background:var(--krea2-accent,#71a6df); color:#102238; font-weight:650; }
+.krea2-workspace .krea2-character-card-header, .krea2-workspace .krea2-character-card-actions, .krea2-workspace .krea2-wizard-category-header, .krea2-workspace .krea2-wizard-category-actions, .krea2-workspace .krea2-v2-lt-head, .krea2-workspace .krea2-v2-lt-stage-foot { flex-wrap:wrap; }
+.krea2-workspace .krea2-character-columns, .krea2-workspace .krea2-direction-columns, .krea2-workspace .krea2-concept-columns { display:grid; grid-template-columns:1fr; gap:10px; }
+.krea2-workspace .krea2-wizard-category-content { display:flex; flex-direction:column; }
+.krea2-workspace .krea2-v2-lt-main { display:flex; flex-direction:column; gap:10px; }
+.krea2-workspace .krea2-v2-lt-stage-col, .krea2-workspace .krea2-v2-lt-cards { width:100%; max-width:100%; flex:1 1 auto; }
+.krea2-workspace .krea2-v2-light-stage { width:100%; max-width:100%; }
+.krea2-workspace .krea2-v2-chip-row, .krea2-workspace .krea2-v2-chip-options, .krea2-workspace .krea2-v2-lt-presets { flex-wrap:wrap; }
+.krea2-workspace .krea2-wizard-preview, .krea2-workspace .krea2-preview-pretty, .krea2-workspace .krea2-wizard-show-work-host { max-height:none; overflow:visible; white-space:pre-wrap; overflow-wrap:anywhere; font-size:inherit; }
+.krea2-workspace .krea2-row-label, .krea2-workspace .krea2-row-value, .krea2-workspace .krea2-row-step-minus, .krea2-workspace .krea2-row-step-plus, .krea2-workspace .krea2-wizard-category-add, .krea2-workspace .krea2-wizard-category-save, .krea2-workspace .krea2-wizard-category-count { font-size:inherit; min-height:28px; }
+.krea2-workspace .krea2-pill { height:30px; }
+.krea2-workspace .krea2-pill .krea2-row-value,
+.krea2-workspace .krea2-pill .krea2-row-step-minus,
+.krea2-workspace .krea2-pill .krea2-row-step-plus { min-height:0; }
+.krea2-workspace-rows { min-width:0; }
+.krea2-workspace-row { padding:2px; }
+.krea2-performance-preset-summary { margin:0 0 6px; font-weight:650; }
+.krea2-workspace .krea2-character-column { min-width:0; }
+.krea2-workspace-overlay, .krea2-workspace-focus-overlay { position:fixed; inset:0; z-index:2147483500; background:#080c12bf; display:flex; align-items:center; justify-content:center; padding:20px; }
+.krea2-workspace-dialog { display:flex; flex-direction:column; background:var(--krea2-panel,#20262f); color:var(--krea2-text,#e4e8ed); border:1px solid var(--krea2-border,#38424e); border-radius:12px; width:min(800px,100%); max-height:90vh; padding:16px; font:14px/1.45 sans-serif; overflow:hidden; }
+.krea2-workspace-dialog-heading { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.krea2-workspace-name-dialog { width:min(440px,100%); gap:16px; }
+.krea2-workspace-chooser-list { overflow:auto; overscroll-behavior:contain; flex:1; min-height:60px; }
+.krea2-workspace-preset-item { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:10px 0; border-bottom:1px solid var(--krea2-border,#38424e); }
+.krea2-workspace-preset-name { flex:1; text-align:left; font:inherit; background:none; color:inherit; border:0; cursor:pointer; }
+.krea2-workspace-preset-editor { max-height:35vh; overflow:auto; }
+.krea2-workspace-preset-editor textarea { width:100%; min-height:160px; }
+.krea2-workspace-focus-overlay .krea2-workspace { width:min(1100px,100%); height:calc(100vh - 40px); border:1px solid var(--krea2-border,#38424e); border-radius:12px; box-shadow:0 24px 100px #000a; }
+.krea2-workspace-lock-fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; }
+@container (min-width:560px) { .krea2-workspace .krea2-character-columns { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@container (min-width:800px) { .krea2-workspace .krea2-character-columns { grid-template-columns:repeat(3,minmax(0,1fr)); } .krea2-workspace .krea2-v2-lt-main { flex-direction:row; } .krea2-workspace .krea2-v2-lt-stage-col { flex:1.3; width:auto; } .krea2-workspace .krea2-v2-lt-cards { flex:1; width:auto; } }
+@container (max-width:460px) {
+  .krea2-workspace .krea2-wizard-footer { display:grid; grid-template-columns:1fr 1fr; gap:4px; padding:6px; }
+  .krea2-workspace-status { grid-column:1 / -1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.2; }
+  .krea2-workspace .krea2-wizard-footer button { min-height:28px; padding:3px 6px; }
+}

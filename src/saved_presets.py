@@ -1,8 +1,10 @@
 """Local persistence for user-created prompt, group, character, and setting presets."""
 from __future__ import annotations
 
+import copy
 import json
 import os
+import threading
 from typing import Any, Dict, Iterable, List
 
 from .schemas import SCHEMA_VERSION
@@ -12,56 +14,64 @@ from .user_paths import atomic_write, timestamp_backup, user_saved_presets_path
 def _clean_preset(item: Any) -> Dict[str, Any] | None:
     if not isinstance(item, dict):
         return None
+    preset = copy.deepcopy(item)
     preset_id = str(item.get("id") or "").strip()
     label = str(item.get("label") or "").strip()
     scope = str(item.get("scope") or "").strip()
-    if not preset_id or not label or scope not in {"full", "group", "character", "setting", "lighting"}:
+    if not preset_id or not label or scope not in {"full", "group", "character", "setting", "lighting", "performance"}:
         return None
-    if scope == "character":
-        character = item.get("character")
-        if not isinstance(character, dict):
+    expected = {"character": ("character", dict), "setting": ("setting", dict), "lighting": ("lights", list), "performance": ("rows", list)}
+    if scope in expected:
+        field, value_type = expected[scope]
+        if not isinstance(item.get(field), value_type):
             return None
-        return {
-            "id": preset_id,
-            "label": label,
-            "scope": scope,
-            "character": dict(character),
-        }
-    if scope == "setting":
-        setting = item.get("setting")
-        if not isinstance(setting, dict):
-            return None
-        return {
-            "id": preset_id,
-            "label": label,
-            "scope": scope,
-            "setting": dict(setting),
-        }
-    if scope == "lighting":
-        lights = item.get("lights")
-        if not isinstance(lights, list):
-            return None
-        return {
-            "id": preset_id,
-            "label": label,
-            "scope": scope,
-            "lights": [dict(light) for light in lights if isinstance(light, dict)],
-        }
-    rows = item.get("rows")
-    if not isinstance(rows, list):
+    elif scope == "full" and isinstance(item.get("state"), dict):
+        from .wizard import coerce_state
+        state = coerce_state(item["state"])
+        for key in ("resolved_snapshot", "migration_backup"):
+            state.pop(key, None)
+        preset["state"] = state
+        preset["rows"] = copy.deepcopy(state["rows"])
+    elif not isinstance(item.get("rows"), list):
         return None
-    return {
-        "id": preset_id,
-        "label": label,
-        "scope": scope,
-        "group": str(item.get("group") or ""),
-        "base_prompt": str(item.get("base_prompt") or ""),
-        "randomize_on_job": dict(item.get("randomize_on_job") or {})
-        if isinstance(item.get("randomize_on_job"), dict)
-        else {},
-        "creative_mode": str(item.get("creative_mode") or "photo"),
-        "rows": [dict(row) for row in rows if isinstance(row, dict)],
-    }
+    if "rows" in preset and any(not isinstance(row, dict) for row in preset["rows"]):
+        return None
+    preset.update(id=preset_id, label=label, scope=scope)
+    return preset
+
+
+PERFORMANCE_CATEGORIES = {"emotion", "emotion_trigger", "face", "face_trigger", "gaze", "mouth", "body", "subject_movement"}
+
+
+def apply_performance_preset(state: Dict[str, Any], preset: Dict[str, Any], character_id: str,
+                             *, combine: bool = False) -> Dict[str, Any]:
+    """Apply reusable performance to one member without changing identity/placement."""
+    from .wizard import coerce_state
+    from .conflicts import collect_all_warnings
+    from .weight_mapping import weight_for_row
+    result = coerce_state(state)
+    character = next((c for c in result["characters"] if str(c.get("id")) == str(character_id)), None)
+    if character is None:
+        raise ValueError("Choose a character before applying a performance.")
+    incoming = [copy.deepcopy(r) for r in preset.get("rows", []) if isinstance(r, dict) and r.get("category") in PERFORMANCE_CATEGORIES]
+    if not combine:
+        character["rows"] = [r for r in character["rows"] if r.get("category") not in PERFORMANCE_CATEGORIES]
+    if combine:
+        incoming_keys = {(r.get("category"), str(r.get("preset_id") or r.get("phrase") or "")) for r in incoming}
+        character["rows"] = [r for r in character["rows"] if (r.get("category"), str(r.get("preset_id") or r.get("phrase") or "")) not in incoming_keys]
+    used = {r.get("id") for r in character["rows"]}
+    for i, row in enumerate(incoming):
+        row["id"] = f"performance_{character_id}_{preset.get('id', 'custom')}_{i}"
+        while row["id"] in used:
+            row["id"] += "_"
+        used.add(row["id"])
+        row["origin"] = "preset"
+        row["origin_action"] = str(preset.get("id") or ("combine_performance" if combine else "replace_performance"))
+    character["rows"].extend(incoming)
+    result = coerce_state(result)
+    rows = next(c for c in result["characters"] if str(c.get("id")) == str(character_id))["rows"]
+    result["performance_warnings"] = collect_all_warnings(rows, weights_by_id={r["id"]: weight_for_row(r) for r in rows}, prompt="")
+    return result
 
 
 DEFAULT_GROUP_PRESETS = [
@@ -1223,13 +1233,63 @@ DEFAULT_GROUP_PRESETS += [
 ]
 
 
+DEFAULT_PERFORMANCE_PRESETS = [
+    {"id": "performance." + p["id"].split(".", 1)[1], "label": p["label"], "scope": "performance",
+     "rows": [copy.deepcopy(r) for r in p["rows"] if r.get("category") in PERFORMANCE_CATEGORIES], "builtin": True}
+    for p in DEFAULT_GROUP_PRESETS if p.get("group") == "subject_expression"
+]
+
+# Snapshotted library concepts keep built-ins portable without depending on a
+# user library at import time. The custom head tilt is an authored description
+# because no corresponding head concept exists in the bundled library.
+_NAMED_PERFORMANCE_CONCEPTS = {
+    "Shock": [("emotion.shock", "shocked expression", 3), ("face.jaw_drop", "jaw drop", 2),
+              ("body.tense_posture", "tense posture", 1.5), ("body.hands_covering_face", "hands covering face", 2)],
+    "Confusion": [("emotion.confusion", "confusion", 2), ("face.one_eyebrow_raised", "one eyebrow raised", 1.5),
+                  ("gaze.looking_slightly_off_camera", "looking slightly off camera", 1), ("mouth.parted_lips", "parted lips", 1),
+                  ("custom.performance_confusion_head", "head tilted slightly to one side", 1.5), ("body.leaning_backward", "leaning backward", 1)],
+    "Anger": [("emotion.anger", "anger", 2.5), ("face.brow_lowerer", "brow lowerer", 2),
+              ("gaze.fixed_intense_stare", "fixed intense stare", 1.5), ("mouth.clenched_teeth", "clenched teeth", 1.5),
+              ("body.clenched_fists", "clenched fists", 1.5)],
+    "Joy": [("emotion.joy", "joy", 2), ("face.cheek_raiser", "cheek raiser", 1.5),
+            ("mouth.broad_smile", "broad smile", 2), ("body.open_posture", "open posture", 1.5)],
+    "Fear": [("emotion.fear", "fear", 2.5), ("face.upper_eyelid_raiser", "raised upper eyelids", 1.5),
+             ("gaze.wide_open_eyes", "wide open eyes", 2), ("mouth.gasping", "gasping", 1.5), ("body.recoiling", "recoiling", 1.5)],
+    "Curiosity": [("emotion.curiosity", "curiosity", 2), ("face.one_eyebrow_raised", "one eyebrow raised", 1),
+                  ("gaze.eyes_focused_on_a_nearby_object", "eyes focused on a nearby object", 1.5),
+                  ("mouth.parted_lips", "parted lips", 1), ("body.leaning_forward", "leaning forward", 1.5)],
+    "Suspicion": [("emotion.suspicion", "suspicion", 2), ("face.furrowed_brow", "furrowed brow", 1.5),
+                  ("gaze.side_glance", "side glance", 2), ("mouth.pursed_lips", "pursed lips", 1), ("body.arms_crossed", "arms crossed", 1.5)],
+    "Embarrassment": [("emotion.embarrassment", "embarrassment", 2), ("face.lip_pressor", "lip pressor", 1),
+                      ("gaze.avoiding_eye_contact", "avoiding eye contact", 1.5), ("mouth.biting_lower_lip", "biting lower lip", 1),
+                      ("body.hunched_shoulders", "hunched shoulders", 1.5)],
+    "Excitement": [("emotion.excitement", "excitement", 2.5), ("face.outer_brow_raiser", "outer brow raiser", 1.5),
+                   ("gaze.wide_open_eyes", "wide open eyes", 1.5), ("mouth.grin", "grin", 2), ("body.hands_raised", "hands raised", 1.5)],
+    "Sadness": [("emotion.sadness", "sadness", 2), ("face.inner_brow_raiser", "inner brow raiser", 1.5),
+                ("gaze.looking_downward", "looking downward", 1.5), ("face.lip_corner_depressor", "lip corner depressor", 1.5),
+                ("body.closed_posture", "closed posture", 1.5)],
+}
+for _label, _concepts in _NAMED_PERFORMANCE_CONCEPTS.items():
+    _performance_id = "performance." + _label.lower()
+    if any(p["id"] == _performance_id for p in DEFAULT_PERFORMANCE_PRESETS):
+        continue
+    DEFAULT_PERFORMANCE_PRESETS.append({
+        "id": _performance_id, "label": _label, "scope": "performance", "builtin": True,
+        "rows": [{"id": f"{_performance_id}_{i}", "category": "body" if pid.startswith("custom.") else pid.split(".", 1)[0],
+                  "preset_id": pid, "phrase": phrase, "label": phrase, "intensity": 0, "strength": strength,
+                  "control_mode": "scalar", "enabled": True, "source": "custom" if pid.startswith("custom.") else "library"}
+                 for i, (pid, phrase, strength) in enumerate(_concepts)],
+    })
+DEFAULT_SAVED_PRESETS = DEFAULT_GROUP_PRESETS + DEFAULT_PERFORMANCE_PRESETS
+
+
 def load_saved_presets(path: str | None = None) -> List[Dict[str, Any]]:
     """Load saved presets, dropping malformed entries without affecting ComfyUI."""
     using_default_path = path is None
     target = path or user_saved_presets_path(create=False)
     if not os.path.exists(target):
         if using_default_path:
-            return [{**p, "builtin": True} for p in DEFAULT_GROUP_PRESETS]
+            return [{**p, "builtin": True} for p in DEFAULT_SAVED_PRESETS]
         return []
     try:
         with open(target, "r", encoding="utf-8") as handle:
@@ -1241,7 +1301,7 @@ def load_saved_presets(path: str | None = None) -> List[Dict[str, Any]]:
     if using_default_path:
         # Built-ins are always present. User presets supplement them instead
         # of replacing an entire category menu.
-        builtin_ids = {str(p.get("id") or "") for p in DEFAULT_GROUP_PRESETS}
+        builtin_ids = {str(p.get("id") or "") for p in DEFAULT_SAVED_PRESETS}
         seen = set()
         user_presets = []
         for preset in loaded:
@@ -1250,7 +1310,7 @@ def load_saved_presets(path: str | None = None) -> List[Dict[str, Any]]:
                 continue
             seen.add(preset_id)
             user_presets.append(preset)
-        return [{**p, "builtin": True} for p in DEFAULT_GROUP_PRESETS] + user_presets
+        return [{**p, "builtin": True} for p in DEFAULT_SAVED_PRESETS] + user_presets
     return loaded
 
 
@@ -1260,12 +1320,20 @@ def save_saved_presets(
 ) -> str:
     """Validate and atomically save user-created presets with a backup."""
     target = path or user_saved_presets_path(create=True)
-    cleaned = [
-        preset
-        for item in presets
-        if not bool(item.get("builtin"))
-        if (preset := _clean_preset(item)) is not None
-    ]
+    cleaned = []
+    seen = set()
+    for item in presets:
+        if isinstance(item, dict) and item.get("builtin"):
+            continue
+        preset = _clean_preset(item)
+        if preset is None:
+            raise ValueError("Invalid saved preset; existing presets were left intact.")
+        if preset["id"] in seen:
+            raise ValueError("Saved preset identifiers must be unique.")
+        seen.add(preset["id"])
+        cleaned.append(preset)
+    # Validate serialization before touching the existing store or backup.
+    serialized = json.dumps({"schema_version": SCHEMA_VERSION, "presets": cleaned}, ensure_ascii=False, indent=2, allow_nan=False).encode("utf-8")
     if os.path.exists(target):
         timestamp_backup(target)
     payload = {
@@ -1274,6 +1342,66 @@ def save_saved_presets(
     }
     atomic_write(
         target,
-        json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8"),
+        serialized,
     )
     return target
+
+
+_SAVE_LOCK = threading.RLock()
+
+
+class SavedPresetConflict(ValueError):
+    """A local delta collided with a change already saved by another editor."""
+
+    def __init__(self, conflict_ids: List[str], latest: List[Dict[str, Any]]):
+        super().__init__("Another editor changed the same presets. Refresh before saving these changes.")
+        self.conflict_ids = conflict_ids
+        self.latest = copy.deepcopy(latest)
+
+
+def _preset_map(presets: Any) -> Dict[str, Dict[str, Any]]:
+    if not isinstance(presets, list):
+        raise ValueError("Saved presets and their baseline must be lists.")
+    result = {}
+    for item in presets:
+        if isinstance(item, dict) and item.get("builtin"):
+            continue
+        preset = _clean_preset(item)
+        if preset is None:
+            raise ValueError("Invalid saved preset; existing presets were left intact.")
+        if preset["id"] in result:
+            raise ValueError("Saved preset identifiers must be unique.")
+        result[preset["id"]] = preset
+    json.dumps(result, allow_nan=False)
+    return result
+
+
+def persist_saved_presets(presets: List[Dict[str, Any]], *,
+                          base_presets: List[Dict[str, Any]] | None = None,
+                          path: str | None = None) -> List[Dict[str, Any]]:
+    """Atomically apply an editor's local delta, or retain the legacy replace API."""
+    submitted = _preset_map(presets)
+    baseline = _preset_map(base_presets) if base_presets is not None else None
+    # The route has no await inside this transaction. The lock also protects
+    # callers using separate request threads from a read/merge/write race.
+    with _SAVE_LOCK:
+        if baseline is None:
+            save_saved_presets(list(submitted.values()), path)
+            return load_saved_presets(path)
+        latest_list = load_saved_presets(path)
+        latest = _preset_map(latest_list)
+        changed_ids = [pid for pid in dict.fromkeys([*baseline, *submitted])
+                       if baseline.get(pid) != submitted.get(pid)]
+        conflicts = [pid for pid in changed_ids
+                     if latest.get(pid) != baseline.get(pid)
+                     and latest.get(pid) != submitted.get(pid)]
+        if conflicts:
+            raise SavedPresetConflict(conflicts, latest_list)
+        for pid in changed_ids:
+            if pid in submitted:
+                latest[pid] = submitted[pid]
+            else:
+                latest.pop(pid, None)
+        if changed_ids:
+            save_saved_presets(list(latest.values()), path)
+        return load_saved_presets(path)

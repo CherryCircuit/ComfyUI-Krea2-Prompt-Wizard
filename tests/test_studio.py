@@ -551,6 +551,22 @@ class RandomizeNodeTests(unittest.TestCase):
             Krea2PromptWizardV2.IS_CHANGED("plain"),
         )
 
+    def test_is_changed_accepts_every_declared_input(self):
+        schema = Krea2PromptWizardV2.INPUT_TYPES()
+        declared = (
+            set(schema.get("required", {}))
+            | set(schema.get("optional", {}))
+            | set(schema.get("hidden", {}))
+        )
+        candidates = {"prompt_doc": "plain", "refined_doc": "{}"}
+        values = {key: value for key, value in candidates.items() if key in declared}
+        self.assertEqual(set(values), {"prompt_doc", "refined_doc"})
+        self.assertEqual(Krea2PromptWizardV2.IS_CHANGED(**values), "plain")
+        values["prompt_doc"] = "{{krea2:camera_locked_medium_shot|A|~}}"
+        self.assertTrue(
+            Krea2PromptWizardV2.IS_CHANGED(**values) != Krea2PromptWizardV2.IS_CHANGED(**values)
+        )
+
     def test_build_randomizes_within_camera_slot(self):
         node = Krea2PromptWizardV2()
         locked = node.build("{{krea2:camera_locked_medium_shot|LOCKED MEDIUM SHOT}}")[0]

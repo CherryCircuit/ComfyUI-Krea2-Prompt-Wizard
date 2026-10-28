@@ -312,3 +312,25 @@ with older workflows and the standalone weighted-phrase node.
 Migrations are defined in `src/migrations.py` and are applied to every
 row before compilation. Renamed or removed presets produce a new row
 id; the legacy id is preserved in `legacy_preset_id` for traceability.
+
+
+## V1 single-workspace contract
+
+V1 renders one workspace and a sticky output dock; the focused editor
+moves that same editor surface rather than creating a competing state.
+Identity, Performance and Placement are separate scopes. Environment,
+Camera and Lighting retain their structured compilation. Physical light
+height is stage geometry; numerical strength is prompt emphasis.
+
+The Wizard retains its first three outputs and appends optional Positive
+Conditioning. CLIP selects native upstream text encoding; absent CLIP,
+text-only workflows continue to work. Backend preview is authoritative.
+Scoped randomization uses persisted seed settings and locks, and legacy
+state migration retains unresolved concepts in recovery with warnings.
+
+Materialize exports the complete compiled prompt into the existing
+Prompt Assembler's base text with zero fragments. This is an editable
+snapshot, preserving direct and raw negative weights and full character
+and environment text without re-randomization. It intentionally does
+not approximate structural content with legacy weighted primitives.
+V2 continues to use its own independent document editor and contracts.

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "final_prompt": "a quiet cafe table, Character Mara (seated on the left side of the frame): subject: adult woman; clothing and armour: knitted cardigan, (joy:1.5), (gentle smile:1.25), (sparkling bright eyes:1.4), Character Ivo (seated on the right side of the frame): subject: adult man; clothing and armour: dark wool coat, hunched shoulders, (melancholy:1.5), staring into his coffee, two-shot",
+  "final_prompt": "a quiet cafe table, Character Mara (seated on the left side of the frame): subject: adult woman; clothing and armour: knitted cardigan, (joy:1.5), (gentle smile:1.5), (sparkling bright eyes:1.4), Character Ivo (seated on the right side of the frame): subject: adult man; clothing and armour: dark wool coat, hunched shoulders, (melancholy:1.5), staring into his coffee, two-shot",
   "plain_prompt": "a quiet cafe table, Character Mara (seated on the left side of the frame): subject: adult woman; clothing and armour: knitted cardigan, joy, gentle smile, (sparkling bright eyes:1.4), Character Ivo (seated on the right side of the frame): subject: adult man; clothing and armour: dark wool coat, hunched shoulders, melancholy, staring into his coffee, two-shot",
   "category_prompts": {
     "body": "",

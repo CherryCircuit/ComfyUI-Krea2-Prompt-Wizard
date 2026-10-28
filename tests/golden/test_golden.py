@@ -269,7 +269,7 @@ class TwoCharacterSceneTest(unittest.TestCase):
         state["motion_prompt_enabled"] = True
         result = compile_state(state, _lib())
         self.assertIn("(joy:1.5)", result.final_prompt)
-        self.assertIn("(gentle smile:1.25)", result.final_prompt)
+        self.assertIn("(gentle smile:1.5)", result.final_prompt)
         self.assertIn("(melancholy:1.5)", result.final_prompt)
         self.assertIn(", hunched shoulders,", result.final_prompt)
         self.assertIn("(sparkling bright eyes:1.4)", result.final_prompt)

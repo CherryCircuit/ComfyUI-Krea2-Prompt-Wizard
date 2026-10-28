@@ -13,6 +13,8 @@
   const SLIDER_MIN = -100;
   const SLIDER_MAX = 100;
   const SLIDER_DEFAULT = 0;
+  const SAFE_WEIGHT_MIN = 0.1;
+  const SAFE_WEIGHT_MAX = 3.0;
   const SCHEMA_VERSION = 1;
 
   const MODES = Object.freeze({
@@ -167,6 +169,14 @@
   function emptyState() {
     return {
       schema_version: SCHEMA_VERSION,
+      state_version: 2,
+      document_revision: 0,
+      ui_preferences: { text_size: 14, measurement_unit: "m", favorites: [], recents: [] },
+      migration_report: [],
+      recovery_rows: [],
+      randomization: { seed_mode: "new_per_job", seed: 0, locks: { characters: [], sections: [], fields: {} } },
+      native_weighting_enabled: false,
+      native_weighting_strength: 1,
       base_prompt: "",
       model_profile: PROFILES.GENERIC,
       interface_mode: "simple",
@@ -218,7 +228,13 @@
   function coerceState(raw) {
     const base = emptyState();
     if (!raw || typeof raw !== "object") return base;
+    raw = clone(raw);
+    if (!Number.isFinite(Number(raw.state_version)) || Number(raw.state_version) < 2) {
+      base.state_version = 0;
+      base.migration_backup = clone(raw.migration_backup || raw);
+    }
     for (const key of [
+      "state_version", "document_revision", "ui_preferences", "migration_report", "recovery_rows", "migration_backup", "randomization", "resolved_snapshot", "derived_sources", "native_weighting_enabled", "native_weighting_strength",
       "schema_version",
       "base_prompt",
       "model_profile",
@@ -299,12 +315,6 @@
       // Legacy characters (pre-1.2.0) carry their look in `clothing`, which
       // is no longer editable in the UI. Migrate it into the ensemble field
       // so users can see and clear it; it then compiles as "costume: …".
-      if (character.clothing && !character.ensemble && !character.clothing_top && !character.clothing_bottom) {
-        character.ensemble = character.clothing;
-      }
-      if (character.ensemble || character.clothing_top || character.clothing_bottom) {
-        delete character.clothing;
-      }
       if (!character.randomize_direction_groups || typeof character.randomize_direction_groups !== "object") {
         character.randomize_direction_groups = {};
       }
@@ -349,7 +359,14 @@
     // v2.3: the compact card is hidden — the editor is always expanded.
     base.wizard_expanded = true;
     base.embed_prompt_metadata = base.embed_prompt_metadata !== false;
-    return pruneStaleRows(base);
+    base.document_revision = Math.max(0, Number(base.document_revision) || 0);
+    base.ui_preferences = Object.assign({ text_size: 14, measurement_unit: "m", favorites: [], recents: [] }, base.ui_preferences || {});
+    base.ui_preferences.text_size = Math.max(13, Math.min(20, Number(base.ui_preferences.text_size) || 14));
+    base.randomization = Object.assign({ seed_mode: "new_per_job", seed: 0, locks: {} }, base.randomization || {});
+    base.randomization.locks = Object.assign({ characters: [], sections: [], fields: {} }, base.randomization.locks || {});
+    if (!Array.isArray(base.recovery_rows)) base.recovery_rows = [];
+    if (!Array.isArray(base.migration_report)) base.migration_report = [];
+    return base;
   }
 
   /* Remove rows that the v2 editor no longer manages:
@@ -437,25 +454,37 @@
   }
 
   /* ------------------- Weight math (mirrors src/weight_mapping.py) ---- */
+  function snapWeightStep(weight, step) {
+    step = step || 0.5;
+    if (!isFinite(weight)) return weight;
+    return Math.round(weight / step) * step;
+  }
+
+  function clampSafeWeight(weight) {
+    if (!isFinite(weight)) return SAFE_WEIGHT_MIN;
+    return Math.max(SAFE_WEIGHT_MIN, Math.min(SAFE_WEIGHT_MAX, weight));
+  }
+
   function sliderToWeightScalar(intensity) {
     if (intensity === 0) return 1.0;
     if (intensity > 0) {
       const norm = intensity / 100.0;
-      return 1.0 + 2.0 * Math.pow(norm, 1.35);
+      return clampSafeWeight(snapWeightStep(1.0 + 2.0 * Math.pow(norm, 1.35)));
     } else {
       const norm = Math.abs(intensity) / 100.0;
-      return 1.0 - 0.9 * Math.pow(norm, 1.1);
+      return clampSafeWeight(snapWeightStep(1.0 - 0.9 * Math.pow(norm, 1.1)));
     }
   }
 
-  function sliderToWeightRaw(intensity) {
-    return -3.0 + (intensity - SLIDER_MIN) * 6.0 / (SLIDER_MAX - SLIDER_MIN);
+  function sliderToWeightRaw(intensity, expert = false) {
+    const limit = expert ? 4 : 3;
+    return -limit + (intensity - SLIDER_MIN) * (2 * limit) / (SLIDER_MAX - SLIDER_MIN);
   }
 
   function sliderToWeightBipolar(intensity) {
     if (intensity === 0) return 1.0;
     const mag = Math.abs(intensity) / 100.0;
-    return 1.0 + 2.0 * Math.pow(mag, 1.35);
+    return snapWeightStep(1.0 + 2.0 * Math.pow(mag, 1.35));
   }
 
   function formatWeight(weight) {
@@ -471,13 +500,15 @@
     return "(" + text + ":" + formatWeight(weight) + ")";
   }
 
-  function defaultWeightForRow(row) {
-    if (Number.isFinite(Number(row.strength))) {
-      return Math.max(-3, Math.min(3, Number(row.strength)));
+  function defaultWeightForRow(row, expert = false) {
+    if (row.strength != null && Number.isFinite(Number(row.strength))) {
+      const value = Math.max(-3, Math.min(3, Number(row.strength)));
+      return row.control_mode === MODES.RAW ? value : snapWeightStep(value);
     }
-    if (row.control_mode === MODES.RAW) return sliderToWeightRaw(row.intensity);
-    if (row.control_mode === MODES.BIPOLAR) return sliderToWeightBipolar(row.intensity);
-    return sliderToWeightScalar(row.intensity);
+    const intensity = Math.max(SLIDER_MIN, Math.min(SLIDER_MAX, Math.trunc(Number(row.intensity) || 0)));
+    if (row.control_mode === MODES.RAW) return sliderToWeightRaw(intensity, expert);
+    if (row.control_mode === MODES.BIPOLAR) return sliderToWeightBipolar(intensity);
+    return sliderToWeightScalar(intensity);
   }
 
   function phraseForRow(row) {
@@ -584,7 +615,7 @@
 
   function debounce(fn, delay) {
     let timer = null;
-    return function () {
+    const wrapped = function () {
       const args = arguments;
       const self = this;
       clearTimeout(timer);
@@ -592,6 +623,18 @@
         fn.apply(self, args);
       }, delay);
     };
+    wrapped.cancel = function () { clearTimeout(timer); timer = null; };
+    return wrapped;
+  }
+
+  function onCleanup(element, cleanup) {
+    if (!element._krea2Cleanups) element._krea2Cleanups = [];
+    element._krea2Cleanups.push(cleanup);
+    return cleanup;
+  }
+  function cleanupDOM(element) {
+    for (const child of Array.from(element.children || [])) cleanupDOM(child);
+    for (const cleanup of (element._krea2Cleanups || []).splice(0)) cleanup();
   }
 
   /* ------------------- SVG iconography ---------------------------------
@@ -743,6 +786,40 @@
     expand: [
       ["path", { d: "M6 2.5H2.5V6M10 2.5h3.5V6M2.5 10v3.5H6M13.5 10v3.5H10" }],
     ],
+    folder: [
+      ["path", { d: "M1.8 4.2a1.2 1.2 0 0 1 1.2-1.2h3l1.4 1.6h5.6a1.2 1.2 0 0 1 1.2 1.2v6a1.2 1.2 0 0 1-1.2 1.2H3a1.2 1.2 0 0 1-1.2-1.2z" }],
+    ],
+    book: [
+      ["path", { d: "M2.5 2.8h4.2c.7 0 1.3.6 1.3 1.3v9c0-.6-.5-1.1-1.1-1.1H2.5z" }],
+      ["path", { d: "M13.5 2.8H9.3c-.7 0-1.3.6-1.3 1.3v9c0-.6.5-1.1 1.1-1.1h4.4z" }],
+    ],
+    gear: [
+      ["circle", { cx: "8", cy: "8", r: "2.1" }],
+      ["path", { d: "M8 1.6l.7 1.7 1.8-.4 1 1.7-1.2 1.4.9 1.6 1.8.3v2l-1.8.3-.9 1.6 1.2 1.4-1 1.7-1.8-.4L8 14.4l-.7-1.7-1.8.4-1-1.7 1.2-1.4-.9-1.6-1.8-.3v-2l1.8-.3.9-1.6-1.2-1.4 1-1.7 1.8.4z" }],
+    ],
+    history: [
+      ["path", { d: "M2.6 6.4A5.6 5.6 0 1 1 2.4 9.6" }],
+      ["path", { d: "M2.2 3.2v3.4h3.4" }],
+      ["path", { d: "M8 5.2V8.4l2.2 1.4" }],
+    ],
+    lock: [
+      ["rect", { x: "3.4", y: "7", width: "9.2", height: "6.2", rx: "1.2" }],
+      ["path", { d: "M5.4 7V5.2a2.6 2.6 0 0 1 5.2 0V7" }],
+    ],
+    workflow: [
+      ["rect", { x: "1.8", y: "6.2", width: "4", height: "3.6", rx: "0.9" }],
+      ["rect", { x: "10.2", y: "2.4", width: "4", height: "3.6", rx: "0.9" }],
+      ["rect", { x: "10.2", y: "10", width: "4", height: "3.6", rx: "0.9" }],
+      ["path", { d: "M5.8 8h2.2M8 4.2v3.8M8 8v3.8M8 11.8h2.2" }],
+    ],
+    undo: [
+      ["path", { d: "M2.8 6.4h6.4a3.6 3.6 0 0 1 0 7.2H5.6" }],
+      ["path", { d: "M5.4 3.4L2.4 6.4l3 3" }],
+    ],
+    redo: [
+      ["path", { d: "M13.2 6.4H6.8a3.6 3.6 0 0 0 0 7.2h3.6" }],
+      ["path", { d: "M10.6 3.4l3 3-3 3" }],
+    ],
   });
 
   function icon(name, attrs) {
@@ -777,9 +854,8 @@
 
   /* Concept row strength helpers: default_strength is stored 0-100 in the
    * library; the UI shows -3 to +3 (divide by 20). */
-  function displayStrength(row) {
-    if (Number.isFinite(Number(row.strength))) return Number(row.strength);
-    return Math.max(-3, Math.min(3, (Number(row.intensity) || 0) / 20));
+  function displayStrength(row, expert = false) {
+    return defaultWeightForRow(row, expert);
   }
 
   function storedStrength(value) {
@@ -787,7 +863,7 @@
   }
 
   function formatStepValue(value) {
-    const number = Math.round(Number(value) * 10) / 10;
+    const number = Math.round(Number(value) * 1000) / 1000;
     if (number === 0) return "0";
     return (number > 0 ? "+" : "") + String(number);
   }
@@ -996,18 +1072,22 @@
     }
   }
 
-  async function saveSavedPresets(presets) {
+  async function saveSavedPresets(presets, basePresets) {
     const api = (window.app && window.app.api) || null;
     const url = (api && api.apiURL && api.apiURL("/krea2_prompt_wizard/saved_presets"))
       || "/krea2_prompt_wizard/saved_presets";
     const resp = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ presets: presets }),
+      body: JSON.stringify(Object.assign({ presets }, basePresets === undefined ? {} : { base_presets: basePresets })),
     });
     const payload = await resp.json();
     if (!resp.ok) {
-      throw new Error((payload.error && payload.error.message) || "Could not save presets.");
+      const error = new Error((payload.error && payload.error.message) || "Could not save presets.");
+      error.status = resp.status;
+      error.latestPresets = payload.presets;
+      error.conflictIds = payload.conflict_ids;
+      throw error;
     }
     return Array.isArray(payload.presets) ? payload.presets : [];
   }
@@ -1076,14 +1156,14 @@
     }
   }
 
-  async function fetchCompiledPreview(state) {
+  async function fetchCompiledPreview(state, options = {}) {
     const api = (window.app && window.app.api) || null;
     const url = (api && api.apiURL && api.apiURL("/krea2_prompt_wizard/preview"))
       || "/krea2_prompt_wizard/preview";
     const resp = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ state: state, expert: false }),
+      body: JSON.stringify(Object.assign({ state: state, expert: false }, options)),
     });
     const payload = await resp.json();
     if (!resp.ok) {
@@ -1515,6 +1595,8 @@
     showToast,
     el,
     debounce,
+    onCleanup,
+    cleanupDOM,
     icon,
     displayStrength,
     storedStrength,
