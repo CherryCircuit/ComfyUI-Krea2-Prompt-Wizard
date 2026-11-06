@@ -281,18 +281,24 @@ def attach_token(
     host_range_end: int,
     preset_id: str,
     label: str,
+    randomize: bool = False,
 ) -> str:
     """Insert an attachment token immediately after its host token."""
-    marker = token_markup(preset_id, label, host=str(
-        next(
-            (
-                segment.preset_id
-                for segment in token_ranges(doc)
-                if segment.start == host_range_start
-            ),
-            "",
-        )
-    ))
+    marker = token_markup(
+        preset_id,
+        label,
+        host=str(
+            next(
+                (
+                    segment.preset_id
+                    for segment in token_ranges(doc)
+                    if segment.start == host_range_start
+                ),
+                "",
+            )
+        ),
+        randomize=randomize,
+    )
     return doc[:host_range_end] + marker + doc[host_range_end:]
 
 
@@ -303,8 +309,7 @@ def raw_display(doc: str, resolve_label: Optional[Callable[[str], Optional[str]]
     host's brackets as ``(LABEL)``; if the host is absent they stand alone.
     Unknown or disabled presets render as ``[MISSING: id]``.
     """
-    tokens = token_ranges(doc)
-    hosts_present = {segment.preset_id for segment in tokens if not segment.host}
+    segments = parse_document(doc)
 
     def label_for(preset_id: str, fallback: str) -> str:
         if resolve_label is not None:
@@ -312,38 +317,59 @@ def raw_display(doc: str, resolve_label: Optional[Callable[[str], Optional[str]]
             return resolved if resolved else ""
         return fallback
 
+    def parse(index: int):
+        """One token and its adjacent attachment subtree."""
+        segment = segments[index]
+        children = []
+        end = segment.end
+        next_index = index + 1
+        while (
+            next_index < len(segments)
+            and segments[next_index].type == "token"
+            and segments[next_index].host == segment.preset_id
+            and segments[next_index].start == end
+        ):
+            child, child_next = parse(next_index)
+            children.append(child)
+            end = child["end"]
+            next_index = child_next
+        return (
+            {
+                "segment": segment,
+                "children": children,
+                "end": end,
+                "next": next_index,
+            },
+            next_index,
+        )
+
+    def render(node: dict, child: bool = False) -> str:
+        segment = node["segment"]
+        label = label_for(segment.preset_id, segment.label)
+        body = label or f"MISSING: {segment.preset_id}"
+        inner = [f"({render(attached, True)})" for attached in node["children"]]
+        if inner:
+            body = f"{body} {' '.join(inner)}"
+        if child:
+            return body
+        if segment.host:
+            return f"[MISSING: {segment.host}] ({body})"
+        return f"[{body}]"
+
     parts: List[str] = []
-    for segment in parse_document(doc):
+    index = 0
+    while index < len(segments):
+        segment = segments[index]
         if segment.type == "text":
             parts.append(segment.value)
+            index += 1
             continue
         if segment.type == "frame":
-            continue  # structural; sections are labeled by the caller
-        if segment.host and segment.host in hosts_present:
-            continue  # rendered inside the host bracket below
-        label = label_for(segment.preset_id, segment.label)
-        if not label:
-            if segment.host:
-                parts.append(f"[MISSING: {segment.host}] (MISSING: {segment.preset_id})")
-            else:
-                parts.append(f"[MISSING: {segment.preset_id}]")
+            index += 1  # structural; sections are labeled by the caller
             continue
-        if segment.host:
-            parts.append(f"[MISSING: {segment.host}] ({label})")
-            continue
-        attachments = [
-            attached
-            for attached in tokens
-            if attached.host == segment.preset_id
-        ]
-        if attachments:
-            inner = []
-            for attached in attachments:
-                att_label = label_for(attached.preset_id, attached.label)
-                inner.append(f"({att_label})" if att_label else f"(MISSING: {attached.preset_id})")
-            parts.append(f"[{label} {' '.join(inner)}]")
-        else:
-            parts.append(f"[{label}]")
+        node, next_index = parse(index)
+        parts.append(render(node))
+        index = next_index
     return "".join(parts)
 
 

@@ -14,7 +14,7 @@
  * model inspired by roadmaus/ComfyUI-Continuity (MIT).
  */
 
-import { el, anchoredPanel } from "./ui.mjs?v=4";
+import { el, anchoredPanel, attachQuickTooltip } from "./ui.mjs?v=26";
 
 // ---- settings ---------------------------------------------------------------
 //
@@ -30,7 +30,16 @@ const DEFAULTS = {
   temperature: 0.3,
   seed: -1,
   maxTokens: 2048,
+  target: "generic",
 };
+
+export const REFINE_TARGETS = [
+  { value: "generic", label: "Any image model" },
+  { value: "krea2", label: "Krea 2 (long prose)" },
+  { value: "flux", label: "Flux / SDXL prose" },
+  { value: "tags", label: "SDXL / Illustrious tags" },
+  { value: "video", label: "Video (Wan / LTX / H3)" },
+];
 
 let settingsCache = null;
 let remoteCache = null;
@@ -146,6 +155,7 @@ export async function requestRefine({ doc, section }) {
     backend: current.backend,
     doc,
     section,
+    target: current.target,
     temperature: current.temperature,
     seed: current.seed,
     max_tokens: current.maxTokens,
@@ -189,11 +199,9 @@ export function refineButton({ run, onOpenSettings, title }) {
   const text = el("span", "kpw2-refine-label", "Refine");
   const button = el("button", "kpw2-toolbar-button kpw2-refine-run");
   button.type = "button";
-  button.title =
-    title ||
-    "Rewrite the expanded prompt into the long, flowing description Krea 2 " +
-      "was trained to read, keeping everything you wrote. A draft — you can " +
-      "edit, toggle or revert it below.";
+  button.setAttribute("aria-label", "Refine prompt");
+  button.title = title || "Refine";
+  attachQuickTooltip(button, "Refine prompt");
   button.addEventListener("click", async () => {
     if (busy) return;
     busy = true;
@@ -214,9 +222,8 @@ export function refineButton({ run, onOpenSettings, title }) {
   const more = el("button", "kpw2-toolbar-button kpw2-refine-more");
   more.type = "button";
   more.textContent = "⚙";
-  more.title = chosenModel()
-    ? `${chosenModel()} — click to change the model, backend or sampling`
-    : "Choose a refiner model";
+  more.title = "Refiner settings";
+  attachQuickTooltip(more, "Refiner settings");
   more.addEventListener("click", (event) => {
     event.stopPropagation();
     onOpenSettings(more.getBoundingClientRect());
@@ -286,6 +293,24 @@ export function openRefineSettings({ anchorRect, onChange = () => {} }) {
       )
     );
     body.append(backendRow);
+
+    const targetRow = row("Prompt target");
+    const targetSelect = select(
+      REFINE_TARGETS.map((target) => ({
+        value: target.value,
+        label: target.label,
+      })),
+      current.target,
+      (value) => {
+        saveRefineSettings({ target: value });
+        onChange();
+      }
+    );
+    targetSelect.title =
+      "The dialect the rewrite is shaped for. Generic prose works with most " +
+      "image models; tags suit SDXL/Illustrious; video asks for continuous action.";
+    targetRow.append(targetSelect);
+    body.append(targetRow);
 
     const modelRow = row(current.backend === "local" ? "Text encoder" : "Server model");
     const modelSelect = el("select", "kpw2-refine-select");
@@ -497,6 +522,8 @@ export class RefinePanel {
       // draft, not a broken one.
       source: result.source,
       model: result.model,
+      target: result.target || "",
+      targetLabel: result.target_label || "",
       enabled: previous ? previous.enabled !== false : true,
     };
     const where = result.section === "last_prompt" ? "last frame" : "prompt";
@@ -512,6 +539,9 @@ export class RefinePanel {
     this.sectionProblems = {};
     this.sectionProblems._error = [message];
     this.render();
+    // The warning is content too: let the node grow to show it, and shrink
+    // again when the next attempt replaces it.
+    this.onCommit?.();
   }
 
   /** Throw one draft away. */
@@ -556,6 +586,7 @@ export class RefinePanel {
       sections.map((s) => [
         drafts[s].enabled !== false,
         drafts[s].model,
+        drafts[s].targetLabel,
         !!drafts[s].stale,
       ]),
       this.problems,
@@ -598,6 +629,11 @@ export class RefinePanel {
         this.onCommit?.();
       });
       head.append(toggle);
+      if (draft.targetLabel) {
+        const targetBadge = el("span", "kpw2-refine-badge", draft.targetLabel);
+        targetBadge.title = "The prompt dialect this draft was written for.";
+        head.append(targetBadge);
+      }
       if (draft.model) head.append(el("span", "kpw2-refine-badge", draft.model));
       if (draft.stale) {
         const stale = el("span", "kpw2-refine-badge kpw2-refine-stale", "prompt edited since");

@@ -40,9 +40,9 @@ import {
   hasFrames,
   FRAME_FIRST,
   FRAME_LAST,
-} from "./tokenizer.mjs?v=4";
-import { offsetOfPoint, pointForOffset } from "./caret_math.mjs?v=4";
-import { presetStore, tokenTooltip } from "./preset_store.mjs?v=4";
+} from "./tokenizer.mjs?v=26";
+import { offsetOfPoint, pointForOffset } from "./caret_math.mjs?v=26";
+import { categoryIcon, presetStore, tokenTooltip } from "./preset_store.mjs?v=26";
 
 const SENTINEL = "\u200B"; // zero-width space: gives the caret a home between tokens
 
@@ -59,6 +59,49 @@ function sentinelNode() {
 
 function isSentinel(node) {
   return node.nodeType === Node.TEXT_NODE && node.textContent === SENTINEL;
+}
+
+/**
+ * Parse one token plus the adjacent attachment subtree beneath it.
+ *
+ * A facet token (hair colour, garment pattern) is a child of the hair or
+ * garment token, which may itself be a child of a character. The document
+ * keeps the markers flat and adjacent; this tree only exists for rendering.
+ */
+function parseTokenNode(segments, index) {
+  const segment = segments[index];
+  const children = [];
+  let end = segment.end;
+  let next = index + 1;
+  while (
+    next < segments.length &&
+    segments[next].type === "token" &&
+    segments[next].host === segment.id &&
+    segments[next].start === end
+  ) {
+    const child = parseTokenNode(segments, next);
+    children.push(child);
+    end = child.end;
+    next = child.next;
+  }
+  return {
+    segment,
+    children,
+    end,
+    next,
+    raw: segment.raw + children.map((child) => child.raw).join(""),
+  };
+}
+
+/** The full contiguous range of a token plus every nested attachment. */
+function tokenSubtreeRange(doc, start) {
+  const segments = parseDocument(doc);
+  const index = segments.findIndex(
+    (segment) => segment.type === "token" && segment.start === start
+  );
+  if (index < 0) return null;
+  const node = parseTokenNode(segments, index);
+  return { start: node.segment.start, end: node.end };
 }
 
 /** ChildInfo for caret math: what a rendered child contributes to the doc. */
@@ -275,18 +318,20 @@ export function createStudioEditor({
     return dice;
   }
 
-  /**
-   * Build one standalone (or detached-attachment) pill.
-   * @param {object} segment doc segment for the token
-   * @param {boolean} detached true when an attachment's host is absent
-   */
-  function makeTokenSpan(segment, detached = false) {
+  function makeNodeSpan(node, { sub = false, detached = false } = {}) {
+    const segment = node.segment;
     const preset = presetStore.get(segment.id);
-    const span = el("span", "kpw2-token");
+    const span = el("span", sub ? "kpw2-subtoken" : "kpw2-token");
     span.contentEditable = "false";
-    span.dataset.raw = segment.raw;
+    span.dataset.raw = node.raw;
     span.dataset.id = segment.id;
-    span.__range = { start: segment.start, end: segment.end, id: segment.id, host: segment.host };
+    span.__range = {
+      start: segment.start,
+      end: segment.end,
+      id: segment.id,
+      host: segment.host,
+    };
+    if (detached) span.classList.add("kpw2-token-detached");
     if (!preset || !preset.enabled) {
       span.classList.add("kpw2-token-missing");
       span.append(el("span", "kpw2-token-label", `[MISSING: ${segment.id}]`));
@@ -294,63 +339,17 @@ export function createStudioEditor({
       return span;
     }
     span.classList.add(categoryClassFor(preset));
-    if (detached) span.classList.add("kpw2-token-detached");
-    span.append(el("span", "kpw2-token-label", preset.name));
+    if (!sub && node.children.length) span.classList.add("kpw2-token-host");
+    span.append(
+      el("span", "kpw2-token-label", `${categoryIcon(preset.category)} ${preset.name}`)
+    );
     span.title = tokenTooltip(preset);
     if (segment.randomize) {
       span.classList.add("kpw2-token-random");
       span.append(makeDice({ start: segment.start, end: segment.end }));
     }
-    return span;
-  }
-
-  /**
-   * Build a host pill that visually contains its adjacent attachment
-   * sub-pills. `rawCombined` covers the host marker plus every adjacent
-   * attachment marker so caret math treats it as one atomic run.
-   */
-  function makeHostSpan(segment, attached) {
-    const preset = presetStore.get(segment.id);
-    const span = el("span", "kpw2-token kpw2-token-host");
-    span.contentEditable = "false";
-    const rawCombined = segment.raw + attached.map((a) => a.raw).join("");
-    span.dataset.raw = rawCombined;
-    span.dataset.id = segment.id;
-    span.__range = { start: segment.start, end: segment.end, id: segment.id, host: "" };
-
-    if (!preset || !preset.enabled) {
-      span.classList.add("kpw2-token-missing");
-      span.append(el("span", "kpw2-token-label", `[MISSING: ${segment.id}]`));
-    } else {
-      span.classList.add(categoryClassFor(preset));
-      span.append(el("span", "kpw2-token-label", preset.name));
-      span.title = tokenTooltip(preset);
-    }
-    if (segment.randomize) {
-      span.classList.add("kpw2-token-random");
-      span.append(makeDice({ start: segment.start, end: segment.end }));
-    }
-
-    for (const attachment of attached) {
-      const attPreset = presetStore.get(attachment.id);
-      const sub = el("span", "kpw2-subtoken");
-      sub.contentEditable = "false";
-      sub.dataset.raw = attachment.raw;
-      sub.dataset.id = attachment.id;
-      sub.__range = { start: attachment.start, end: attachment.end, id: attachment.id, host: attachment.host };
-      if (!attPreset || !attPreset.enabled) {
-        sub.classList.add("kpw2-token-missing");
-        sub.append(el("span", "kpw2-token-label", `[MISSING: ${attachment.id}]`));
-      } else {
-        sub.classList.add(categoryClassFor(attPreset));
-        sub.append(el("span", "kpw2-token-label", attPreset.name));
-        sub.title = tokenTooltip(attPreset);
-      }
-      if (attachment.randomize) {
-        sub.classList.add("kpw2-token-random");
-        sub.append(makeDice({ start: attachment.start, end: attachment.end }));
-      }
-      span.append(sub);
+    for (const child of node.children) {
+      span.append(makeNodeSpan(child, { sub: true }));
     }
     return span;
   }
@@ -378,33 +377,11 @@ export function createStudioEditor({
         i += 1;
         continue;
       }
-      if (segment.host) {
-        // Reached an attachment that is not adjacent to its host (the
-        // adjacent case is consumed below): render it standalone.
-        if (lastWasAtomic || frag.childNodes.length === 0) frag.append(sentinelNode());
-        frag.append(makeTokenSpan(segment, true));
-        lastWasAtomic = true;
-        i += 1;
-        continue;
-      }
-      // Collect attachments that directly follow this host marker.
-      const attached = [];
-      let end = segment.end;
-      let j = i + 1;
-      while (
-        j < segments.length &&
-        segments[j].type === "token" &&
-        segments[j].host === segment.id &&
-        segments[j].start === end
-      ) {
-        attached.push(segments[j]);
-        end = segments[j].end;
-        j += 1;
-      }
+      const node = parseTokenNode(segments, i);
       if (lastWasAtomic || frag.childNodes.length === 0) frag.append(sentinelNode());
-      frag.append(makeHostSpan(segment, attached));
+      frag.append(makeNodeSpan(node, { detached: Boolean(segment.host) }));
       lastWasAtomic = true;
-      i = j;
+      i = node.next;
     }
     if (lastWasAtomic) frag.append(sentinelNode());
     editor.replaceChildren(frag);
@@ -462,16 +439,22 @@ export function createStudioEditor({
     return null;
   }
 
-  /** Insert a preset token at the caret (or swap per exclusivity rules). */
-  function insertToken(preset, { hostRange = null } = {}) {
+  /**
+   * Insert a preset token at the caret (or swap per exclusivity rules).
+   * `randomize` omits to the natural default: preserve an existing token's
+   * every-run flag, and insert new tokens without one.
+   */
+  function insertToken(preset, { hostRange = null, randomize = undefined } = {}) {
     if (hostRange) {
-      attachToHost(hostRange, preset);
+      attachToHost(hostRange, preset, { randomize });
       return;
     }
     const existing = findExclusiveToken(preset.exclusive_group, "");
     if (existing) {
       // Replace the current same-slot token in place (position preserved).
-      const markup = tokenMarkup(preset.id, preset.name, { randomize: existing.randomize });
+      const markup = tokenMarkup(preset.id, preset.name, {
+        randomize: randomize === undefined ? existing.randomize : randomize,
+      });
       applyDoc(replaceRange(state.doc, existing.start, existing.end, markup), {
         start: existing.start + markup.length,
         end: existing.start + markup.length,
@@ -480,7 +463,9 @@ export function createStudioEditor({
       return;
     }
     const { start, end } = captureCaret();
-    let insert = tokenMarkup(preset.id, preset.name);
+    let insert = tokenMarkup(preset.id, preset.name, {
+      randomize: randomize === true,
+    });
     let caret = start;
     // Add one boundary space when the token would land against a word.
     if (isWordChar(state.doc[start - 1])) {
@@ -500,23 +485,38 @@ export function createStudioEditor({
    * same-slot attachment already on that character; otherwise the new
    * attachment marker lands directly after the host marker.
    */
-  function attachToHost(hostRange, preset) {
+  function attachToHost(hostRange, preset, { randomize = undefined } = {}) {
+    // Any token can be a host: a character hosts hair/garments, a hair
+    // token hosts its colour facets, and a garment hosts colour/pattern.
     const host = tokenRanges(state.doc).find(
-      (token) => token.start === hostRange.start && !token.host
+      (token) => token.start === hostRange.start
     );
     if (!host) return;
     const existing = findExclusiveToken(preset.exclusive_group, host.id);
+    const keepRandomize =
+      randomize === undefined ? (existing ? existing.randomize : false) : randomize;
     const markup = tokenMarkup(preset.id, preset.name, {
       host: host.id,
-      randomize: existing ? existing.randomize : false,
+      randomize: keepRandomize,
     });
     let nextDoc;
     let caret;
     if (existing) {
-      nextDoc = replaceRange(state.doc, existing.start, existing.end, markup);
+      // A hair or garment may own colour/pattern facets. Re-host them
+      // before swapping the parent, scoped to this subtree so the same
+      // preset on another character is untouched.
+      const subtree = tokenSubtreeRange(state.doc, existing.start);
+      nextDoc = remapHosts(state.doc, existing.id, preset.id, subtree);
+      nextDoc = replaceRange(nextDoc, existing.start, existing.end, markup);
       caret = existing.start + markup.length;
     } else {
-      nextDoc = attachToken(state.doc, { start: host.start, end: host.end }, preset.id, preset.name);
+      nextDoc = attachToken(
+        state.doc,
+        { start: host.start, end: host.end },
+        preset.id,
+        preset.name,
+        { randomize: keepRandomize }
+      );
       caret = host.end + markup.length;
     }
     applyDoc(nextDoc, { start: caret, end: caret });
@@ -532,7 +532,16 @@ export function createStudioEditor({
       host: current?.host || "",
       randomize: current?.randomize || false,
     });
-    applyDoc(replaceRange(state.doc, oldRange.start, oldRange.end, markup), {
+    // A hair style or garment may own colour/pattern facets. Re-host the
+    // subtree before replacing the parent so offsets stay valid and other
+    // characters using the same preset are untouched.
+    let nextDoc = state.doc;
+    if (current) {
+      const subtree = tokenSubtreeRange(state.doc, current.start);
+      nextDoc = remapHosts(nextDoc, current.id, preset.id, subtree);
+    }
+    nextDoc = replaceRange(nextDoc, oldRange.start, oldRange.end, markup);
+    applyDoc(nextDoc, {
       start: oldRange.start + markup.length,
       end: oldRange.start + markup.length,
     });
@@ -550,16 +559,18 @@ export function createStudioEditor({
         (token) => token.start === oldRange.start && token.id === oldRange.id
       )?.randomize || false,
     });
-    let nextDoc = replaceRange(state.doc, oldRange.start, oldRange.end, markup);
-    nextDoc = remapHosts(nextDoc, oldId, preset.id);
+    const subtree = tokenSubtreeRange(state.doc, oldRange.start);
+    let nextDoc = remapHosts(state.doc, oldId, preset.id, subtree);
+    nextDoc = replaceRange(nextDoc, oldRange.start, oldRange.end, markup);
     applyDoc(nextDoc, { start: oldRange.start + markup.length, end: oldRange.start + markup.length });
     editor.focus();
   }
 
-  /** Remove a token plus one neighboring space so words don't fuse. */
+  /** Remove a token and its nested facets, plus one neighboring space. */
   function deleteToken(range) {
-    let start = range.start;
-    let end = range.end;
+    const subtree = tokenSubtreeRange(state.doc, range.start) || range;
+    let start = subtree.start;
+    let end = subtree.end;
     if (state.doc[start - 1] === " " && state.doc[end] === " ") start -= 1;
     applyDoc(replaceRange(state.doc, start, end, ""), { start, end });
   }
@@ -831,7 +842,11 @@ export function createStudioEditor({
     get mode() {
       return state.mode;
     },
-    setDoc(doc, { resetHistory = false } = {}) {
+    setDoc(doc, { resetHistory = false, recordHistory = false } = {}) {
+      if (recordHistory && state.doc !== String(doc ?? "")) {
+        state.lastCaret = null;
+        pushHistory();
+      }
       state.doc = String(doc ?? "");
       state.lastCaret = null;
       if (resetHistory) {

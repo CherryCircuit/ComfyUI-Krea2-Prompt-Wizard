@@ -14,7 +14,7 @@ import os
 from typing import Any, Dict
 
 from .package_paths import studio_user_prefs_path
-from .refine_prompts import DEFAULT_MAX_TOKENS, reply_tokens
+from .refine_prompts import DEFAULT_MAX_TOKENS, normalize_target, reply_tokens
 
 logger = logging.getLogger("krea2.studio.refine_settings")
 
@@ -30,6 +30,8 @@ DEFAULTS: Dict[str, Any] = {
     "seed": -1,
     "max_tokens": DEFAULT_MAX_TOKENS,
     "language": "English",
+    # The prompt dialect the rewrite is shaped for. See refine_prompts.TARGETS.
+    "target": "generic",
 }
 
 _BACKENDS = ("local", "remote")
@@ -61,6 +63,7 @@ def coerce(raw: Any) -> Dict[str, Any]:
         seed = DEFAULTS["seed"]
     out["seed"] = max(-1, min(2 ** 31 - 1, seed))
     out["max_tokens"] = reply_tokens(raw.get("max_tokens", DEFAULTS["max_tokens"]))
+    out["target"] = normalize_target(raw.get("target", DEFAULTS["target"]))
     return out
 
 

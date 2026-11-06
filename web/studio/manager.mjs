@@ -6,7 +6,7 @@
  * upserts changes into the user payload; bundled presets are overridden
  * by id rather than modified in place, and can be tombstoned.
  */
-import { el, openModal, anchoredPanel } from "./ui.mjs?v=4";
+import { el, openModal, anchoredPanel } from "./ui.mjs?v=26";
 import {
   CATEGORY_ORDER,
   EXCLUSIVE_GROUPS,
@@ -15,7 +15,8 @@ import {
   categoryLabel,
   exclusiveGroupLabel,
   presetStore,
-} from "./preset_store.mjs?v=4";
+  readableName,
+} from "./preset_store.mjs?v=26";
 
 function slugify(name) {
   const base = String(name || "")
@@ -104,6 +105,7 @@ export function openPresetManager({ onChanged = () => {}, initialCategory = null
     option.value = category;
     categoryInput.append(option);
   }
+  const collectionInput = textInput("", "Medieval, Sci-Fi, School, Casual…");
   const descriptionInput = textInput("", "One-line description (shown on hover)");
   const slotSelect = el("select", "kpw2-form-input");
   for (const group of ["", ...EXCLUSIVE_GROUPS]) {
@@ -133,6 +135,7 @@ export function openPresetManager({ onChanged = () => {}, initialCategory = null
   form.append(
     fieldRow("Name", nameInput),
     fieldRow("Category", categoryInput),
+    fieldRow("Collection", collectionInput),
     fieldRow("Slot (exclusive group)", slotSelect),
     memberSection,
     fieldRow("Description", descriptionInput),
@@ -175,8 +178,9 @@ export function openPresetManager({ onChanged = () => {}, initialCategory = null
   function currentDraft() {
     return {
       id: selectedId,
-      name: nameInput.value.trim(),
+      name: readableName(nameInput.value.trim()),
       category: categoryInput.value,
+      collection: collectionInput.value.trim(),
       exclusive_group: slotSelect.value,
       included_presets: [...memberIds],
       description: descriptionInput.value,
@@ -271,6 +275,7 @@ export function openPresetManager({ onChanged = () => {}, initialCategory = null
   function fillForm(preset) {
     nameInput.value = preset?.name ?? "";
     categoryInput.value = preset?.category ?? "other";
+    collectionInput.value = preset?.collection ?? "";
     slotSelect.value = preset?.exclusive_group ?? "";
     if (slotSelect.value !== (preset?.exclusive_group ?? "")) slotSelect.value = "";
     memberIds = Array.isArray(preset?.included_presets) ? [...preset.included_presets] : [];
@@ -308,8 +313,13 @@ export function openPresetManager({ onChanged = () => {}, initialCategory = null
       );
       if (preset.enabled === false) row.classList.add("kpw2-row-disabled");
       row.addEventListener("click", () => {
-        selectedId = preset.id;
-        fillForm(preset);
+        if (selectedId === preset.id) {
+          selectedId = null;
+          fillForm(null);
+        } else {
+          selectedId = preset.id;
+          fillForm(preset);
+        }
         statusLine.textContent = "";
         renderList();
       });
@@ -364,6 +374,7 @@ export function openPresetManager({ onChanged = () => {}, initialCategory = null
     fillForm({
       name,
       category,
+      collection: basePreset?.collection ?? "",
       exclusive_group: basePreset?.exclusive_group ?? "",
       included_presets: basePreset?.included_presets ?? [],
       description: basePreset?.description ?? "",
@@ -406,8 +417,10 @@ export function openPresetManager({ onChanged = () => {}, initialCategory = null
   });
   deleteButton.addEventListener("click", () => void deleteSelected());
   cancelButton.addEventListener("click", () => {
-    fillForm(presetStore.get(selectedId));
-    setStatus("");
+    // Cancel means leave the manager; unsaved edits are discarded. The
+    // previous behavior only re-filled the form but left the modal open,
+    // which read as a dead button.
+    close();
   });
   saveButton.addEventListener("click", () => void saveDraft());
   searchInput.addEventListener("input", () => {

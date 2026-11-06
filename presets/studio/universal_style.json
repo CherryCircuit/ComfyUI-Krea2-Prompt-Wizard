@@ -1,0 +1,473 @@
+{
+  "schema_version": 1,
+  "presets": [
+    {
+      "id": "u_style_kodak_portra",
+      "name": "Kodak Portra",
+      "category": "style",
+      "collection": "Film Stock",
+      "prompt": "the soft warm palette, gentle contrast and fine grain of Kodak Portra film",
+      "negative": "",
+      "description": "Warm Portra palette with fine grain.",
+      "tags": [
+        "style",
+        "film",
+        "portra"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "style"
+    },
+    {
+      "id": "u_style_cinestill_800t",
+      "name": "Cinestill 800T",
+      "category": "style",
+      "collection": "Film Stock",
+      "prompt": "the cool tungsten balance, halated highlights and visible grain of Cinestill 800T",
+      "negative": "",
+      "description": "Tungsten film with halation and grain.",
+      "tags": [
+        "style",
+        "film",
+        "cinestill"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "style"
+    },
+    {
+      "id": "u_style_fujifilm_pro",
+      "name": "Fujifilm Pro",
+      "category": "style",
+      "collection": "Film Stock",
+      "prompt": "clean Fujifilm colour with slightly cool greens and crisp micro-contrast",
+      "negative": "",
+      "description": "Cool-green Fujifilm colour and contrast.",
+      "tags": [
+        "style",
+        "film",
+        "fuji"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "style"
+    },
+    {
+      "id": "u_style_expired_film",
+      "name": "Expired Film",
+      "category": "style",
+      "collection": "Film Stock",
+      "prompt": "the faded colours, lifted blacks and unpredictable colour shifts of expired film",
+      "negative": "",
+      "description": "Faded expired-film colour and lifted blacks.",
+      "tags": [
+        "style",
+        "film",
+        "expired"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "style"
+    },
+    {
+      "id": "u_style_black_and_white",
+      "name": "Black and White",
+      "category": "style",
+      "collection": "Film Stock",
+      "prompt": "rich black-and-white photography with deep blacks, bright highlights and visible grain",
+      "negative": "",
+      "description": "Grainy high-contrast monochrome.",
+      "tags": [
+        "style",
+        "monochrome",
+        "film"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "style"
+    },
+    {
+      "id": "u_style_film_noir",
+      "name": "Film Noir",
+      "category": "style",
+      "collection": "Genre",
+      "prompt": "a 1940s film-noir look with hard shadows, smoky atmosphere and high-contrast monochrome",
+      "negative": "",
+      "description": "Hard-shadow noir monochrome.",
+      "tags": [
+        "style",
+        "noir",
+        "cinematic"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "style"
+    },
+    {
+      "id": "u_style_spaghetti_western",
+      "name": "Spaghetti Western",
+      "category": "style",
+      "collection": "Genre",
+      "prompt": "a sun-bleached spaghetti-western look with dusty ochre tones, wide horizons and hard light",
+      "negative": "",
+      "description": "Dusty ochre western wides.",
+      "tags": [
+        "style",
+        "western",
+        "cinematic"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "style"
+    },
+    {
+      "id": "u_style_gothic_horror",
+      "name": "Gothic Horror",
+      "category": "style",
+      "collection": "Genre",
+      "prompt": "a gothic-horror look with desaturated blues, deep shadows and a cold, damp atmosphere",
+      "negative": "",
+      "description": "Desaturated blue gothic atmosphere.",
+      "tags": [
+        "style",
+        "horror",
+        "cinematic"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "style"
+    },
+    {
+      "id": "u_style_romantic_drama",
+      "name": "Romantic Drama",
+      "category": "style",
+      "collection": "Genre",
+      "prompt": "a soft romantic-drama look with warm skin tones, gentle halation and shallow focus",
+      "negative": "",
+      "description": "Warm skin, gentle halation, shallow focus.",
+      "tags": [
+        "style",
+        "romance",
+        "cinematic"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "style"
+    },
+    {
+      "id": "u_style_indie_drama",
+      "name": "Indie Drama",
+      "category": "style",
+      "collection": "Genre",
+      "prompt": "a naturalistic indie-drama look with muted colour, available light and quiet framing",
+      "negative": "",
+      "description": "Muted colour and available light.",
+      "tags": [
+        "style",
+        "indie",
+        "cinematic"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "style"
+    },
+    {
+      "id": "u_style_1970s_film",
+      "name": "1970s Film",
+      "category": "style",
+      "collection": "Era",
+      "prompt": "a 1970s film look with warm yellows, soft contrast, zoom-lens framing and light grain",
+      "negative": "",
+      "description": "Warm 1970s colour and soft contrast.",
+      "tags": [
+        "style",
+        "era",
+        "1970s"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "style"
+    },
+    {
+      "id": "u_style_1980s_vhs",
+      "name": "1980s VHS",
+      "category": "style",
+      "collection": "Era",
+      "prompt": "a degraded 1980s VHS look with soft scanlines, chroma bleed and washed-out colour",
+      "negative": "",
+      "description": "VHS scanlines and chroma bleed.",
+      "tags": [
+        "style",
+        "era",
+        "1980s"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "style"
+    },
+    {
+      "id": "u_style_1990s_point_and_shoot",
+      "name": "1990s Point and Shoot",
+      "category": "style",
+      "collection": "Era",
+      "prompt": "a 1990s point-and-shoot snapshot look with direct flash, hard shadows and slightly muddy colour",
+      "negative": "",
+      "description": "Direct-flash 90s snapshot.",
+      "tags": [
+        "style",
+        "era",
+        "1990s"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "style"
+    },
+    {
+      "id": "u_style_retro_futurism",
+      "name": "Retro Futurism",
+      "category": "style",
+      "collection": "Era",
+      "prompt": "a retro-futurist look with chrome, saturated primaries and optimistic space-age design",
+      "negative": "",
+      "description": "Chrome and saturated retro-future design.",
+      "tags": [
+        "style",
+        "era",
+        "retro"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "style"
+    },
+    {
+      "id": "u_style_oil_painting",
+      "name": "Oil Painting",
+      "category": "style",
+      "collection": "Medium",
+      "prompt": "the visible brushwork, layered glazes and rich colour of a classical oil painting",
+      "negative": "",
+      "description": "Visible brushwork and rich glazes.",
+      "tags": [
+        "style",
+        "painting",
+        "medium"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "style"
+    },
+    {
+      "id": "u_style_watercolor",
+      "name": "Watercolor",
+      "category": "style",
+      "collection": "Medium",
+      "prompt": "loose watercolour washes with soft bleeding edges and visible paper texture",
+      "negative": "",
+      "description": "Soft watercolour washes on paper.",
+      "tags": [
+        "style",
+        "watercolor",
+        "medium"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "style"
+    },
+    {
+      "id": "u_style_anime_cel",
+      "name": "Anime Cel",
+      "category": "style",
+      "collection": "Medium",
+      "prompt": "clean anime cel shading with crisp line art, flat colour and painted backgrounds",
+      "negative": "",
+      "description": "Cel shading with crisp line art.",
+      "tags": [
+        "style",
+        "anime",
+        "medium"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "style"
+    },
+    {
+      "id": "u_style_3d_render",
+      "name": "3D Render",
+      "category": "style",
+      "collection": "Medium",
+      "prompt": "a polished 3D render with soft global illumination, clean materials and subtle depth of field",
+      "negative": "",
+      "description": "Polished 3D render with soft GI.",
+      "tags": [
+        "style",
+        "3d",
+        "medium"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "style"
+    },
+    {
+      "id": "u_style_teal_and_orange",
+      "name": "Teal and Orange",
+      "category": "style",
+      "collection": "Color Grade",
+      "prompt": "a modern teal-and-orange grade with warm skin tones against cool shadows",
+      "negative": "",
+      "description": "Warm skin against cool teal shadows.",
+      "tags": [
+        "style",
+        "color",
+        "grade"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "color_grade"
+    },
+    {
+      "id": "u_style_muted_pastel",
+      "name": "Muted Pastel",
+      "category": "style",
+      "collection": "Color Grade",
+      "prompt": "a muted pastel grade with low saturation, soft contrast and airy highlights",
+      "negative": "",
+      "description": "Low-saturation pastel palette.",
+      "tags": [
+        "style",
+        "color",
+        "pastel"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "color_grade"
+    },
+    {
+      "id": "u_style_high_contrast_mono",
+      "name": "High Contrast Mono",
+      "category": "style",
+      "collection": "Color Grade",
+      "prompt": "a high-contrast monochrome grade with crushed blacks and clean white highlights",
+      "negative": "",
+      "description": "Crushed blacks and clean whites.",
+      "tags": [
+        "style",
+        "monochrome",
+        "contrast"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "color_grade"
+    },
+    {
+      "id": "u_style_warm_vintage",
+      "name": "Warm Vintage",
+      "category": "style",
+      "collection": "Color Grade",
+      "prompt": "a warm vintage grade with amber highlights, faded shadows and a gentle vignette",
+      "negative": "",
+      "description": "Amber highlights and faded shadows.",
+      "tags": [
+        "style",
+        "color",
+        "vintage"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "color_grade"
+    },
+    {
+      "id": "u_style_cool_blue_grade",
+      "name": "Cool Blue Grade",
+      "category": "style",
+      "collection": "Color Grade",
+      "prompt": "a cool blue grade with cyan shadows, clean highlights and a restrained, clinical mood",
+      "negative": "",
+      "description": "Cyan shadows and clean highlights.",
+      "tags": [
+        "style",
+        "color",
+        "cool"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "color_grade"
+    },
+    {
+      "id": "u_style_sepia_grade",
+      "name": "Sepia Grade",
+      "category": "style",
+      "collection": "Color Grade",
+      "prompt": "a sepia grade with brown midtones, soft contrast and the look of an old photograph",
+      "negative": "",
+      "description": "Brown midtones and old-photo softness.",
+      "tags": [
+        "style",
+        "color",
+        "sepia"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "color_grade"
+    },
+    {
+      "id": "u_style_neon_split_grade",
+      "name": "Neon Split Grade",
+      "category": "style",
+      "collection": "Color Grade",
+      "prompt": "a split grade with magenta highlights and cyan shadows, saturated and electric",
+      "negative": "",
+      "description": "Magenta highlights and cyan shadows.",
+      "tags": [
+        "style",
+        "color",
+        "neon"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "color_grade"
+    },
+    {
+      "id": "u_style_natural_grade",
+      "name": "Natural Grade",
+      "category": "style",
+      "collection": "Color Grade",
+      "prompt": "a clean natural grade with accurate skin tones, gentle contrast and no obvious colour cast",
+      "negative": "",
+      "description": "Accurate skin tones and gentle contrast.",
+      "tags": [
+        "style",
+        "color",
+        "natural"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "color_grade"
+    }
+  ]
+}

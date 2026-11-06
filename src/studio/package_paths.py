@@ -15,6 +15,7 @@ BUNDLED_STUDIO_DIR = os.path.join(PRESETS_DIR, "studio")
 
 USER_PRESETS_FILENAME = "studio_presets.json"
 USER_PREFS_FILENAME = "studio_prefs.json"
+USER_RECIPES_FILENAME = "studio_recipes.json"
 PREVIEWS_DIRNAME = "previews"
 
 
@@ -29,6 +30,13 @@ def studio_user_prefs_path(create: bool = True) -> str:
     """Return the canonical location of the studio prefs file (favorites/recent)."""
     return os.path.join(
         user_paths.package_user_dir(create=create), USER_PREFS_FILENAME
+    )
+
+
+def studio_user_recipes_path(create: bool = True) -> str:
+    """Return the canonical location of the user randomizer recipe file."""
+    return os.path.join(
+        user_paths.package_user_dir(create=create), USER_RECIPES_FILENAME
     )
 
 

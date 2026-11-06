@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "presets": [
+    {
+      "id": "u_state_soaked_by_rain",
+      "name": "Soaked by Rain",
+      "category": "state",
+      "collection": "Weather",
+      "prompt": "soaked through by rain, with wet hair clinging to the face and dark water marks across the clothing",
+      "negative": "",
+      "description": "Rain-soaked hair and clothing.",
+      "tags": [
+        "state",
+        "rain",
+        "wet"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": ""
+    },
+    {
+      "id": "u_state_snow_dusted",
+      "name": "Snow Dusted",
+      "category": "state",
+      "collection": "Weather",
+      "prompt": "dusted with fresh snow, with flakes caught in the hair and a cold flush on the cheeks",
+      "negative": "",
+      "description": "Fresh snow in hair and on shoulders.",
+      "tags": [
+        "state",
+        "snow",
+        "cold"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": ""
+    },
+    {
+      "id": "u_state_dust_covered",
+      "name": "Dust Covered",
+      "category": "state",
+      "collection": "Weather",
+      "prompt": "covered in fine pale dust, with grit on the skin and clothing",
+      "negative": "",
+      "description": "Fine dust on skin and clothes.",
+      "tags": [
+        "state",
+        "dust",
+        "travel"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": ""
+    },
+    {
+      "id": "u_state_bruised_and_tired",
+      "name": "Bruised and Tired",
+      "category": "state",
+      "collection": "Physical",
+      "prompt": "visibly exhausted, with dark shadows under the eyes, a faint bruise on one cheek and rumpled clothing",
+      "negative": "",
+      "description": "Exhaustion and a fresh bruise.",
+      "tags": [
+        "state",
+        "tired",
+        "injury"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": ""
+    },
+    {
+      "id": "u_state_freshly_bandaged",
+      "name": "Freshly Bandaged",
+      "category": "state",
+      "collection": "Physical",
+      "prompt": "a clean white bandage wrapped around one forearm, with the rest of the posture guarded",
+      "negative": "",
+      "description": "Bandaged forearm and guarded posture.",
+      "tags": [
+        "state",
+        "bandage",
+        "injury"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": ""
+    },
+    {
+      "id": "u_state_out_of_breath",
+      "name": "Out of Breath",
+      "category": "state",
+      "collection": "Physical",
+      "prompt": "flushed and out of breath, with a sheen of sweat and slightly dishevelled hair",
+      "negative": "",
+      "description": "Flushed, sweaty and breathless.",
+      "tags": [
+        "state",
+        "breathless",
+        "exercise"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": ""
+    },
+    {
+      "id": "u_state_mud_splattered",
+      "name": "Mud Splattered",
+      "category": "state",
+      "collection": "Condition",
+      "prompt": "splattered with mud up the legs and sleeves, as if just back from a hard trail",
+      "negative": "",
+      "description": "Mud across legs and sleeves.",
+      "tags": [
+        "state",
+        "mud",
+        "outdoors"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": ""
+    },
+    {
+      "id": "u_state_sleep_deprived",
+      "name": "Sleep Deprived",
+      "category": "state",
+      "collection": "Condition",
+      "prompt": "pale and sleep-deprived, with heavy eyelids and a slow, unfocused gaze",
+      "negative": "",
+      "description": "Pale, heavy-eyed and unfocused.",
+      "tags": [
+        "state",
+        "sleep",
+        "tired"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": ""
+    }
+  ]
+}

@@ -6,8 +6,13 @@
  * token in place; attachments keep their host. The popup also toggles
  * runtime randomization and offers edit/remove/new-preset shortcuts.
  */
-import { el, anchoredPanel } from "./ui.mjs?v=4";
-import { categoryLabel } from "./preset_store.mjs?v=4";
+import { el, anchoredPanel } from "./ui.mjs?v=26";
+import {
+  categoryIcon,
+  categoryLabel,
+  exclusiveGroupShortLabel,
+  FACET_DEFINITIONS,
+} from "./preset_store.mjs?v=26";
 
 /**
  * @param {{
@@ -26,6 +31,7 @@ export function createTokenPopup({
   onEditPreset,
   onNewPreset,
   onToggleRandomize,
+  onAddFacet,
 }) {
   let panel = null;
   let activeRange = null;
@@ -59,7 +65,7 @@ export function createTokenPopup({
     const title = el(
       "div",
       "kpw2-panel-title",
-      categoryLabel(category) + (group ? ` · ${group.replace(/^wardrobe_/, "").replace(/_/g, " ")}` : "")
+      group ? exclusiveGroupShortLabel(group) : categoryLabel(category)
     );
     const list = el("div", "kpw2-popup-list");
     // Same slot only: category AND exclusive group. Ungrouped presets
@@ -73,6 +79,25 @@ export function createTokenPopup({
     }
     for (const option of options) {
       list.append(rowButton(option, option.id === tokenRange.id));
+    }
+
+    const facetBox = el("div", "kpw2-popup-facets");
+    const facets = preset ? FACET_DEFINITIONS[group] || [] : [];
+    for (const facet of facets) {
+      const facetButton = el(
+        "button",
+        "kpw2-ghost-button kpw2-popup-facet",
+        `${categoryIcon(facet.category)} ${facet.label}`
+      );
+      facetButton.type = "button";
+      facetButton.title = `Add or change this ${facet.label.toLowerCase()} option`;
+      facetButton.addEventListener("click", () => {
+        const range = activeRange;
+        const rect = tokenSpan?.getBoundingClientRect?.() ?? anchorRect;
+        close();
+        if (range) onAddFacet(range, facet, rect);
+      });
+      facetBox.append(facetButton);
     }
 
     const footer = el("div", "kpw2-popup-footer");
@@ -103,7 +128,9 @@ export function createTokenPopup({
     footer.append(randomButton, newButton, editButton, removeButton);
 
     const body = el("div", "kpw2-token-popup");
-    body.append(title, list, footer);
+    body.append(title, list);
+    if (facetBox.childNodes.length) body.append(facetBox);
+    body.append(footer);
 
     if (preset) {
       editButton.addEventListener("click", () => {

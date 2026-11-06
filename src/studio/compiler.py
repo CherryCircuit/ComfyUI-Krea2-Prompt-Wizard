@@ -23,6 +23,7 @@ later text refines earlier text. Pure logic; no ComfyUI imports.
 """
 from __future__ import annotations
 
+import json
 import random
 import re
 from dataclasses import dataclass, field
@@ -36,7 +37,6 @@ from .tokens import (
     raw_display,
     split_sections,
     token_markup,
-    token_ranges,
 )
 
 
@@ -51,6 +51,9 @@ class CompiledPrompt:
     used_preset_ids: List[str] = field(default_factory=list)
     missing_preset_ids: List[str] = field(default_factory=list)
     random_choices: List[dict] = field(default_factory=list)
+    #: The document after this run's dice were resolved. Sent to the UI so
+    #: the node can show the presets that were actually used.
+    randomized_doc: str = ""
 
 
 _CLAUSE_SPLIT = re.compile(r"[\n,]+")
@@ -122,22 +125,62 @@ def _negative_clauses(store: PresetStore, used_ids: List[str]) -> List[str]:
 # ---------------------------------------------------------------------------
 
 
-def random_candidates(
-    store: PresetStore,
-    preset: Preset,
-    exclude_id: str = "",
-) -> List[Preset]:
-    """Presets that can be swapped in for ``preset`` by the randomizer.
+def slot_key(category: str, exclusive_group: str = "") -> str:
+    """Stable key for one randomizer pool.
 
-    Same category, same exclusive group (a "slot" — camera, wardrobe top,
-    ...), enabled. The currently selected preset is excluded so every
-    randomized run visibly changes the look.
+    A pool is scoped to a category plus its exclusive group, which is the
+    same boundary the randomizer already uses: a camera cannot swap with a
+    wardrobe top, and two wardrobe tops share one slot.
     """
+    return f"{category or 'other'}|{exclusive_group or ''}"
+
+
+def parse_pools(raw: str) -> Dict[str, set]:
+    """Read the hidden ``randomizer_doc`` JSON into pool key -> allowed ids.
+
+    Tolerant by design: a workflow written by an older or newer frontend
+    must still queue. Unknown keys, non-list values and junk ids are
+    ignored; a missing entry means "all presets in the slot are allowed".
+    """
+    try:
+        data = json.loads(raw or "")
+    except (TypeError, ValueError):
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    pools = data.get("pools")
+    if not isinstance(pools, dict):
+        return {}
+    out: Dict[str, set] = {}
+    for key, ids in pools.items():
+        if not isinstance(key, str) or not isinstance(ids, list):
+            continue
+        allowed = {
+            str(item).strip()
+            for item in ids
+            if isinstance(item, str) and str(item).strip()
+        }
+        out[key] = allowed
+    return out
+
+
+def candidates_for_slot(
+    store: PresetStore,
+    category: str,
+    exclusive_group: str = "",
+    *,
+    exclude_id: str = "",
+    pools: Optional[Dict[str, set]] = None,
+) -> List[Preset]:
+    """Enabled presets in one slot, narrowed by an optional pool."""
+    allowed = pools.get(slot_key(category, exclusive_group)) if pools else None
     candidates = []
-    for candidate in store.by_category(preset.category):
+    for candidate in store.by_category(category):
         if not candidate.enabled:
             continue
-        if candidate.exclusive_group != preset.exclusive_group:
+        if candidate.exclusive_group != exclusive_group:
+            continue
+        if allowed is not None and candidate.id not in allowed:
             continue
         if exclude_id and candidate.id == exclude_id:
             continue
@@ -145,10 +188,33 @@ def random_candidates(
     return candidates
 
 
+def random_candidates(
+    store: PresetStore,
+    preset: Preset,
+    exclude_id: str = "",
+    pools: Optional[Dict[str, set]] = None,
+) -> List[Preset]:
+    """Presets that can be swapped in for ``preset`` by the randomizer.
+
+    Same category, same exclusive group (a "slot" — camera, wardrobe top,
+    ...), enabled, and inside the user's checked pool when one exists. The
+    currently selected preset is excluded so every randomized run visibly
+    changes the look.
+    """
+    return candidates_for_slot(
+        store,
+        preset.category,
+        preset.exclusive_group,
+        exclude_id=exclude_id,
+        pools=pools,
+    )
+
+
 def randomize_document(
     doc: str,
     store: PresetStore,
     rng: Optional[random.Random] = None,
+    pools: Optional[Dict[str, set]] = None,
 ) -> Tuple[str, List[dict]]:
     """Replace ``~``-flagged tokens with a random same-slot preset.
 
@@ -158,37 +224,85 @@ def randomize_document(
     """
     chooser = rng.choice if rng is not None else random.choice
     choices: List[dict] = []
-    replacements: List[tuple] = []
-    for segment in token_ranges(doc):
-        if not segment.randomize:
-            continue
-        preset = store.get(segment.preset_id)
-        if preset is None or not preset.enabled:
-            continue
-        candidates = random_candidates(store, preset, exclude_id=preset.id)
-        if not candidates:
-            continue
-        chosen = chooser(candidates)
-        marker = token_markup(
-            chosen.id,
-            chosen.name,
-            host=segment.host,
-            randomize=True,  # keep the flag: the token stays randomizable
-        )
-        replacements.append((segment.start, segment.end, marker, segment.preset_id, chosen))
+    segments = parse_document(doc)
 
-    new_doc = doc
-    for start, end, marker, old_id, chosen in reversed(replacements):
-        new_doc = new_doc[:start] + marker + new_doc[end:]
-        choices.append(
+    def parse_node(index: int):
+        """One token plus its adjacent attachment subtree."""
+        segment = segments[index]
+        children = []
+        end = segment.end
+        next_index = index + 1
+        while (
+            next_index < len(segments)
+            and segments[next_index].type == "token"
+            and segments[next_index].host == segment.preset_id
+            and segments[next_index].start == end
+        ):
+            child, child_next = parse_node(next_index)
+            children.append(child)
+            end = child["end"]
+            next_index = child_next
+        return (
             {
-                "token_id": old_id,
-                "chosen_id": chosen.id,
-                "chosen_name": chosen.name,
-            }
+                "segment": segment,
+                "children": children,
+                "end": end,
+                "next": next_index,
+            },
+            next_index,
         )
-    choices.reverse()
-    return new_doc, choices
+
+    def render_node(node: dict, host: Optional[str] = None) -> str:
+        segment = node["segment"]
+        chosen = None
+        if segment.randomize:
+            preset = store.get(segment.preset_id)
+            if preset is not None and preset.enabled:
+                candidates = random_candidates(
+                    store, preset, exclude_id=preset.id, pools=pools
+                )
+                if candidates:
+                    chosen = chooser(candidates)
+        chosen_id = chosen.id if chosen is not None else segment.preset_id
+        chosen_name = chosen.name if chosen is not None else segment.label
+        # Children point at the id that actually appears in this run, so a
+        # randomized hairstyle keeps its colour facets and a randomized
+        # garment keeps its colour/pattern facets.
+        marker = token_markup(
+            chosen_id,
+            chosen_name,
+            host=host if host is not None else segment.host,
+            randomize=segment.randomize,
+        )
+        if chosen is not None:
+            choices.append(
+                {
+                    "token_id": segment.preset_id,
+                    "chosen_id": chosen.id,
+                    "chosen_name": chosen.name,
+                }
+            )
+        inner = "".join(
+            render_node(child, chosen_id) for child in node["children"]
+        )
+        return marker + inner
+
+    parts: List[str] = []
+    index = 0
+    while index < len(segments):
+        segment = segments[index]
+        if segment.type == "text":
+            parts.append(segment.value)
+            index += 1
+            continue
+        if segment.type == "frame":
+            parts.append(segment.raw or segment.value)
+            index += 1
+            continue
+        node, next_index = parse_node(index)
+        parts.append(render_node(node))
+        index = next_index
+    return "".join(parts), choices
 
 
 # ---------------------------------------------------------------------------
@@ -235,13 +349,20 @@ def compile_document(
     doc: str,
     store: PresetStore,
     rng: Optional[random.Random] = None,
+    pools: Optional[Dict[str, set]] = None,
 ) -> CompiledPrompt:
-    """Compile one studio document into the node's outputs."""
+    """Compile one studio document into the node's outputs.
+
+    ``pools`` narrows every random draw to the ids the user checked in the
+    randomizer. Absent or empty pools mean the whole slot stays available.
+    """
     active_doc = doc or ""
     choices: List[dict] = []
     if rng is not None:
         # One randomization pass per execution: both frames share picks.
-        active_doc, choices = randomize_document(active_doc, store, rng=rng)
+        active_doc, choices = randomize_document(
+            active_doc, store, rng=rng, pools=pools
+        )
 
     if has_frames(active_doc):
         sections = split_sections(active_doc)
@@ -272,6 +393,7 @@ def compile_document(
             used_preset_ids=used,
             missing_preset_ids=missing,
             random_choices=choices,
+            randomized_doc=active_doc,
         )
 
     prompt, negative, used, missing = _compile_section(active_doc, store)
@@ -283,4 +405,5 @@ def compile_document(
         used_preset_ids=used,
         missing_preset_ids=missing,
         random_choices=choices,
+        randomized_doc=active_doc,
     )

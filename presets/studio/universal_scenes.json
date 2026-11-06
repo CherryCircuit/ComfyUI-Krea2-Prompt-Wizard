@@ -1,0 +1,890 @@
+{
+  "schema_version": 1,
+  "presets": [
+    {
+      "id": "u_scene_medieval_village_market",
+      "name": "Medieval Village Market",
+      "category": "scene",
+      "collection": "Medieval",
+      "prompt": "A busy medieval village market square on a bright morning, with timber-framed houses, canvas awnings over wooden stalls, baskets of produce, hanging sausages and pottery, muddy cobblestones, and villagers in rough wool clothing moving between the stalls.",
+      "negative": "",
+      "description": "Open-air market square with timber houses and produce stalls.",
+      "tags": [
+        "medieval",
+        "market",
+        "village",
+        "exterior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_castle_great_hall",
+      "name": "Castle Great Hall",
+      "category": "scene",
+      "collection": "Medieval",
+      "prompt": "A vast medieval castle great hall with a high timber roof, long trestle tables, iron chandeliers, banners hanging from stone walls, a raised lord's table at the far end, and narrow windows casting pale daylight across the rush-strewn floor.",
+      "negative": "",
+      "description": "Long banquet hall with trestle tables, banners and iron chandeliers.",
+      "tags": [
+        "medieval",
+        "castle",
+        "hall",
+        "interior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_monastery_cloister",
+      "name": "Monastery Cloister",
+      "category": "scene",
+      "collection": "Medieval",
+      "prompt": "A quiet stone monastery cloister surrounding a small herb garden, with repeating rounded arches, worn flagstones, a wooden bench, and soft overcast light falling into the sheltered walkway.",
+      "negative": "",
+      "description": "Stone cloister with repeating arches around a herb garden.",
+      "tags": [
+        "medieval",
+        "monastery",
+        "cloister",
+        "interior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_orbital_station_corridor",
+      "name": "Orbital Station Corridor",
+      "category": "scene",
+      "collection": "Sci-Fi",
+      "prompt": "A narrow orbital station corridor with white and gunmetal panels, recessed strip lighting, a ribbed floor, bulkhead doors at intervals, and a long window looking out onto a blue planet and drifting debris.",
+      "negative": "",
+      "description": "Clean station corridor with a planet view.",
+      "tags": [
+        "sci-fi",
+        "space",
+        "corridor",
+        "interior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_neon_cyberpunk_street",
+      "name": "Neon Cyberpunk Street",
+      "category": "scene",
+      "collection": "Sci-Fi",
+      "prompt": "A rain-slick cyberpunk street at night, crowded with vertical neon signs in magenta and cyan, steam rising from vents, tangled cables overhead, food stalls under plastic sheeting, and reflections stretching across the wet asphalt.",
+      "negative": "",
+      "description": "Rainy neon street with signs, steam and reflections.",
+      "tags": [
+        "sci-fi",
+        "cyberpunk",
+        "street",
+        "night"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_starship_bridge",
+      "name": "Starship Bridge",
+      "category": "scene",
+      "collection": "Sci-Fi",
+      "prompt": "The bridge of a starship, with a wide curved viewscreen showing a field of stars, dark control consoles glowing with amber and blue readouts, empty command chairs, and a polished floor reflecting the displays.",
+      "negative": "",
+      "description": "Dark starship bridge with a curved starfield viewscreen.",
+      "tags": [
+        "sci-fi",
+        "starship",
+        "bridge",
+        "interior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_alien_jungle_dome",
+      "name": "Alien Jungle Dome",
+      "category": "scene",
+      "collection": "Sci-Fi",
+      "prompt": "A vast transparent dome enclosing a dense alien jungle, with giant fern-like plants, glowing spores drifting in the humid air, winding metal walkways, and a distant research station built into the foliage.",
+      "negative": "",
+      "description": "Glass dome over a bioluminescent alien jungle.",
+      "tags": [
+        "sci-fi",
+        "jungle",
+        "dome",
+        "exterior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_high_school_hallway",
+      "name": "High School Hallway",
+      "category": "scene",
+      "collection": "School",
+      "prompt": "A long high school hallway lined with lockers, scuffed linoleum, notice boards covered in paper flyers, a row of classroom doors, and cold fluorescent light mixed with daylight from the windows at the far end.",
+      "negative": "",
+      "description": "Locker-lined school corridor with fluorescent light.",
+      "tags": [
+        "school",
+        "hallway",
+        "interior",
+        "modern"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_school_classroom",
+      "name": "School Classroom",
+      "category": "scene",
+      "collection": "School",
+      "prompt": "A bright school classroom with rows of wooden desks, a whiteboard covered in half-erased notes, a teacher's desk at the front, pinned student artwork along the back wall, and afternoon sun falling through tall windows.",
+      "negative": "",
+      "description": "Rows of desks, whiteboard and afternoon window light.",
+      "tags": [
+        "school",
+        "classroom",
+        "interior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_school_library",
+      "name": "School Library",
+      "category": "scene",
+      "collection": "School",
+      "prompt": "A school library with tall shelves of colourful books, long reading tables, green banker's lamps, a worn carpet, and high windows letting in soft daylight between the stacks.",
+      "negative": "",
+      "description": "Quiet school library with tall shelves and reading tables.",
+      "tags": [
+        "school",
+        "library",
+        "interior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_school_gymnasium",
+      "name": "School Gymnasium",
+      "category": "scene",
+      "collection": "School",
+      "prompt": "A school gymnasium with polished hardwood flooring, painted boundary lines, folded bleachers along one wall, basketball hoops, and high clerestory windows casting long stripes of light.",
+      "negative": "",
+      "description": "Empty gym with polished floor and bleachers.",
+      "tags": [
+        "school",
+        "gym",
+        "interior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_city_apartment",
+      "name": "City Apartment",
+      "category": "scene",
+      "collection": "Modern",
+      "prompt": "A compact modern city apartment with a low grey sofa, a coffee table holding books and a mug, large windows overlooking a hazy skyline, warm lamplight, and a few lived-in details like a jacket over a chair.",
+      "negative": "",
+      "description": "Small modern apartment with a skyline view.",
+      "tags": [
+        "modern",
+        "apartment",
+        "interior",
+        "city"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_rooftop_terrace",
+      "name": "Rooftop Terrace",
+      "category": "scene",
+      "collection": "Modern",
+      "prompt": "A rooftop terrace at dusk with potted plants, a weathered wooden table, string lights overhead, low concrete parapets, and a sprawling city skyline turning from orange to blue in the distance.",
+      "negative": "",
+      "description": "City rooftop terrace at dusk with string lights.",
+      "tags": [
+        "modern",
+        "rooftop",
+        "city",
+        "exterior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_corner_cafe",
+      "name": "Corner Cafe",
+      "category": "scene",
+      "collection": "Modern",
+      "prompt": "A small corner cafe with steamed-up windows, a wooden counter, a chrome espresso machine, chalkboard menus, mismatched chairs, and soft morning light falling across the tables.",
+      "negative": "",
+      "description": "Cosy cafe interior with morning light.",
+      "tags": [
+        "modern",
+        "cafe",
+        "interior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_open_plan_office",
+      "name": "Open Plan Office",
+      "category": "scene",
+      "collection": "Modern",
+      "prompt": "A modern open-plan office with rows of desks, muted grey partitions, monitors glowing, scattered papers and coffee cups, and floor-to-ceiling windows overlooking a city on an overcast day.",
+      "negative": "",
+      "description": "Desk rows and glass walls in a modern office.",
+      "tags": [
+        "modern",
+        "office",
+        "interior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_mountain_lake",
+      "name": "Mountain Lake",
+      "category": "scene",
+      "collection": "Nature",
+      "prompt": "A still mountain lake at dawn, surrounded by dark pine forest and snow-dusted peaks, with mist hovering above the water, smooth stones at the shoreline, and the first warm light touching the summits.",
+      "negative": "",
+      "description": "Still alpine lake with pine forest and mist.",
+      "tags": [
+        "nature",
+        "lake",
+        "mountain",
+        "exterior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_desert_canyon",
+      "name": "Desert Canyon",
+      "category": "scene",
+      "collection": "Nature",
+      "prompt": "A deep desert canyon with layered red rock walls, a dry riverbed of cracked mud and pebbles, sparse scrub, and harsh afternoon sunlight cutting a sharp shadow across the canyon floor.",
+      "negative": "",
+      "description": "Red rock canyon with a dry riverbed.",
+      "tags": [
+        "nature",
+        "desert",
+        "canyon",
+        "exterior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_tropical_beach",
+      "name": "Tropical Beach",
+      "category": "scene",
+      "collection": "Nature",
+      "prompt": "A tropical beach with pale sand, leaning palm trees, clear turquoise water breaking in gentle lines, scattered driftwood, and a bank of dark rainclouds far out over the sea.",
+      "negative": "",
+      "description": "Palm-lined beach with turquoise water and distant storm clouds.",
+      "tags": [
+        "nature",
+        "beach",
+        "tropical",
+        "exterior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_pine_forest_trail",
+      "name": "Pine Forest Trail",
+      "category": "scene",
+      "collection": "Nature",
+      "prompt": "A narrow trail winding through a dense pine forest, with moss-covered roots, ferns crowding the edges, shafts of sunlight breaking through the canopy, and a soft carpet of fallen needles underfoot.",
+      "negative": "",
+      "description": "Mossy pine trail with shafts of sunlight.",
+      "tags": [
+        "nature",
+        "forest",
+        "trail",
+        "exterior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_subway_platform",
+      "name": "Subway Platform",
+      "category": "scene",
+      "collection": "Urban",
+      "prompt": "An underground subway platform with grimy tiled walls, a yellow safety line, steel pillars, a flickering fluorescent fixture, and a dark tunnel mouth disappearing into the distance.",
+      "negative": "",
+      "description": "Grimy underground platform with a dark tunnel.",
+      "tags": [
+        "urban",
+        "subway",
+        "interior",
+        "night"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_rain_slick_alley",
+      "name": "Rain-Slick Alley",
+      "category": "scene",
+      "collection": "Urban",
+      "prompt": "A narrow city alley after rain, with wet brick walls, fire escapes overhead, overflowing bins, puddles reflecting a single sodium streetlamp, and steam curling from a vent.",
+      "negative": "",
+      "description": "Wet alley with fire escapes and reflected streetlight.",
+      "tags": [
+        "urban",
+        "alley",
+        "rain",
+        "night"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_night_rooftop",
+      "name": "Night Rooftop",
+      "category": "scene",
+      "collection": "Urban",
+      "prompt": "A flat city rooftop at night, with gravel and ventilation units, a low parapet, a single bare bulb on a cable, and the lit windows of taller buildings crowding the horizon.",
+      "negative": "",
+      "description": "Gravel rooftop at night with city lights beyond.",
+      "tags": [
+        "urban",
+        "rooftop",
+        "night",
+        "exterior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_convenience_store",
+      "name": "Convenience Store",
+      "category": "scene",
+      "collection": "Urban",
+      "prompt": "The interior of a small convenience store late at night, with brightly lit shelves, a humming drinks fridge, scuffed tiles, a counter by the window, and the dark street visible through the glass.",
+      "negative": "",
+      "description": "Bright convenience store interior at night.",
+      "tags": [
+        "urban",
+        "store",
+        "interior",
+        "night"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_victorian_drawing_room",
+      "name": "Victorian Drawing Room",
+      "category": "scene",
+      "collection": "Historical",
+      "prompt": "A Victorian drawing room with heavy velvet curtains, a carved fireplace, patterned wallpaper, a tufted armchair, a small side table with a tea service, and dim light from a gas lamp.",
+      "negative": "",
+      "description": "Velvet, wallpaper and gaslight in a Victorian parlour.",
+      "tags": [
+        "historical",
+        "victorian",
+        "interior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_1920s_jazz_club",
+      "name": "1920s Jazz Club",
+      "category": "scene",
+      "collection": "Historical",
+      "prompt": "A crowded 1920s jazz club with a small raised stage, brass instruments under warm spotlights, round tables with white cloths, cigarette smoke drifting through the beams, and Art Deco details along the walls.",
+      "negative": "",
+      "description": "Smoky Art Deco jazz club with a small stage.",
+      "tags": [
+        "historical",
+        "1920s",
+        "jazz",
+        "interior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_roman_courtyard",
+      "name": "Roman Courtyard",
+      "category": "scene",
+      "collection": "Historical",
+      "prompt": "An ancient Roman courtyard with a central fountain, terracotta roof tiles, painted plaster walls, climbing vines, and strong Mediterranean sunlight casting hard shadows across the stone paving.",
+      "negative": "",
+      "description": "Sunlit Roman courtyard with fountain and vines.",
+      "tags": [
+        "historical",
+        "roman",
+        "courtyard",
+        "exterior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_wild_west_saloon",
+      "name": "Wild West Saloon",
+      "category": "scene",
+      "collection": "Historical",
+      "prompt": "A dusty Wild West saloon with a long wooden bar, swinging half-doors, round card tables, a battered piano, antlers mounted above the mirror, and warm lamplight cutting through the tobacco haze.",
+      "negative": "",
+      "description": "Wooden saloon with a long bar and card tables.",
+      "tags": [
+        "historical",
+        "western",
+        "saloon",
+        "interior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_elven_forest",
+      "name": "Elven Forest",
+      "category": "scene",
+      "collection": "Fantasy",
+      "prompt": "An ancient elven forest with towering silver-barked trees, arched roots forming natural bridges, floating motes of pale light, mossy stone ruins, and a narrow path winding deeper into the green gloom.",
+      "negative": "",
+      "description": "Silver trees, glowing motes and ruins in an elven wood.",
+      "tags": [
+        "fantasy",
+        "forest",
+        "elven",
+        "exterior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_wizard_tower",
+      "name": "Wizard Tower",
+      "category": "scene",
+      "collection": "Fantasy",
+      "prompt": "The interior of a wizard's tower, circular and cluttered, with spiralling shelves of books and jars, a brass orrery, stacked scrolls, a narrow spiral stair, and cold blue light falling from a high window.",
+      "negative": "",
+      "description": "Circular tower room full of books, jars and an orrery.",
+      "tags": [
+        "fantasy",
+        "wizard",
+        "tower",
+        "interior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_dwarven_forge",
+      "name": "Dwarven Forge",
+      "category": "scene",
+      "collection": "Fantasy",
+      "prompt": "A vast underground dwarven forge, with massive stone pillars, glowing channels of molten metal, heavy anvils, racks of hammers, and sparks drifting through the hot orange haze.",
+      "negative": "",
+      "description": "Underground forge with molten metal and heavy anvils.",
+      "tags": [
+        "fantasy",
+        "dwarven",
+        "forge",
+        "interior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_enchanted_library",
+      "name": "Enchanted Library",
+      "category": "scene",
+      "collection": "Fantasy",
+      "prompt": "An enchanted library with impossibly tall shelves, ladders rising into darkness, floating candles, dust motes in shafts of coloured light, and a worn circular reading desk at the centre.",
+      "negative": "",
+      "description": "Towering library with floating candles and coloured light.",
+      "tags": [
+        "fantasy",
+        "library",
+        "magic",
+        "interior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_cozy_cabin",
+      "name": "Cozy Cabin",
+      "category": "scene",
+      "collection": "Interior",
+      "prompt": "A small wooden cabin interior with a stone fireplace, a worn rug, a plaid blanket over an armchair, shelves of mismatched crockery, and warm firelight flickering across the log walls.",
+      "negative": "",
+      "description": "Log cabin with fireplace, rug and warm firelight.",
+      "tags": [
+        "interior",
+        "cabin",
+        "cozy",
+        "firelight"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_industrial_loft",
+      "name": "Industrial Loft",
+      "category": "scene",
+      "collection": "Interior",
+      "prompt": "A converted industrial loft with exposed brick, tall black-framed windows, steel beams, a concrete floor, a low leather sofa, and a few large plants softening the hard surfaces.",
+      "negative": "",
+      "description": "Exposed brick and steel in a converted loft.",
+      "tags": [
+        "interior",
+        "loft",
+        "industrial",
+        "modern"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_hotel_suite",
+      "name": "Hotel Suite",
+      "category": "scene",
+      "collection": "Interior",
+      "prompt": "A luxurious hotel suite with a wide bed, crisp white linen, heavy curtains half-drawn, a marble side table, a tufted bench, and warm pools of lamplight against cool evening windows.",
+      "negative": "",
+      "description": "Warm lamplight in a plush hotel suite.",
+      "tags": [
+        "interior",
+        "hotel",
+        "luxury",
+        "night"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_greenhouse",
+      "name": "Greenhouse",
+      "category": "scene",
+      "collection": "Interior",
+      "prompt": "A glass greenhouse crowded with ferns, orchids and trailing vines, with condensation on the panes, terracotta pots on stepped shelves, a narrow gravel path, and diffuse green-tinted daylight.",
+      "negative": "",
+      "description": "Condensation and dense plants inside a glass greenhouse.",
+      "tags": [
+        "interior",
+        "greenhouse",
+        "plants",
+        "daylight"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_abandoned_asylum",
+      "name": "Abandoned Asylum",
+      "category": "scene",
+      "collection": "Horror",
+      "prompt": "A derelict asylum corridor with peeling green paint, rusted wheelchairs, scattered papers, a flickering overhead light, and dark doorways opening into unlit rooms.",
+      "negative": "",
+      "description": "Peeling asylum corridor with rusted wheelchairs.",
+      "tags": [
+        "horror",
+        "asylum",
+        "abandoned",
+        "interior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_foggy_graveyard",
+      "name": "Foggy Graveyard",
+      "category": "scene",
+      "collection": "Horror",
+      "prompt": "An old graveyard swallowed by fog, with leaning headstones, bare twisted trees, iron railings, and a pale moon barely visible above the mist.",
+      "negative": "",
+      "description": "Leaning headstones and bare trees in thick fog.",
+      "tags": [
+        "horror",
+        "graveyard",
+        "fog",
+        "exterior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_decrepit_mansion",
+      "name": "Decrepit Mansion",
+      "category": "scene",
+      "collection": "Horror",
+      "prompt": "The entrance hall of a decaying mansion, with a grand staircase missing balusters, dust sheets over furniture, a cracked chandelier, and thin moonlight falling through a broken skylight.",
+      "negative": "",
+      "description": "Dust-sheeted hall with a broken staircase and chandelier.",
+      "tags": [
+        "horror",
+        "mansion",
+        "decay",
+        "interior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_flooded_basement",
+      "name": "Flooded Basement",
+      "category": "scene",
+      "collection": "Horror",
+      "prompt": "A flooded basement with dark water covering the floor, damp concrete walls, exposed pipes, a single swinging bulb, and floating debris reflecting the weak light.",
+      "negative": "",
+      "description": "Dark standing water and exposed pipes in a basement.",
+      "tags": [
+        "horror",
+        "basement",
+        "water",
+        "interior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_factory_floor",
+      "name": "Factory Floor",
+      "category": "scene",
+      "collection": "Industrial",
+      "prompt": "A vast factory floor with rows of dormant machinery, overhead conveyor rails, oil-stained concrete, high dirty windows, and shafts of dusty light falling between the machines.",
+      "negative": "",
+      "description": "Dormant machinery and dusty light on a factory floor.",
+      "tags": [
+        "industrial",
+        "factory",
+        "interior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_warehouse",
+      "name": "Warehouse",
+      "category": "scene",
+      "collection": "Industrial",
+      "prompt": "A cavernous warehouse with towering steel shelving, stacked pallets and crates, a concrete floor marked with faded lines, and cold light from skylights high above.",
+      "negative": "",
+      "description": "Towering shelves and pallets in a cold warehouse.",
+      "tags": [
+        "industrial",
+        "warehouse",
+        "interior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_power_plant",
+      "name": "Power Plant",
+      "category": "scene",
+      "collection": "Industrial",
+      "prompt": "The interior of an old power plant with massive turbines, tangled pipes, metal walkways, warning stripes, and harsh work lights cutting through steam.",
+      "negative": "",
+      "description": "Turbines, pipes and steam in an old power plant.",
+      "tags": [
+        "industrial",
+        "power",
+        "machinery",
+        "interior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_shipyard",
+      "name": "Shipyard",
+      "category": "scene",
+      "collection": "Industrial",
+      "prompt": "A working shipyard at dusk, with the dark hull of a cargo ship under construction, towering cranes, stacked containers, welding sparks, and a flat grey sky over the water.",
+      "negative": "",
+      "description": "Cranes and a half-built hull in a shipyard at dusk.",
+      "tags": [
+        "industrial",
+        "shipyard",
+        "cranes",
+        "exterior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_lighthouse",
+      "name": "Lighthouse",
+      "category": "scene",
+      "collection": "Coastal",
+      "prompt": "A whitewashed lighthouse on a rocky headland, with a weathered gallery rail, crashing waves below, wind-bent grass, and a pale beam turning through cold sea mist.",
+      "negative": "",
+      "description": "Whitewashed lighthouse on a misty rocky headland.",
+      "tags": [
+        "coastal",
+        "lighthouse",
+        "sea",
+        "exterior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_harbor_dock",
+      "name": "Harbor Dock",
+      "category": "scene",
+      "collection": "Coastal",
+      "prompt": "A small harbor dock at dawn, with fishing boats tied to iron cleats, coiled rope, stacked crab pots, wet planks, and gulls circling above the grey water.",
+      "negative": "",
+      "description": "Fishing boats and coiled rope at a quiet dawn harbor.",
+      "tags": [
+        "coastal",
+        "harbor",
+        "boats",
+        "exterior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_seaside_cottage",
+      "name": "Seaside Cottage",
+      "category": "scene",
+      "collection": "Coastal",
+      "prompt": "A weathered seaside cottage with white shutters, a small fenced garden, salt-bleached wood, and a path of crushed shells leading toward a windy beach.",
+      "negative": "",
+      "description": "Salt-bleached cottage with white shutters by the sea.",
+      "tags": [
+        "coastal",
+        "cottage",
+        "seaside",
+        "exterior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    },
+    {
+      "id": "u_scene_stormy_cliff",
+      "name": "Stormy Cliff",
+      "category": "scene",
+      "collection": "Coastal",
+      "prompt": "A sheer coastal cliff under a storm sky, with dark waves breaking far below, wind-torn grass, slick black rock, and distant lightning flickering inside the clouds.",
+      "negative": "",
+      "description": "Dark waves and storm light below a sheer cliff.",
+      "tags": [
+        "coastal",
+        "cliff",
+        "storm",
+        "exterior"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "scene"
+    }
+  ]
+}

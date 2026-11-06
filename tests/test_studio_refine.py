@@ -81,6 +81,16 @@ class HarnessTests(unittest.TestCase):
         self.assertIn("STOP", problems[0])
         self.assertIn("go", problems[1])
 
+    def test_targets_are_distinct_and_normalized(self):
+        self.assertIn("comma-separated", refine_prompts.system_prompt("tags"))
+        self.assertIn("video models", refine_prompts.system_prompt("video"))
+        self.assertEqual(
+            refine_prompts.normalize_target("nonsense"),
+            refine_prompts.DEFAULT_TARGET,
+        )
+        self.assertEqual(refine_prompts.normalize_target(None), "generic")
+        self.assertEqual(refine_prompts.target_label("krea2"), "Krea 2 (long prose)")
+
     def test_check_clean_rewrite_passes(self):
         self.assertEqual(refine_prompts.check("a fox in snow", "An orange fox walks through deep snow."), [])
 
@@ -205,11 +215,12 @@ class RefineSettingsTests(unittest.TestCase):
         self.assertEqual(settings["backend"], "local")
         self.assertEqual(settings["seed"], -1)
         self.assertEqual(settings["max_tokens"], refine_prompts.DEFAULT_MAX_TOKENS)
+        self.assertEqual(settings["target"], "generic")
 
     def test_roundtrip_and_coercion(self):
         stored = refine_settings.save_settings(
             {"backend": "remote", "remote_model": "qwen3", "temperature": "0.55",
-             "seed": 7, "max_tokens": 99, "nonsense": "dropped"}
+             "seed": 7, "max_tokens": 99, "target": "video", "nonsense": "dropped"}
         )
         self.assertEqual(stored["backend"], "remote")
         self.assertEqual(stored["temperature"], 0.55)
@@ -219,6 +230,7 @@ class RefineSettingsTests(unittest.TestCase):
         again = refine_settings.load_settings()
         self.assertEqual(again["remote_model"], "qwen3")
         self.assertEqual(again["backend"], "remote")
+        self.assertEqual(again["target"], "video")
 
 
 class RefineRunTests(unittest.TestCase):
@@ -251,6 +263,27 @@ class RefineRunTests(unittest.TestCase):
         self.assertEqual(result["source"], "A tavern.")
         self.assertEqual(result["model"], "enc.bin")
         self.assertEqual(result["problems"], [])
+
+    def test_run_uses_requested_target(self):
+        seen = {}
+
+        def chat(model, system, message, **kwargs):
+            seen["system"] = system
+            seen["message"] = message
+            return '{"prompt": "A crowded tavern at dusk."}'
+
+        result = self._run(
+            {
+                "doc": "{{krea2:scene_tavern|TAVERN}}",
+                "section": "prompt",
+                "target": "tags",
+            },
+            chat,
+        )
+        self.assertIn("comma-separated", seen["system"])
+        self.assertIn("SDXL / Illustrious tags", seen["message"])
+        self.assertEqual(result["target"], "tags")
+        self.assertEqual(result["target_label"], "SDXL / Illustrious tags")
 
     def test_run_reports_dropped_quotes(self):
         def chat(model, system, message, **kwargs):

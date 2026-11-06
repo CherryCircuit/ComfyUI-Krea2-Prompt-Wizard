@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "presets": [
+    {
+      "id": "u_props_worn_leather_journal",
+      "name": "Worn Leather Journal",
+      "category": "props",
+      "collection": "Everyday",
+      "prompt": "a worn leather-bound journal with a cracked spine and loose pages",
+      "negative": "",
+      "description": "Cracked leather journal.",
+      "tags": [
+        "props",
+        "journal",
+        "book"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": ""
+    },
+    {
+      "id": "u_props_brass_compass",
+      "name": "Brass Compass",
+      "category": "props",
+      "collection": "Everyday",
+      "prompt": "a tarnished brass compass with a scratched glass face",
+      "negative": "",
+      "description": "Tarnished brass compass.",
+      "tags": [
+        "props",
+        "compass",
+        "travel"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": ""
+    },
+    {
+      "id": "u_props_chipped_ceramic_mug",
+      "name": "Chipped Ceramic Mug",
+      "category": "props",
+      "collection": "Everyday",
+      "prompt": "a chipped ceramic mug with a faded pattern and a dark ring of old coffee inside",
+      "negative": "",
+      "description": "Chipped patterned mug.",
+      "tags": [
+        "props",
+        "mug",
+        "everyday"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": ""
+    },
+    {
+      "id": "u_props_folding_pocket_knife",
+      "name": "Folding Pocket Knife",
+      "category": "props",
+      "collection": "Everyday",
+      "prompt": "a small folding pocket knife with a worn wooden handle",
+      "negative": "",
+      "description": "Small wooden-handled pocket knife.",
+      "tags": [
+        "props",
+        "knife",
+        "tool"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": ""
+    },
+    {
+      "id": "u_props_old_film_camera",
+      "name": "Old Film Camera",
+      "category": "props",
+      "collection": "Tech",
+      "prompt": "a scuffed 35mm film camera with a dented metal body and a half-used roll",
+      "negative": "",
+      "description": "Scuffed 35mm film camera.",
+      "tags": [
+        "props",
+        "camera",
+        "tech"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": ""
+    },
+    {
+      "id": "u_props_cracked_smartphone",
+      "name": "Cracked Smartphone",
+      "category": "props",
+      "collection": "Tech",
+      "prompt": "a smartphone with a spiderweb crack across the screen, still glowing faintly",
+      "negative": "",
+      "description": "Smartphone with a cracked screen.",
+      "tags": [
+        "props",
+        "phone",
+        "modern"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": ""
+    },
+    {
+      "id": "u_props_ancient_sword",
+      "name": "Ancient Sword",
+      "category": "props",
+      "collection": "Fantasy",
+      "prompt": "an ancient sword with a pitted blade, a worn leather grip and a chipped crossguard",
+      "negative": "",
+      "description": "Pitted ancient sword with leather grip.",
+      "tags": [
+        "props",
+        "sword",
+        "fantasy"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": ""
+    },
+    {
+      "id": "u_props_glowing_crystal",
+      "name": "Glowing Crystal",
+      "category": "props",
+      "collection": "Fantasy",
+      "prompt": "a fist-sized crystal glowing with a slow internal light, wrapped in a thin metal cradle",
+      "negative": "",
+      "description": "Fist-sized glowing crystal in a metal cradle.",
+      "tags": [
+        "props",
+        "crystal",
+        "magic"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": ""
+    }
+  ]
+}

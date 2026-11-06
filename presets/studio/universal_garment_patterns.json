@@ -1,0 +1,275 @@
+{
+  "schema_version": 1,
+  "presets": [
+    {
+      "id": "u_garment_pattern_pinstripe",
+      "name": "Pinstripe",
+      "category": "garment_pattern",
+      "collection": "Pattern",
+      "prompt": "the fabric carries a fine pinstripe pattern that follows the garment seams",
+      "negative": "",
+      "description": "Fine pinstripe.",
+      "tags": [
+        "garment",
+        "pattern",
+        "stripe"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_pattern"
+    },
+    {
+      "id": "u_garment_pattern_wide_stripe",
+      "name": "Wide Stripe",
+      "category": "garment_pattern",
+      "collection": "Pattern",
+      "prompt": "the fabric carries bold wide stripes running across the main panels",
+      "negative": "",
+      "description": "Bold wide stripes.",
+      "tags": [
+        "garment",
+        "pattern",
+        "stripe"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_pattern"
+    },
+    {
+      "id": "u_garment_pattern_plaid",
+      "name": "Plaid",
+      "category": "garment_pattern",
+      "collection": "Pattern",
+      "prompt": "the fabric carries a woven plaid pattern with crossing bands of colour",
+      "negative": "",
+      "description": "Woven plaid.",
+      "tags": [
+        "garment",
+        "pattern",
+        "plaid"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_pattern"
+    },
+    {
+      "id": "u_garment_pattern_houndstooth",
+      "name": "Houndstooth",
+      "category": "garment_pattern",
+      "collection": "Pattern",
+      "prompt": "the fabric carries a small houndstooth check with a crisp graphic rhythm",
+      "negative": "",
+      "description": "Small houndstooth check.",
+      "tags": [
+        "garment",
+        "pattern",
+        "check"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_pattern"
+    },
+    {
+      "id": "u_garment_pattern_polka_dot",
+      "name": "Polka Dot",
+      "category": "garment_pattern",
+      "collection": "Pattern",
+      "prompt": "the fabric carries a regular polka-dot pattern of small round spots",
+      "negative": "",
+      "description": "Regular polka dots.",
+      "tags": [
+        "garment",
+        "pattern",
+        "dot"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_pattern"
+    },
+    {
+      "id": "u_garment_pattern_floral",
+      "name": "Floral",
+      "category": "garment_pattern",
+      "collection": "Pattern",
+      "prompt": "the fabric carries a repeating floral print with fine stems and small blossoms",
+      "negative": "",
+      "description": "Repeating floral print.",
+      "tags": [
+        "garment",
+        "pattern",
+        "floral"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_pattern"
+    },
+    {
+      "id": "u_garment_pattern_paisley",
+      "name": "Paisley",
+      "category": "garment_pattern",
+      "collection": "Pattern",
+      "prompt": "the fabric carries a dense paisley pattern of curved teardrop motifs",
+      "negative": "",
+      "description": "Dense paisley motifs.",
+      "tags": [
+        "garment",
+        "pattern",
+        "paisley"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_pattern"
+    },
+    {
+      "id": "u_garment_pattern_geometric",
+      "name": "Geometric",
+      "category": "garment_pattern",
+      "collection": "Pattern",
+      "prompt": "the fabric carries a clean geometric pattern of repeating angular shapes",
+      "negative": "",
+      "description": "Repeating geometric shapes.",
+      "tags": [
+        "garment",
+        "pattern",
+        "geometric"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_pattern"
+    },
+    {
+      "id": "u_garment_pattern_leopard",
+      "name": "Leopard",
+      "category": "garment_pattern",
+      "collection": "Pattern",
+      "prompt": "the fabric carries a leopard print with scattered dark rosettes",
+      "negative": "",
+      "description": "Scattered leopard rosettes.",
+      "tags": [
+        "garment",
+        "pattern",
+        "animal"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_pattern"
+    },
+    {
+      "id": "u_garment_pattern_cable_knit",
+      "name": "Cable Knit",
+      "category": "garment_pattern",
+      "collection": "Texture",
+      "prompt": "the fabric has a heavy cable-knit texture with raised braided columns",
+      "negative": "",
+      "description": "Raised cable-knit texture.",
+      "tags": [
+        "garment",
+        "pattern",
+        "knit"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_pattern"
+    },
+    {
+      "id": "u_garment_pattern_ribbed_knit",
+      "name": "Ribbed Knit",
+      "category": "garment_pattern",
+      "collection": "Texture",
+      "prompt": "the fabric has a fine ribbed texture with narrow vertical lines",
+      "negative": "",
+      "description": "Fine vertical ribbing.",
+      "tags": [
+        "garment",
+        "pattern",
+        "knit"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_pattern"
+    },
+    {
+      "id": "u_garment_pattern_lace",
+      "name": "Lace",
+      "category": "garment_pattern",
+      "collection": "Texture",
+      "prompt": "the fabric is overlaid with delicate open lace in a repeating floral motif",
+      "negative": "",
+      "description": "Delicate open lace.",
+      "tags": [
+        "garment",
+        "pattern",
+        "lace"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_pattern"
+    },
+    {
+      "id": "u_garment_pattern_embroidered",
+      "name": "Embroidered",
+      "category": "garment_pattern",
+      "collection": "Texture",
+      "prompt": "the fabric is decorated with fine tonal embroidery along the seams and cuffs",
+      "negative": "",
+      "description": "Fine tonal embroidery.",
+      "tags": [
+        "garment",
+        "pattern",
+        "embroidery"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_pattern"
+    },
+    {
+      "id": "u_garment_pattern_distressed",
+      "name": "Distressed",
+      "category": "garment_pattern",
+      "collection": "Texture",
+      "prompt": "the fabric is visibly distressed, with frayed edges and worn patches",
+      "negative": "",
+      "description": "Frayed, worn texture.",
+      "tags": [
+        "garment",
+        "pattern",
+        "distressed"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_pattern"
+    },
+    {
+      "id": "u_garment_pattern_acid_wash",
+      "name": "Acid Wash",
+      "category": "garment_pattern",
+      "collection": "Texture",
+      "prompt": "the fabric has an acid-washed finish with cloudy light and dark patches",
+      "negative": "",
+      "description": "Cloudy acid-wash finish.",
+      "tags": [
+        "garment",
+        "pattern",
+        "wash"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_pattern"
+    }
+  ]
+}

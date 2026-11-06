@@ -6,3 +6,4 @@ build/
 dist/
 dev/harness/node_modules/
 dev/harness/shots/
+.openchamber/

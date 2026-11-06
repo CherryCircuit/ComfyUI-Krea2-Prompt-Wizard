@@ -3,7 +3,7 @@
   "presets": [
     {
       "id": "style_cinematic_fantasy",
-      "name": "CINEMATIC FANTASY",
+      "name": "Cinematic Fantasy",
       "category": "style",
       "prompt": "Grounded cinematic fantasy realism with believable materials, natural human anatomy, detailed but restrained production design, subtle atmospheric depth and sophisticated film-like composition. Preserve realistic skin texture, fabric texture, wood grain, stone and metal surfaces rather than creating glossy synthetic detail. Use nuanced natural colors, controlled contrast, gentle highlight rolloff, subtle film grain and cinematic depth of field. The image should resemble a high-budget live-action fantasy film frame rather than digital concept art, illustration or exaggerated fantasy artwork.",
       "negative": "",
@@ -16,11 +16,12 @@
       "notes": "",
       "enabled": true,
       "reference_images": [],
-      "exclusive_group": "style"
+      "exclusive_group": "style",
+      "collection": "Genre"
     },
     {
       "id": "style_natural_cinematic",
-      "name": "NATURAL CINEMATIC",
+      "name": "Natural Cinematic",
       "category": "style",
       "prompt": "Naturalistic live-action cinematography with realistic colors, believable skin texture, restrained contrast, natural exposure and subtle filmic highlight rolloff. Avoid excessive HDR, oversharpening, artificial clarity or stylized color grading. Materials, faces and environments should look physically believable. Use cinematic composition and shallow-to-moderate depth of field only where appropriate.",
       "negative": "",
@@ -33,11 +34,12 @@
       "notes": "",
       "enabled": true,
       "reference_images": [],
-      "exclusive_group": "style"
+      "exclusive_group": "style",
+      "collection": "Genre"
     },
     {
       "id": "style_dark_cinematic",
-      "name": "DARK CINEMATIC",
+      "name": "Dark Cinematic",
       "category": "style",
       "prompt": "Moody low-key live-action cinematography with controlled deep shadows, selective illumination, realistic highlight rolloff and strong but believable separation between subject and background. Preserve detail within important shadow areas rather than crushing them completely. Colors remain restrained and sophisticated rather than excessively saturated. The final image should feel dramatic and atmospheric while retaining realistic skin and material rendering.",
       "negative": "",
@@ -51,7 +53,8 @@
       "notes": "",
       "enabled": true,
       "reference_images": [],
-      "exclusive_group": "style"
+      "exclusive_group": "style",
+      "collection": "Genre"
     }
   ]
 }

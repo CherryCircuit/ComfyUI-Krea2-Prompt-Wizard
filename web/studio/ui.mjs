@@ -75,6 +75,49 @@ export function anchoredPanel(layer, anchorRect, buildContent, { onClose = () =>
   return { panel, destroy };
 }
 
+/**
+ * Show a small label beside an icon-only control without the browser's
+ * native title delay. `text` may be a string or a getter.
+ */
+export function attachQuickTooltip(target, text) {
+  const read = typeof text === "function" ? text : () => text;
+  let tip = null;
+
+  function hide() {
+    if (tip) {
+      tip.remove();
+      tip = null;
+    }
+  }
+
+  function show() {
+    hide();
+    const label = String(read() ?? "").trim();
+    if (!label || !target.isConnected) return;
+    tip = el("div", "kpw2-quicktip", label);
+    document.body.append(tip);
+    const rect = target.getBoundingClientRect();
+    const width = tip.offsetWidth;
+    const height = tip.offsetHeight;
+    const left = Math.min(
+      Math.max(8, rect.left + rect.width / 2 - width / 2),
+      window.innerWidth - width - 8
+    );
+    let top = rect.bottom + 6;
+    if (top + height > window.innerHeight - 8) top = rect.top - height - 6;
+    tip.style.left = `${left}px`;
+    tip.style.top = `${Math.max(8, top)}px`;
+  }
+
+  target.addEventListener("mouseenter", show);
+  target.addEventListener("focus", show);
+  target.addEventListener("mouseleave", hide);
+  target.addEventListener("blur", hide);
+  target.addEventListener("mousedown", hide);
+  target.addEventListener("click", hide);
+  return hide;
+}
+
 /** Full-screen overlay modal with a centered dialog. Returns {dialog, close}. */
 export function openModal(className = "") {
   const overlay = el("div", `kpw2-modal-overlay ${className}`);

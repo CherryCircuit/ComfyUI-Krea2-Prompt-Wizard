@@ -1,0 +1,545 @@
+{
+  "schema_version": 1,
+  "presets": [
+    {
+      "id": "u_lighting_golden_hour",
+      "name": "Golden Hour",
+      "category": "lighting",
+      "collection": "Natural",
+      "prompt": "warm low golden-hour sunlight raking in from one side, long soft shadows and a honey-coloured glow on the skin",
+      "negative": "",
+      "description": "Low warm sun, long shadows, honey glow.",
+      "tags": [
+        "lighting",
+        "natural",
+        "sunset"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_time"
+    },
+    {
+      "id": "u_lighting_blue_hour",
+      "name": "Blue Hour",
+      "category": "lighting",
+      "collection": "Natural",
+      "prompt": "cool blue-hour twilight with a soft even ambience and a faint warm glow from nearby windows",
+      "negative": "",
+      "description": "Cool twilight with a faint warm window glow.",
+      "tags": [
+        "lighting",
+        "natural",
+        "twilight"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_time"
+    },
+    {
+      "id": "u_lighting_overcast_daylight",
+      "name": "Overcast Daylight",
+      "category": "lighting",
+      "collection": "Natural",
+      "prompt": "soft diffused overcast daylight, with gentle shadows and even skin tones",
+      "negative": "",
+      "description": "Soft diffused overcast light.",
+      "tags": [
+        "lighting",
+        "natural",
+        "soft"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_time"
+    },
+    {
+      "id": "u_lighting_harsh_midday_sun",
+      "name": "Harsh Midday Sun",
+      "category": "lighting",
+      "collection": "Natural",
+      "prompt": "hard overhead midday sunlight, with deep shadows and bright highlights",
+      "negative": "",
+      "description": "Hard overhead sun with deep shadows.",
+      "tags": [
+        "lighting",
+        "natural",
+        "hard"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_time"
+    },
+    {
+      "id": "u_lighting_window_light",
+      "name": "Window Light",
+      "category": "lighting",
+      "collection": "Natural",
+      "prompt": "soft directional daylight from a large window, falling across one side of the subject and leaving the other in gentle shadow",
+      "negative": "",
+      "description": "Soft single-window daylight.",
+      "tags": [
+        "lighting",
+        "natural",
+        "window"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_time"
+    },
+    {
+      "id": "u_lighting_rembrandt_lighting",
+      "name": "Rembrandt Lighting",
+      "category": "lighting",
+      "collection": "Cinematic",
+      "prompt": "classic Rembrandt lighting with a single key at forty-five degrees and a small triangle of light on the shadowed cheek",
+      "negative": "",
+      "description": "Single key with a Rembrandt triangle.",
+      "tags": [
+        "lighting",
+        "cinematic",
+        "portrait"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_quality"
+    },
+    {
+      "id": "u_lighting_three_point_setup",
+      "name": "Three-Point Setup",
+      "category": "lighting",
+      "collection": "Cinematic",
+      "prompt": "balanced three-point lighting with a soft key, a gentle fill and a crisp rim separating the subject from the background",
+      "negative": "",
+      "description": "Key, fill and rim light.",
+      "tags": [
+        "lighting",
+        "cinematic",
+        "studio"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_quality"
+    },
+    {
+      "id": "u_lighting_low_key_drama",
+      "name": "Low-Key Drama",
+      "category": "lighting",
+      "collection": "Cinematic",
+      "prompt": "low-key lighting with a narrow hard key, deep black shadows and only the essential details picked out",
+      "negative": "",
+      "description": "Narrow key and deep black shadows.",
+      "tags": [
+        "lighting",
+        "cinematic",
+        "dramatic"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_quality"
+    },
+    {
+      "id": "u_lighting_high_key_soft",
+      "name": "High-Key Soft",
+      "category": "lighting",
+      "collection": "Cinematic",
+      "prompt": "bright high-key lighting with large soft sources, minimal shadows and an airy, almost shadowless look",
+      "negative": "",
+      "description": "Bright, nearly shadowless soft light.",
+      "tags": [
+        "lighting",
+        "cinematic",
+        "bright"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_quality"
+    },
+    {
+      "id": "u_lighting_rim_light",
+      "name": "Rim Light",
+      "category": "lighting",
+      "collection": "Cinematic",
+      "prompt": "a strong rim light from behind outlining the silhouette, with the front of the subject softly underexposed",
+      "negative": "",
+      "description": "Backlight outlining the silhouette.",
+      "tags": [
+        "lighting",
+        "cinematic",
+        "rim"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_quality"
+    },
+    {
+      "id": "u_lighting_neon_practicals",
+      "name": "Neon Practicals",
+      "category": "lighting",
+      "collection": "Cinematic",
+      "prompt": "coloured neon practical lights in magenta and cyan, with wet reflections and deep shadows between them",
+      "negative": "",
+      "description": "Magenta and cyan neon with wet reflections.",
+      "tags": [
+        "lighting",
+        "cinematic",
+        "neon"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_source"
+    },
+    {
+      "id": "u_lighting_candlelight",
+      "name": "Candlelight",
+      "category": "lighting",
+      "collection": "Practical",
+      "prompt": "warm flickering candlelight from below and one side, with soft shadows moving across the face",
+      "negative": "",
+      "description": "Warm flickering candlelight from below.",
+      "tags": [
+        "lighting",
+        "practical",
+        "candle"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_source"
+    },
+    {
+      "id": "u_lighting_firelight",
+      "name": "Firelight",
+      "category": "lighting",
+      "collection": "Practical",
+      "prompt": "orange firelight with a restless flicker, warm highlights and deep surrounding darkness",
+      "negative": "",
+      "description": "Restless orange firelight.",
+      "tags": [
+        "lighting",
+        "practical",
+        "fire"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_source"
+    },
+    {
+      "id": "u_lighting_desk_lamp",
+      "name": "Desk Lamp",
+      "category": "lighting",
+      "collection": "Practical",
+      "prompt": "a small warm desk lamp providing a close pool of light, with the rest of the room falling into shadow",
+      "negative": "",
+      "description": "Close warm pool from a desk lamp.",
+      "tags": [
+        "lighting",
+        "practical",
+        "lamp"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_source"
+    },
+    {
+      "id": "u_lighting_streetlight",
+      "name": "Streetlight",
+      "category": "lighting",
+      "collection": "Practical",
+      "prompt": "a single sodium streetlight casting a hard orange pool on wet ground, with the surroundings fading to blue-black",
+      "negative": "",
+      "description": "Hard orange streetlight on wet ground.",
+      "tags": [
+        "lighting",
+        "practical",
+        "street"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_source"
+    },
+    {
+      "id": "u_lighting_softbox_studio",
+      "name": "Softbox Studio",
+      "category": "lighting",
+      "collection": "Studio",
+      "prompt": "large softbox lighting from the front-left, with a clean fill and a subtle catchlight in the eyes",
+      "negative": "",
+      "description": "Large front-left softbox with clean fill.",
+      "tags": [
+        "lighting",
+        "studio",
+        "softbox"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_quality"
+    },
+    {
+      "id": "u_lighting_beauty_dish",
+      "name": "Beauty Dish",
+      "category": "lighting",
+      "collection": "Studio",
+      "prompt": "a beauty dish from slightly above, producing a crisp but flattering light with a gentle falloff",
+      "negative": "",
+      "description": "Beauty dish from slightly above.",
+      "tags": [
+        "lighting",
+        "studio",
+        "beauty"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_quality"
+    },
+    {
+      "id": "u_lighting_colored_gels",
+      "name": "Colored Gels",
+      "category": "lighting",
+      "collection": "Studio",
+      "prompt": "two coloured gels, warm amber from one side and cool blue from the other, meeting in a soft split across the subject",
+      "negative": "",
+      "description": "Amber and blue gels in a split setup.",
+      "tags": [
+        "lighting",
+        "studio",
+        "color"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_quality"
+    },
+    {
+      "id": "u_lighting_chiaroscuro",
+      "name": "Chiaroscuro",
+      "category": "lighting",
+      "collection": "Dramatic",
+      "prompt": "strong chiaroscuro with a single hard source and large areas of near-black shadow",
+      "negative": "",
+      "description": "Single hard source, large dark shadows.",
+      "tags": [
+        "lighting",
+        "dramatic",
+        "contrast"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_quality"
+    },
+    {
+      "id": "u_lighting_silhouette",
+      "name": "Silhouette",
+      "category": "lighting",
+      "collection": "Dramatic",
+      "prompt": "the subject reduced to a dark silhouette against a bright hazy background, with no detail on the front",
+      "negative": "",
+      "description": "Dark silhouette against bright haze.",
+      "tags": [
+        "lighting",
+        "dramatic",
+        "silhouette"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_quality"
+    },
+    {
+      "id": "u_lighting_god_rays",
+      "name": "God Rays",
+      "category": "lighting",
+      "collection": "Dramatic",
+      "prompt": "thick volumetric god rays breaking through dust or haze from high above",
+      "negative": "",
+      "description": "Volumetric light shafts through haze.",
+      "tags": [
+        "lighting",
+        "dramatic",
+        "volumetric"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_quality"
+    },
+    {
+      "id": "u_lighting_underlight",
+      "name": "Underlight",
+      "category": "lighting",
+      "collection": "Dramatic",
+      "prompt": "a hard light source from below, casting unnatural upward shadows across the face",
+      "negative": "",
+      "description": "Hard light from below with upward shadows.",
+      "tags": [
+        "lighting",
+        "dramatic",
+        "underlight"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_quality"
+    },
+    {
+      "id": "u_lighting_front_light",
+      "name": "Front Light",
+      "category": "lighting",
+      "collection": "Direction",
+      "prompt": "light falling from the front, flattening the face and keeping shadows behind the subject",
+      "negative": "",
+      "description": "Frontal light with shadows behind.",
+      "tags": [
+        "lighting",
+        "direction",
+        "front"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_direction"
+    },
+    {
+      "id": "u_lighting_side_light",
+      "name": "Side Light",
+      "category": "lighting",
+      "collection": "Direction",
+      "prompt": "light raking in from one side, revealing texture and leaving the other side in shadow",
+      "negative": "",
+      "description": "Single side light with deep falloff.",
+      "tags": [
+        "lighting",
+        "direction",
+        "side"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_direction"
+    },
+    {
+      "id": "u_lighting_back_light",
+      "name": "Back Light",
+      "category": "lighting",
+      "collection": "Direction",
+      "prompt": "light from behind the subject, separating them from the background with a bright edge",
+      "negative": "",
+      "description": "Backlight and rim separation.",
+      "tags": [
+        "lighting",
+        "direction",
+        "back"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_direction"
+    },
+    {
+      "id": "u_lighting_three_quarter_light",
+      "name": "Three-Quarter Light",
+      "category": "lighting",
+      "collection": "Direction",
+      "prompt": "light from a three-quarter angle, modelling one cheek while the other falls softly dark",
+      "negative": "",
+      "description": "Three-quarter key with soft shadow.",
+      "tags": [
+        "lighting",
+        "direction",
+        "portrait"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_direction"
+    },
+    {
+      "id": "u_lighting_top_light",
+      "name": "Top Light",
+      "category": "lighting",
+      "collection": "Direction",
+      "prompt": "overhead light dropping straight down, shadowing the eyes and emphasising the cheekbones",
+      "negative": "",
+      "description": "Overhead light with eye shadows.",
+      "tags": [
+        "lighting",
+        "direction",
+        "top"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_direction"
+    },
+    {
+      "id": "u_lighting_under_light",
+      "name": "Under Light",
+      "category": "lighting",
+      "collection": "Direction",
+      "prompt": "light from below the face, reversing the usual shadows and making the expression unsettling",
+      "negative": "",
+      "description": "Upward light with reversed shadows.",
+      "tags": [
+        "lighting",
+        "direction",
+        "under"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_direction"
+    },
+    {
+      "id": "u_lighting_ambient_wrap",
+      "name": "Ambient Wrap",
+      "category": "lighting",
+      "collection": "Direction",
+      "prompt": "soft ambient light wrapping evenly around the subject, with almost no directional shadow",
+      "negative": "",
+      "description": "Even wrap-around ambient light.",
+      "tags": [
+        "lighting",
+        "direction",
+        "ambient"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_direction"
+    },
+    {
+      "id": "u_lighting_practical_glow",
+      "name": "Practical Glow",
+      "category": "lighting",
+      "collection": "Direction",
+      "prompt": "warm practical sources inside the scene, glowing from lamps or windows and falling off into shadow",
+      "negative": "",
+      "description": "In-scene practicals with warm falloff.",
+      "tags": [
+        "lighting",
+        "direction",
+        "practical"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lighting_direction"
+    }
+  ]
+}

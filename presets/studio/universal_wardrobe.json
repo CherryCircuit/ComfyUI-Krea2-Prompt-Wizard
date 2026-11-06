@@ -1,0 +1,1445 @@
+{
+  "schema_version": 1,
+  "presets": [
+    {
+      "id": "u_wardrobe_jeans_and_white_tee",
+      "name": "Jeans and White Tee",
+      "category": "wardrobe",
+      "collection": "Casual",
+      "prompt": "well-worn blue jeans, a plain white cotton t-shirt, scuffed sneakers and a simple belt",
+      "negative": "",
+      "description": "Jeans, white tee, sneakers.",
+      "tags": [
+        "casual",
+        "modern",
+        "everyday"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_summer_sundress",
+      "name": "Summer Sundress",
+      "category": "wardrobe",
+      "collection": "Casual",
+      "prompt": "a light cotton sundress with a small floral print, thin straps and a fitted bodice, worn with flat sandals",
+      "negative": "",
+      "description": "Floral cotton sundress and sandals.",
+      "tags": [
+        "casual",
+        "summer",
+        "dress"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_hoodie_and_joggers",
+      "name": "Hoodie and Joggers",
+      "category": "wardrobe",
+      "collection": "Casual",
+      "prompt": "an oversized grey hoodie with the sleeves pushed up, black joggers and clean white trainers",
+      "negative": "",
+      "description": "Oversized hoodie, joggers, trainers.",
+      "tags": [
+        "casual",
+        "street",
+        "comfortable"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_denim_jacket_outfit",
+      "name": "Denim Jacket Outfit",
+      "category": "wardrobe",
+      "collection": "Casual",
+      "prompt": "a faded denim jacket over a striped shirt, dark jeans and brown leather boots",
+      "negative": "",
+      "description": "Denim jacket, striped shirt, jeans, boots.",
+      "tags": [
+        "casual",
+        "denim",
+        "modern"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_black_tie_tuxedo",
+      "name": "Black Tie Tuxedo",
+      "category": "wardrobe",
+      "collection": "Formal",
+      "prompt": "a sharply tailored black tuxedo with satin lapels, a crisp white dress shirt, a black bow tie and polished leather shoes",
+      "negative": "",
+      "description": "Tailored tuxedo with satin lapels and bow tie.",
+      "tags": [
+        "formal",
+        "black tie",
+        "suit"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_evening_gown",
+      "name": "Evening Gown",
+      "category": "wardrobe",
+      "collection": "Formal",
+      "prompt": "a floor-length deep emerald evening gown with a fitted bodice, a soft draped skirt and subtle beaded detailing at the waist",
+      "negative": "",
+      "description": "Emerald floor-length gown with beadwork.",
+      "tags": [
+        "formal",
+        "gown",
+        "elegant"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_business_suit",
+      "name": "Business Suit",
+      "category": "wardrobe",
+      "collection": "Formal",
+      "prompt": "a well-cut charcoal business suit, a pale blue shirt, a dark tie and understated leather shoes",
+      "negative": "",
+      "description": "Charcoal suit, blue shirt, dark tie.",
+      "tags": [
+        "formal",
+        "business",
+        "suit"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_cocktail_dress",
+      "name": "Cocktail Dress",
+      "category": "wardrobe",
+      "collection": "Formal",
+      "prompt": "a knee-length black cocktail dress with a simple neckline, sheer stockings and strappy heels",
+      "negative": "",
+      "description": "Little black cocktail dress and heels.",
+      "tags": [
+        "formal",
+        "dress",
+        "evening"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_oversized_streetwear",
+      "name": "Oversized Streetwear",
+      "category": "wardrobe",
+      "collection": "Streetwear",
+      "prompt": "an oversized graphic hoodie, wide-leg cargo trousers, chunky trainers and a small crossbody bag",
+      "negative": "",
+      "description": "Oversized hoodie, cargos, chunky trainers.",
+      "tags": [
+        "streetwear",
+        "urban",
+        "modern"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_bomber_jacket_fit",
+      "name": "Bomber Jacket Fit",
+      "category": "wardrobe",
+      "collection": "Streetwear",
+      "prompt": "a satin bomber jacket over a plain tank top, slim black trousers and high-top sneakers",
+      "negative": "",
+      "description": "Satin bomber, tank, slim trousers, high-tops.",
+      "tags": [
+        "streetwear",
+        "bomber",
+        "urban"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_skate_style",
+      "name": "Skate Style",
+      "category": "wardrobe",
+      "collection": "Streetwear",
+      "prompt": "a loose flannel shirt open over a band t-shirt, baggy jeans with frayed cuffs and worn skate shoes",
+      "negative": "",
+      "description": "Flannel, band tee, baggy jeans, skate shoes.",
+      "tags": [
+        "streetwear",
+        "skate",
+        "casual"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_utility_workwear",
+      "name": "Utility Workwear",
+      "category": "wardrobe",
+      "collection": "Workwear",
+      "prompt": "olive utility trousers, a heavy canvas work shirt with rolled sleeves, a tool belt and scuffed work boots",
+      "negative": "",
+      "description": "Canvas work shirt, utility trousers, tool belt.",
+      "tags": [
+        "workwear",
+        "utility",
+        "practical"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_mechanic_coveralls",
+      "name": "Mechanic Coveralls",
+      "category": "wardrobe",
+      "collection": "Workwear",
+      "prompt": "navy mechanic coveralls with oil stains at the knees, sleeves tied at the waist over a grey undershirt, and steel-toed boots",
+      "negative": "",
+      "description": "Oil-stained coveralls and steel-toed boots.",
+      "tags": [
+        "workwear",
+        "mechanic",
+        "industrial"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_chef_whites",
+      "name": "Chef Whites",
+      "category": "wardrobe",
+      "collection": "Workwear",
+      "prompt": "a crisp white double-breasted chef's jacket, dark checked trousers, a folded apron and a plain cap",
+      "negative": "",
+      "description": "Chef's whites, checked trousers and apron.",
+      "tags": [
+        "workwear",
+        "chef",
+        "kitchen"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_lab_coat",
+      "name": "Lab Coat",
+      "category": "wardrobe",
+      "collection": "Workwear",
+      "prompt": "a long white lab coat over a simple shirt, dark trousers, safety glasses and a lanyard with an ID badge",
+      "negative": "",
+      "description": "White lab coat, safety glasses, ID badge.",
+      "tags": [
+        "workwear",
+        "science",
+        "lab"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_elven_ranger",
+      "name": "Elven Ranger",
+      "category": "wardrobe",
+      "collection": "Fantasy",
+      "prompt": "layered forest-green leathers, a fitted jerkin, a hooded cloak, wrapped forearms and soft knee-high boots, with a slender bow across the back",
+      "negative": "",
+      "description": "Green leather ranger gear with hooded cloak and bow.",
+      "tags": [
+        "fantasy",
+        "ranger",
+        "elven"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_wizard_robes",
+      "name": "Wizard Robes",
+      "category": "wardrobe",
+      "collection": "Fantasy",
+      "prompt": "deep blue layered wizard robes with silver embroidery at the cuffs and hem, a wide belt, a heavy travelling cloak and a carved staff",
+      "negative": "",
+      "description": "Blue embroidered robes, belt and staff.",
+      "tags": [
+        "fantasy",
+        "wizard",
+        "robes"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_knight_armor",
+      "name": "Knight Armor",
+      "category": "wardrobe",
+      "collection": "Fantasy",
+      "prompt": "brushed steel plate armor with a dark gambeson beneath, a tabard, armored gauntlets and a scuffed helmet held under one arm",
+      "negative": "",
+      "description": "Steel plate armor, tabard and gauntlets.",
+      "tags": [
+        "fantasy",
+        "knight",
+        "armor"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_peasant_tunic",
+      "name": "Peasant Tunic",
+      "category": "wardrobe",
+      "collection": "Fantasy",
+      "prompt": "a rough linen tunic belted at the waist, patched wool trousers, a simple cloak and worn leather shoes",
+      "negative": "",
+      "description": "Belted linen tunic and patched wool trousers.",
+      "tags": [
+        "fantasy",
+        "medieval",
+        "peasant"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_flight_suit",
+      "name": "Flight Suit",
+      "category": "wardrobe",
+      "collection": "Sci-Fi",
+      "prompt": "a fitted grey flight suit with utility pockets, reinforced knee panels, a harness and a small mission patch on the shoulder",
+      "negative": "",
+      "description": "Grey flight suit with harness and mission patch.",
+      "tags": [
+        "sci-fi",
+        "flight",
+        "pilot"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_cyberpunk_techwear",
+      "name": "Cyberpunk Techwear",
+      "category": "wardrobe",
+      "collection": "Sci-Fi",
+      "prompt": "black technical streetwear with reflective piping, a high collar, strapped cargo panels, fingerless gloves and glowing cyan accents at the seams",
+      "negative": "",
+      "description": "Black techwear with reflective piping and cyan accents.",
+      "tags": [
+        "sci-fi",
+        "cyberpunk",
+        "techwear"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_space_suit",
+      "name": "Space Suit",
+      "category": "wardrobe",
+      "collection": "Sci-Fi",
+      "prompt": "a bulky white pressure suit with a clear helmet, reinforced joints, a chest control panel and scuffed thermal gloves",
+      "negative": "",
+      "description": "White pressure suit with helmet and chest panel.",
+      "tags": [
+        "sci-fi",
+        "space",
+        "suit"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_victorian_dress",
+      "name": "Victorian Dress",
+      "category": "wardrobe",
+      "collection": "Historical",
+      "prompt": "a high-collared Victorian day dress in deep burgundy, with a fitted bodice, full skirt, lace at the wrists and a small buttoned cape",
+      "negative": "",
+      "description": "Burgundy Victorian dress with lace and cape.",
+      "tags": [
+        "historical",
+        "victorian",
+        "dress"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_1920s_flapper_dress",
+      "name": "1920s Flapper Dress",
+      "category": "wardrobe",
+      "collection": "Historical",
+      "prompt": "a fringed champagne-coloured flapper dress with heavy beadwork, a dropped waist, a feathered headband and long pearl strands",
+      "negative": "",
+      "description": "Beaded fringe flapper dress and feather headband.",
+      "tags": [
+        "historical",
+        "1920s",
+        "flapper"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_roman_tunic",
+      "name": "Roman Tunic",
+      "category": "wardrobe",
+      "collection": "Historical",
+      "prompt": "a simple white Roman tunic with a woven border, a leather belt, strapped sandals and a light woollen cloak",
+      "negative": "",
+      "description": "White Roman tunic, leather belt and sandals.",
+      "tags": [
+        "historical",
+        "roman",
+        "tunic"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_western_outfit",
+      "name": "Western Outfit",
+      "category": "wardrobe",
+      "collection": "Historical",
+      "prompt": "a dusty duster coat over a waistcoat and collarless shirt, faded denim trousers, leather boots and a wide-brimmed hat",
+      "negative": "",
+      "description": "Duster coat, waistcoat, denim and wide-brimmed hat.",
+      "tags": [
+        "historical",
+        "western",
+        "cowboy"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_school_uniform",
+      "name": "School Uniform",
+      "category": "wardrobe",
+      "collection": "Uniform",
+      "prompt": "a navy blazer with a school crest, a white shirt, a striped tie, pleated grey trousers and polished black shoes",
+      "negative": "",
+      "description": "Navy blazer, tie and pleated trousers.",
+      "tags": [
+        "uniform",
+        "school",
+        "modern"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_military_fatigues",
+      "name": "Military Fatigues",
+      "category": "wardrobe",
+      "collection": "Uniform",
+      "prompt": "worn olive military fatigues with rolled sleeves, a webbing belt, a canvas backpack and dusty combat boots",
+      "negative": "",
+      "description": "Olive fatigues, webbing and combat boots.",
+      "tags": [
+        "uniform",
+        "military",
+        "field"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_hiking_gear",
+      "name": "Hiking Gear",
+      "category": "wardrobe",
+      "collection": "Outdoors",
+      "prompt": "a waterproof shell jacket, technical hiking trousers, a small backpack with a rolled mat and sturdy trail boots",
+      "negative": "",
+      "description": "Shell jacket, hiking trousers and trail boots.",
+      "tags": [
+        "outdoors",
+        "hiking",
+        "practical"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_winter_parka",
+      "name": "Winter Parka",
+      "category": "wardrobe",
+      "collection": "Outdoors",
+      "prompt": "a heavy hooded parka with a fur-trimmed collar, a thick scarf, insulated gloves and snow boots",
+      "negative": "",
+      "description": "Heavy parka, scarf, gloves and snow boots.",
+      "tags": [
+        "outdoors",
+        "winter",
+        "cold"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_full"
+    },
+    {
+      "id": "u_wardrobe_plain_white_shirt",
+      "name": "Plain White Shirt",
+      "category": "wardrobe",
+      "collection": "Casual",
+      "prompt": "a clean white button-down shirt with the sleeves rolled to the elbows",
+      "negative": "",
+      "description": "Crisp white button-down, sleeves rolled.",
+      "tags": [
+        "top",
+        "shirt",
+        "casual"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_base"
+    },
+    {
+      "id": "u_wardrobe_knit_sweater",
+      "name": "Knit Sweater",
+      "category": "wardrobe",
+      "collection": "Casual",
+      "prompt": "a soft oatmeal-coloured knit sweater with a relaxed fit and ribbed cuffs",
+      "negative": "",
+      "description": "Oatmeal knit sweater.",
+      "tags": [
+        "top",
+        "sweater",
+        "cosy"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_mid"
+    },
+    {
+      "id": "u_wardrobe_leather_jacket",
+      "name": "Leather Jacket",
+      "category": "wardrobe",
+      "collection": "Streetwear",
+      "prompt": "a black leather biker jacket worn open over a plain grey t-shirt",
+      "negative": "",
+      "description": "Black leather biker jacket over a grey tee.",
+      "tags": [
+        "top",
+        "jacket",
+        "leather"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_outer"
+    },
+    {
+      "id": "u_wardrobe_silk_blouse",
+      "name": "Silk Blouse",
+      "category": "wardrobe",
+      "collection": "Formal",
+      "prompt": "a pale ivory silk blouse with a soft drape and small covered buttons",
+      "negative": "",
+      "description": "Ivory silk blouse.",
+      "tags": [
+        "top",
+        "blouse",
+        "formal"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_base"
+    },
+    {
+      "id": "u_wardrobe_cropped_armor_vest",
+      "name": "Cropped Armor Vest",
+      "category": "wardrobe",
+      "collection": "Fantasy",
+      "prompt": "a fitted leather armor vest with steel rivets and laced sides over a linen undershirt",
+      "negative": "",
+      "description": "Riveted leather armor vest over linen.",
+      "tags": [
+        "top",
+        "armor",
+        "fantasy"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_outer"
+    },
+    {
+      "id": "u_wardrobe_technical_jacket",
+      "name": "Technical Jacket",
+      "category": "wardrobe",
+      "collection": "Sci-Fi",
+      "prompt": "a cropped technical jacket with sealed seams, magnetic closures and a faint blue pulse along the collar",
+      "negative": "",
+      "description": "Sealed tech jacket with a blue collar pulse.",
+      "tags": [
+        "top",
+        "techwear",
+        "sci-fi"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_outer"
+    },
+    {
+      "id": "u_wardrobe_waistcoat_and_shirt",
+      "name": "Waistcoat and Shirt",
+      "category": "wardrobe",
+      "collection": "Historical",
+      "prompt": "a patterned waistcoat over a collarless linen shirt with the sleeves rolled",
+      "negative": "",
+      "description": "Patterned waistcoat over a linen shirt.",
+      "tags": [
+        "top",
+        "historical",
+        "waistcoat"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_mid"
+    },
+    {
+      "id": "u_wardrobe_football_jersey",
+      "name": "Football Jersey",
+      "category": "wardrobe",
+      "collection": "Sport",
+      "prompt": "a loose football jersey with faded numbers, worn over a long-sleeved base layer",
+      "negative": "",
+      "description": "Loose numbered football jersey.",
+      "tags": [
+        "top",
+        "sport",
+        "jersey"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_base"
+    },
+    {
+      "id": "u_wardrobe_straight_leg_jeans",
+      "name": "Straight Leg Jeans",
+      "category": "wardrobe",
+      "collection": "Casual",
+      "prompt": "mid-blue straight-leg jeans with a worn hem",
+      "negative": "",
+      "description": "Mid-blue straight-leg jeans.",
+      "tags": [
+        "bottom",
+        "jeans",
+        "casual"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_bottom"
+    },
+    {
+      "id": "u_wardrobe_cargo_trousers",
+      "name": "Cargo Trousers",
+      "category": "wardrobe",
+      "collection": "Streetwear",
+      "prompt": "olive cargo trousers with large side pockets and a slightly tapered leg",
+      "negative": "",
+      "description": "Olive tapered cargo trousers.",
+      "tags": [
+        "bottom",
+        "cargo",
+        "street"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_bottom"
+    },
+    {
+      "id": "u_wardrobe_pleated_skirt",
+      "name": "Pleated Skirt",
+      "category": "wardrobe",
+      "collection": "Formal",
+      "prompt": "a knee-length pleated charcoal skirt with a simple waistband",
+      "negative": "",
+      "description": "Pleated charcoal knee-length skirt.",
+      "tags": [
+        "bottom",
+        "skirt",
+        "formal"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_bottom"
+    },
+    {
+      "id": "u_wardrobe_leather_trousers",
+      "name": "Leather Trousers",
+      "category": "wardrobe",
+      "collection": "Streetwear",
+      "prompt": "slim black leather trousers with a subtle sheen",
+      "negative": "",
+      "description": "Slim black leather trousers.",
+      "tags": [
+        "bottom",
+        "leather",
+        "street"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_bottom"
+    },
+    {
+      "id": "u_wardrobe_linen_trousers",
+      "name": "Linen Trousers",
+      "category": "wardrobe",
+      "collection": "Casual",
+      "prompt": "loose sand-coloured linen trousers with a drawstring waist",
+      "negative": "",
+      "description": "Loose sand linen trousers.",
+      "tags": [
+        "bottom",
+        "linen",
+        "summer"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_bottom"
+    },
+    {
+      "id": "u_wardrobe_riding_breeches",
+      "name": "Riding Breeches",
+      "category": "wardrobe",
+      "collection": "Historical",
+      "prompt": "fawn riding breeches with a high waist and buttoned calves",
+      "negative": "",
+      "description": "High-waisted fawn riding breeches.",
+      "tags": [
+        "bottom",
+        "historical",
+        "riding"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_bottom"
+    },
+    {
+      "id": "u_wardrobe_combat_trousers",
+      "name": "Combat Trousers",
+      "category": "wardrobe",
+      "collection": "Uniform",
+      "prompt": "reinforced olive combat trousers with knee panels and a utility belt",
+      "negative": "",
+      "description": "Reinforced olive combat trousers.",
+      "tags": [
+        "bottom",
+        "military",
+        "utility"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_bottom"
+    },
+    {
+      "id": "u_wardrobe_flowing_trousers",
+      "name": "Flowing Trousers",
+      "category": "wardrobe",
+      "collection": "Fantasy",
+      "prompt": "wide flowing trousers in muted green with embroidered hems",
+      "negative": "",
+      "description": "Wide green trousers with embroidered hems.",
+      "tags": [
+        "bottom",
+        "fantasy",
+        "flowing"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_bottom"
+    },
+    {
+      "id": "u_wardrobe_classic_denim_jacket",
+      "name": "Classic Denim Jacket",
+      "category": "wardrobe",
+      "collection": "Outerwear",
+      "prompt": "a classic boxy denim jacket with metal buttons, chest pockets and a slightly faded finish",
+      "negative": "",
+      "description": "Boxy denim jacket.",
+      "tags": [
+        "outerwear",
+        "denim",
+        "casual"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_outer"
+    },
+    {
+      "id": "u_wardrobe_leather_biker_jacket",
+      "name": "Leather Biker Jacket",
+      "category": "wardrobe",
+      "collection": "Outerwear",
+      "prompt": "a fitted leather biker jacket with an asymmetric zip, notched lapels and silver hardware",
+      "negative": "",
+      "description": "Fitted biker jacket.",
+      "tags": [
+        "outerwear",
+        "leather",
+        "street"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_outer"
+    },
+    {
+      "id": "u_wardrobe_bomber_jacket",
+      "name": "Bomber Jacket",
+      "category": "wardrobe",
+      "collection": "Outerwear",
+      "prompt": "a lightly padded bomber jacket with ribbed cuffs, a zip front and a soft sheen",
+      "negative": "",
+      "description": "Padded bomber jacket.",
+      "tags": [
+        "outerwear",
+        "bomber",
+        "casual"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_outer"
+    },
+    {
+      "id": "u_wardrobe_trench_coat",
+      "name": "Trench Coat",
+      "category": "wardrobe",
+      "collection": "Outerwear",
+      "prompt": "a long belted trench coat with wide lapels, storm flaps and a soft structured drape",
+      "negative": "",
+      "description": "Long belted trench.",
+      "tags": [
+        "outerwear",
+        "coat",
+        "formal"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_outer"
+    },
+    {
+      "id": "u_wardrobe_wool_overcoat",
+      "name": "Wool Overcoat",
+      "category": "wardrobe",
+      "collection": "Outerwear",
+      "prompt": "a heavy wool overcoat with a clean single-breasted cut and deep pockets",
+      "negative": "",
+      "description": "Single-breasted wool coat.",
+      "tags": [
+        "outerwear",
+        "wool",
+        "formal"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_outer"
+    },
+    {
+      "id": "u_wardrobe_puffer_jacket",
+      "name": "Puffer Jacket",
+      "category": "wardrobe",
+      "collection": "Outerwear",
+      "prompt": "a quilted puffer jacket with a high collar and horizontal padded channels",
+      "negative": "",
+      "description": "Quilted puffer jacket.",
+      "tags": [
+        "outerwear",
+        "winter",
+        "casual"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_outer"
+    },
+    {
+      "id": "u_wardrobe_tailored_blazer",
+      "name": "Tailored Blazer",
+      "category": "wardrobe",
+      "collection": "Outerwear",
+      "prompt": "a sharply tailored blazer with structured shoulders and a single button closure",
+      "negative": "",
+      "description": "Structured tailored blazer.",
+      "tags": [
+        "outerwear",
+        "blazer",
+        "formal"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_outer"
+    },
+    {
+      "id": "u_wardrobe_cable_knit_sweater",
+      "name": "Cable Knit Sweater",
+      "category": "wardrobe",
+      "collection": "Midlayer",
+      "prompt": "a chunky cable-knit sweater with a crew neck and visible braided texture",
+      "negative": "",
+      "description": "Chunky cable-knit sweater.",
+      "tags": [
+        "midlayer",
+        "knit",
+        "cosy"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_mid"
+    },
+    {
+      "id": "u_wardrobe_cashmere_crewneck",
+      "name": "Cashmere Crewneck",
+      "category": "wardrobe",
+      "collection": "Midlayer",
+      "prompt": "a soft fine-gauge cashmere crewneck with a relaxed but neat fit",
+      "negative": "",
+      "description": "Fine-gauge cashmere crewneck.",
+      "tags": [
+        "midlayer",
+        "cashmere",
+        "soft"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_mid"
+    },
+    {
+      "id": "u_wardrobe_oversized_hoodie",
+      "name": "Oversized Hoodie",
+      "category": "wardrobe",
+      "collection": "Midlayer",
+      "prompt": "an oversized heavyweight hoodie with a double-layer hood and dropped shoulders",
+      "negative": "",
+      "description": "Heavyweight oversized hoodie.",
+      "tags": [
+        "midlayer",
+        "hoodie",
+        "street"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_mid"
+    },
+    {
+      "id": "u_wardrobe_flannel_overshirt",
+      "name": "Flannel Overshirt",
+      "category": "wardrobe",
+      "collection": "Midlayer",
+      "prompt": "a brushed flannel overshirt with a loose cut and two chest pockets",
+      "negative": "",
+      "description": "Brushed flannel overshirt.",
+      "tags": [
+        "midlayer",
+        "flannel",
+        "casual"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_mid"
+    },
+    {
+      "id": "u_wardrobe_cardigan",
+      "name": "Cardigan",
+      "category": "wardrobe",
+      "collection": "Midlayer",
+      "prompt": "a soft knitted cardigan with a deep V opening, ribbed trims and natural horn buttons",
+      "negative": "",
+      "description": "Soft knitted cardigan.",
+      "tags": [
+        "midlayer",
+        "cardigan",
+        "cosy"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_mid"
+    },
+    {
+      "id": "u_wardrobe_waistcoat",
+      "name": "Waistcoat",
+      "category": "wardrobe",
+      "collection": "Midlayer",
+      "prompt": "a fitted waistcoat with a clean V front and small tonal buttons",
+      "negative": "",
+      "description": "Fitted buttoned waistcoat.",
+      "tags": [
+        "midlayer",
+        "waistcoat",
+        "formal"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_mid"
+    },
+    {
+      "id": "u_wardrobe_fleece_pullover",
+      "name": "Fleece Pullover",
+      "category": "wardrobe",
+      "collection": "Midlayer",
+      "prompt": "a soft fleece pullover with a half zip and a slightly textured pile",
+      "negative": "",
+      "description": "Half-zip fleece pullover.",
+      "tags": [
+        "midlayer",
+        "fleece",
+        "outdoors"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_mid"
+    },
+    {
+      "id": "u_wardrobe_collared_shirt",
+      "name": "Collared Shirt",
+      "category": "wardrobe",
+      "collection": "Baselayer",
+      "prompt": "a crisp collared shirt with a point collar, buttoned cuffs and a clean placket",
+      "negative": "",
+      "description": "Crisp collared shirt.",
+      "tags": [
+        "baselayer",
+        "shirt",
+        "formal"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_base"
+    },
+    {
+      "id": "u_wardrobe_white_t_shirt",
+      "name": "White T-Shirt",
+      "category": "wardrobe",
+      "collection": "Baselayer",
+      "prompt": "a plain cotton t-shirt with a simple crew neck and a relaxed fit",
+      "negative": "",
+      "description": "Plain cotton crew-neck tee.",
+      "tags": [
+        "baselayer",
+        "tshirt",
+        "casual"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_base"
+    },
+    {
+      "id": "u_wardrobe_draped_silk_blouse",
+      "name": "Draped Silk Blouse",
+      "category": "wardrobe",
+      "collection": "Baselayer",
+      "prompt": "a soft silk blouse with a fluid drape, small covered buttons and a clean neckline",
+      "negative": "",
+      "description": "Fluid silk blouse.",
+      "tags": [
+        "baselayer",
+        "blouse",
+        "formal"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_base"
+    },
+    {
+      "id": "u_wardrobe_turtleneck",
+      "name": "Turtleneck",
+      "category": "wardrobe",
+      "collection": "Baselayer",
+      "prompt": "a close-fitting turtleneck with a high folded collar and a smooth knit",
+      "negative": "",
+      "description": "Fitted folded-collar turtleneck.",
+      "tags": [
+        "baselayer",
+        "knit",
+        "minimal"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_base"
+    },
+    {
+      "id": "u_wardrobe_tank_top",
+      "name": "Tank Top",
+      "category": "wardrobe",
+      "collection": "Baselayer",
+      "prompt": "a simple fitted tank top with narrow straps and a clean hem",
+      "negative": "",
+      "description": "Simple fitted tank.",
+      "tags": [
+        "baselayer",
+        "tank",
+        "casual"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_base"
+    },
+    {
+      "id": "u_wardrobe_linen_shirt",
+      "name": "Linen Shirt",
+      "category": "wardrobe",
+      "collection": "Baselayer",
+      "prompt": "a loose linen shirt with a soft collar, natural creases and rolled cuffs",
+      "negative": "",
+      "description": "Loose linen shirt.",
+      "tags": [
+        "baselayer",
+        "linen",
+        "summer"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_base"
+    },
+    {
+      "id": "u_wardrobe_crop_top",
+      "name": "Crop Top",
+      "category": "wardrobe",
+      "collection": "Baselayer",
+      "prompt": "a close-fitting cropped top with a simple square neckline",
+      "negative": "",
+      "description": "Fitted cropped top.",
+      "tags": [
+        "baselayer",
+        "crop",
+        "casual"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_base"
+    },
+    {
+      "id": "u_wardrobe_knee_high_socks",
+      "name": "Knee-High Socks",
+      "category": "wardrobe",
+      "collection": "Legwear",
+      "prompt": "ribbed knee-high socks pulled neatly up to just below the knee",
+      "negative": "",
+      "description": "Ribbed knee-high socks.",
+      "tags": [
+        "legwear",
+        "socks",
+        "socks"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_legwear"
+    },
+    {
+      "id": "u_wardrobe_thigh_high_stockings",
+      "name": "Thigh-High Stockings",
+      "category": "wardrobe",
+      "collection": "Legwear",
+      "prompt": "sheer thigh-high stockings with a wide elastic band at the top",
+      "negative": "",
+      "description": "Sheer thigh-high stockings.",
+      "tags": [
+        "legwear",
+        "stockings",
+        "sheer"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_legwear"
+    },
+    {
+      "id": "u_wardrobe_opaque_tights",
+      "name": "Opaque Tights",
+      "category": "wardrobe",
+      "collection": "Legwear",
+      "prompt": "smooth opaque tights with a matte finish and a clean waistband",
+      "negative": "",
+      "description": "Matte opaque tights.",
+      "tags": [
+        "legwear",
+        "tights",
+        "formal"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_legwear"
+    },
+    {
+      "id": "u_wardrobe_leggings",
+      "name": "Leggings",
+      "category": "wardrobe",
+      "collection": "Legwear",
+      "prompt": "close-fitting stretch leggings with a flat waistband and a matte surface",
+      "negative": "",
+      "description": "Stretch leggings.",
+      "tags": [
+        "legwear",
+        "leggings",
+        "casual"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_legwear"
+    },
+    {
+      "id": "u_wardrobe_fishnet_tights",
+      "name": "Fishnet Tights",
+      "category": "wardrobe",
+      "collection": "Legwear",
+      "prompt": "fine fishnet tights with a small diamond mesh and a matte finish",
+      "negative": "",
+      "description": "Fine diamond fishnets.",
+      "tags": [
+        "legwear",
+        "fishnet",
+        "sheer"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_legwear"
+    },
+    {
+      "id": "u_wardrobe_wool_socks",
+      "name": "Wool Socks",
+      "category": "wardrobe",
+      "collection": "Legwear",
+      "prompt": "thick wool socks with a ribbed cuff and a slightly felted texture",
+      "negative": "",
+      "description": "Thick ribbed wool socks.",
+      "tags": [
+        "legwear",
+        "wool",
+        "cosy"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_legwear"
+    },
+    {
+      "id": "u_wardrobe_leather_belt",
+      "name": "Leather Belt",
+      "category": "wardrobe",
+      "collection": "Accessory",
+      "prompt": "a simple leather belt with a small metal buckle and a clean edge",
+      "negative": "",
+      "description": "Simple leather belt.",
+      "tags": [
+        "accessory",
+        "belt",
+        "leather"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_accessory"
+    },
+    {
+      "id": "u_wardrobe_long_scarf",
+      "name": "Long Scarf",
+      "category": "wardrobe",
+      "collection": "Accessory",
+      "prompt": "a long soft scarf wrapped once around the neck with the ends falling loose",
+      "negative": "",
+      "description": "Long wrapped scarf.",
+      "tags": [
+        "accessory",
+        "scarf",
+        "cosy"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_accessory"
+    },
+    {
+      "id": "u_wardrobe_fingerless_gloves",
+      "name": "Fingerless Gloves",
+      "category": "wardrobe",
+      "collection": "Accessory",
+      "prompt": "close-fitting fingerless gloves with ribbed cuffs and exposed fingertips",
+      "negative": "",
+      "description": "Fingerless ribbed gloves.",
+      "tags": [
+        "accessory",
+        "gloves",
+        "practical"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_accessory"
+    },
+    {
+      "id": "u_wardrobe_pendant_necklace",
+      "name": "Pendant Necklace",
+      "category": "wardrobe",
+      "collection": "Accessory",
+      "prompt": "a fine chain necklace with a small simple pendant resting at the collarbone",
+      "negative": "",
+      "description": "Fine pendant necklace.",
+      "tags": [
+        "accessory",
+        "necklace",
+        "jewellery"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_accessory"
+    },
+    {
+      "id": "u_wardrobe_beanie",
+      "name": "Beanie",
+      "category": "wardrobe",
+      "collection": "Accessory",
+      "prompt": "a close-fitting knitted beanie pulled down over the ears",
+      "negative": "",
+      "description": "Knitted beanie.",
+      "tags": [
+        "accessory",
+        "hat",
+        "winter"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_accessory"
+    },
+    {
+      "id": "u_wardrobe_beret",
+      "name": "Beret",
+      "category": "wardrobe",
+      "collection": "Accessory",
+      "prompt": "a soft woollen beret worn slightly to one side",
+      "negative": "",
+      "description": "Soft woollen beret.",
+      "tags": [
+        "accessory",
+        "hat",
+        "french"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_accessory"
+    },
+    {
+      "id": "u_wardrobe_round_glasses",
+      "name": "Round Glasses",
+      "category": "wardrobe",
+      "collection": "Accessory",
+      "prompt": "thin round-framed glasses with clear lenses and a delicate metal bridge",
+      "negative": "",
+      "description": "Thin round glasses.",
+      "tags": [
+        "accessory",
+        "glasses",
+        "intellectual"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "wardrobe_accessory"
+    }
+  ]
+}

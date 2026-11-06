@@ -1,0 +1,365 @@
+{
+  "schema_version": 1,
+  "presets": [
+    {
+      "id": "u_hair_color_honey_blonde",
+      "name": "Honey Blonde",
+      "category": "hair_color",
+      "collection": "Blonde",
+      "prompt": "the hair is coloured honey-gold, with warm sunlit reflections and slightly darker roots",
+      "negative": "",
+      "description": "Warm honey-gold blonde.",
+      "tags": [
+        "hair",
+        "color",
+        "blonde"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color"
+    },
+    {
+      "id": "u_hair_color_platinum_blonde",
+      "name": "Platinum Blonde",
+      "category": "hair_color",
+      "collection": "Blonde",
+      "prompt": "the hair is coloured icy platinum blonde with cool silver reflections",
+      "negative": "",
+      "description": "Icy platinum blonde.",
+      "tags": [
+        "hair",
+        "color",
+        "blonde"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color"
+    },
+    {
+      "id": "u_hair_color_ash_blonde",
+      "name": "Ash Blonde",
+      "category": "hair_color",
+      "collection": "Blonde",
+      "prompt": "the hair is coloured cool ash blonde with a soft grey undertone",
+      "negative": "",
+      "description": "Cool ash blonde.",
+      "tags": [
+        "hair",
+        "color",
+        "blonde"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color"
+    },
+    {
+      "id": "u_hair_color_strawberry_blonde",
+      "name": "Strawberry Blonde",
+      "category": "hair_color",
+      "collection": "Blonde",
+      "prompt": "the hair is coloured strawberry blonde, warm and slightly pink in the light",
+      "negative": "",
+      "description": "Warm strawberry blonde.",
+      "tags": [
+        "hair",
+        "color",
+        "blonde"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color"
+    },
+    {
+      "id": "u_hair_color_chestnut_brown",
+      "name": "Chestnut Brown",
+      "category": "hair_color",
+      "collection": "Brunette",
+      "prompt": "the hair is coloured rich chestnut brown with a warm reddish depth",
+      "negative": "",
+      "description": "Rich chestnut brown.",
+      "tags": [
+        "hair",
+        "color",
+        "brunette"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color"
+    },
+    {
+      "id": "u_hair_color_chocolate_brown",
+      "name": "Chocolate Brown",
+      "category": "hair_color",
+      "collection": "Brunette",
+      "prompt": "the hair is coloured deep chocolate brown with a soft satin shine",
+      "negative": "",
+      "description": "Deep chocolate brown.",
+      "tags": [
+        "hair",
+        "color",
+        "brunette"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color"
+    },
+    {
+      "id": "u_hair_color_espresso_brown",
+      "name": "Espresso Brown",
+      "category": "hair_color",
+      "collection": "Brunette",
+      "prompt": "the hair is coloured near-black espresso brown with a cool undertone",
+      "negative": "",
+      "description": "Near-black espresso brown.",
+      "tags": [
+        "hair",
+        "color",
+        "brunette"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color"
+    },
+    {
+      "id": "u_hair_color_caramel_brown",
+      "name": "Caramel Brown",
+      "category": "hair_color",
+      "collection": "Brunette",
+      "prompt": "the hair is coloured warm caramel brown with lighter sunlit ends",
+      "negative": "",
+      "description": "Warm caramel brown.",
+      "tags": [
+        "hair",
+        "color",
+        "brunette"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color"
+    },
+    {
+      "id": "u_hair_color_auburn",
+      "name": "Auburn",
+      "category": "hair_color",
+      "collection": "Red",
+      "prompt": "the hair is coloured deep auburn with a coppery red sheen",
+      "negative": "",
+      "description": "Deep coppery auburn.",
+      "tags": [
+        "hair",
+        "color",
+        "red"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color"
+    },
+    {
+      "id": "u_hair_color_copper_red",
+      "name": "Copper Red",
+      "category": "hair_color",
+      "collection": "Red",
+      "prompt": "the hair is coloured vivid copper red with strong warm highlights",
+      "negative": "",
+      "description": "Vivid copper red.",
+      "tags": [
+        "hair",
+        "color",
+        "red"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color"
+    },
+    {
+      "id": "u_hair_color_burgundy_red",
+      "name": "Burgundy Red",
+      "category": "hair_color",
+      "collection": "Red",
+      "prompt": "the hair is coloured dark burgundy red with a velvety depth",
+      "negative": "",
+      "description": "Dark burgundy red.",
+      "tags": [
+        "hair",
+        "color",
+        "red"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color"
+    },
+    {
+      "id": "u_hair_color_jet_black",
+      "name": "Jet Black",
+      "category": "hair_color",
+      "collection": "Black",
+      "prompt": "the hair is coloured glossy jet black with a sharp blue-black shine",
+      "negative": "",
+      "description": "Glossy jet black.",
+      "tags": [
+        "hair",
+        "color",
+        "black"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color"
+    },
+    {
+      "id": "u_hair_color_soft_black",
+      "name": "Soft Black",
+      "category": "hair_color",
+      "collection": "Black",
+      "prompt": "the hair is coloured soft natural black with a slight warm undertone",
+      "negative": "",
+      "description": "Soft natural black.",
+      "tags": [
+        "hair",
+        "color",
+        "black"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color"
+    },
+    {
+      "id": "u_hair_color_blue_black",
+      "name": "Blue-Black",
+      "category": "hair_color",
+      "collection": "Black",
+      "prompt": "the hair is coloured blue-black, with cool metallic reflections along the strands",
+      "negative": "",
+      "description": "Cool blue-black.",
+      "tags": [
+        "hair",
+        "color",
+        "black"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color"
+    },
+    {
+      "id": "u_hair_color_pastel_pink",
+      "name": "Pastel Pink",
+      "category": "hair_color",
+      "collection": "Fashion",
+      "prompt": "the hair is coloured soft pastel pink with a faded, chalky texture",
+      "negative": "",
+      "description": "Soft pastel pink.",
+      "tags": [
+        "hair",
+        "color",
+        "fashion"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color"
+    },
+    {
+      "id": "u_hair_color_dusty_lavender",
+      "name": "Dusty Lavender",
+      "category": "hair_color",
+      "collection": "Fashion",
+      "prompt": "the hair is coloured dusty lavender with a muted grey undertone",
+      "negative": "",
+      "description": "Muted dusty lavender.",
+      "tags": [
+        "hair",
+        "color",
+        "fashion"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color"
+    },
+    {
+      "id": "u_hair_color_mint_green",
+      "name": "Mint Green",
+      "category": "hair_color",
+      "collection": "Fashion",
+      "prompt": "the hair is coloured pale mint green with a cool chalky finish",
+      "negative": "",
+      "description": "Pale mint green.",
+      "tags": [
+        "hair",
+        "color",
+        "fashion"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color"
+    },
+    {
+      "id": "u_hair_color_silver_white",
+      "name": "Silver White",
+      "category": "hair_color",
+      "collection": "Fashion",
+      "prompt": "the hair is coloured silver-white with a cool metallic sheen",
+      "negative": "",
+      "description": "Silver-white with metallic sheen.",
+      "tags": [
+        "hair",
+        "color",
+        "fashion"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color"
+    },
+    {
+      "id": "u_hair_color_moon_white",
+      "name": "Moon White",
+      "category": "hair_color",
+      "collection": "Fantasy",
+      "prompt": "the hair is coloured luminous moon-white, with a faint cool glow in the highlights",
+      "negative": "",
+      "description": "Luminous fantasy white.",
+      "tags": [
+        "hair",
+        "color",
+        "fantasy"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color"
+    },
+    {
+      "id": "u_hair_color_fire_red",
+      "name": "Fire Red",
+      "category": "hair_color",
+      "collection": "Fantasy",
+      "prompt": "the hair is coloured intense fire red, glowing warmer toward the ends",
+      "negative": "",
+      "description": "Intense glowing fire red.",
+      "tags": [
+        "hair",
+        "color",
+        "fantasy"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color"
+    }
+  ]
+}

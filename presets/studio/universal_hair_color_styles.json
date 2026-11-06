@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "presets": [
+    {
+      "id": "u_hair_style_soft_ombre",
+      "name": "Soft Ombre",
+      "category": "hair_color_style",
+      "collection": "Technique",
+      "prompt": "finished with a soft ombre transition from darker roots to lighter ends",
+      "negative": "",
+      "description": "Dark-to-light ombre transition.",
+      "tags": [
+        "hair",
+        "color",
+        "ombre"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color_style"
+    },
+    {
+      "id": "u_hair_style_balayage",
+      "name": "Balayage",
+      "category": "hair_color_style",
+      "collection": "Technique",
+      "prompt": "finished with hand-painted balayage, with soft ribbons of lighter colour through the lengths",
+      "negative": "",
+      "description": "Hand-painted balayage ribbons.",
+      "tags": [
+        "hair",
+        "color",
+        "balayage"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color_style"
+    },
+    {
+      "id": "u_hair_style_foil_highlights",
+      "name": "Foil Highlights",
+      "category": "hair_color_style",
+      "collection": "Technique",
+      "prompt": "finished with fine foil highlights catching the light around the face",
+      "negative": "",
+      "description": "Fine foil highlights.",
+      "tags": [
+        "hair",
+        "color",
+        "highlights"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color_style"
+    },
+    {
+      "id": "u_hair_style_lowlights",
+      "name": "Lowlights",
+      "category": "hair_color_style",
+      "collection": "Technique",
+      "prompt": "finished with subtle lowlights that add depth beneath the main colour",
+      "negative": "",
+      "description": "Subtle lowlights for depth.",
+      "tags": [
+        "hair",
+        "color",
+        "lowlights"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color_style"
+    },
+    {
+      "id": "u_hair_style_dip_dye",
+      "name": "Dip Dye",
+      "category": "hair_color_style",
+      "collection": "Technique",
+      "prompt": "finished with a sharp dip-dye band of colour across the last few inches",
+      "negative": "",
+      "description": "Sharp dip-dye ends.",
+      "tags": [
+        "hair",
+        "color",
+        "dip dye"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color_style"
+    },
+    {
+      "id": "u_hair_style_shadow_root",
+      "name": "Shadow Root",
+      "category": "hair_color_style",
+      "collection": "Technique",
+      "prompt": "finished with a soft shadow root, keeping the colour darker at the scalp",
+      "negative": "",
+      "description": "Soft darker roots.",
+      "tags": [
+        "hair",
+        "color",
+        "roots"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color_style"
+    },
+    {
+      "id": "u_hair_style_money_piece",
+      "name": "Money Piece",
+      "category": "hair_color_style",
+      "collection": "Technique",
+      "prompt": "finished with face-framing money-piece highlights brighter than the rest",
+      "negative": "",
+      "description": "Bright face-framing pieces.",
+      "tags": [
+        "hair",
+        "color",
+        "highlights"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color_style"
+    },
+    {
+      "id": "u_hair_style_two_tone_split",
+      "name": "Two-Tone Split",
+      "category": "hair_color_style",
+      "collection": "Technique",
+      "prompt": "finished with a deliberate two-tone split, the colour divided cleanly down the centre",
+      "negative": "",
+      "description": "Clean two-tone split.",
+      "tags": [
+        "hair",
+        "color",
+        "two tone"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair_color_style"
+    }
+  ]
+}

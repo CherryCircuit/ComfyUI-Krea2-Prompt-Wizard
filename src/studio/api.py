@@ -73,6 +73,37 @@ def register_studio_routes() -> None:
         """Raw user-side payload, used by the preset manager to round-trip edits."""
         return web.json_response(load_user_payload())
 
+    @routes.get("/krea2_prompt_studio/recipes")
+    async def get_recipes(_request: Any) -> web.Response:
+        """Bundled + user randomizer recipes."""
+        from .recipes import load_recipes
+
+        return web.json_response({"recipes": load_recipes()})
+
+    @routes.post("/krea2_prompt_studio/recipes")
+    async def put_recipes(request: Any) -> web.Response:
+        """Upsert one recipe, or hide one with ``{"delete": "<id>"}``."""
+        from .recipes import delete_recipe, save_recipe
+
+        try:
+            payload = await request.json()
+        except Exception:
+            return web.json_response(
+                {"error": "the request body was not JSON"}, status=400
+            )
+        if not isinstance(payload, dict):
+            return web.json_response(
+                {"error": "the request body must be an object"}, status=400
+            )
+        try:
+            if "delete" in payload:
+                recipes = delete_recipe(str(payload.get("delete") or ""))
+            else:
+                recipes = save_recipe(payload.get("recipe"))
+        except ValueError as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+        return web.json_response({"recipes": recipes})
+
     @routes.get("/krea2_prompt_studio/prefs")
     async def get_prefs(_request: Any) -> web.Response:
         """Favorites and recently used preset ids."""

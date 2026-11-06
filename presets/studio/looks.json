@@ -3,7 +3,7 @@
   "presets": [
     {
       "id": "look_pilot",
-      "name": "PILOT",
+      "name": "Pilot",
       "category": "look",
       "prompt": "",
       "negative": "",
@@ -19,11 +19,12 @@
         "wardrobe_futuristic_flight_suit"
       ],
       "preview_image": "",
-      "reference_images": []
+      "reference_images": [],
+      "collection": "Saved looks"
     },
     {
       "id": "look_ranger",
-      "name": "RANGER",
+      "name": "Ranger",
       "category": "look",
       "prompt": "",
       "negative": "",
@@ -39,11 +40,12 @@
         "wardrobe_fantasy_ranger"
       ],
       "preview_image": "",
-      "reference_images": []
+      "reference_images": [],
+      "collection": "Saved looks"
     },
     {
       "id": "look_detective",
-      "name": "DETECTIVE",
+      "name": "Detective",
       "category": "look",
       "prompt": "",
       "negative": "",
@@ -59,11 +61,12 @@
         "wardrobe_classic_private_detective"
       ],
       "preview_image": "",
-      "reference_images": []
+      "reference_images": [],
+      "collection": "Saved looks"
     },
     {
       "id": "look_cyberpunk_streetwear",
-      "name": "CYBERPUNK STREETWEAR",
+      "name": "Cyberpunk Streetwear",
       "category": "look",
       "prompt": "",
       "negative": "",
@@ -79,11 +82,12 @@
         "wardrobe_cyberpunk_streetwear"
       ],
       "preview_image": "",
-      "reference_images": []
+      "reference_images": [],
+      "collection": "Saved looks"
     },
     {
       "id": "look_survivor",
-      "name": "SURVIVOR",
+      "name": "Survivor",
       "category": "look",
       "prompt": "",
       "negative": "",
@@ -99,11 +103,12 @@
         "wardrobe_post_apocalyptic_survivor"
       ],
       "preview_image": "",
-      "reference_images": []
+      "reference_images": [],
+      "collection": "Saved looks"
     },
     {
       "id": "look_formal_evening",
-      "name": "FORMAL EVENING",
+      "name": "Formal Evening",
       "category": "look",
       "prompt": "",
       "negative": "",
@@ -119,7 +124,8 @@
         "wardrobe_royal_formal_gown"
       ],
       "preview_image": "",
-      "reference_images": []
+      "reference_images": [],
+      "collection": "Saved looks"
     }
   ]
 }

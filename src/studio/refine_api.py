@@ -27,7 +27,15 @@ from typing import Any
 
 from .compiler import compile_document
 from .presets import get_store
-from .refine_prompts import RefineError, check, parse_reply, user_message
+from .refine_prompts import (
+    RefineError,
+    check,
+    normalize_target,
+    parse_reply,
+    system_prompt,
+    target_label,
+    user_message,
+)
 
 logger = logging.getLogger("krea2.studio.refine_api")
 
@@ -104,11 +112,12 @@ def run_refine(body: dict) -> dict:
             )
         chat = refine_remote.chat
 
+    target = normalize_target(body.get("target") or settings.get("target"))
     system = body.get("system") if isinstance(body.get("system"), str) else ""
     content = chat(
         model,
-        system or _system_prompt(),
-        user_message(_SECTION_LABELS.get(section, section), request_text),
+        system or system_prompt(target),
+        user_message(_SECTION_LABELS.get(section, section), request_text, target),
         images=(),
         temperature=body.get("temperature", settings["temperature"]),
         seed=body.get("seed", settings["seed"]),
@@ -124,14 +133,10 @@ def run_refine(body: dict) -> dict:
         "source": request_text,
         "model": model,
         "backend": backend,
+        "target": target,
+        "target_label": target_label(target),
         "problems": problems,
     }
-
-
-def _system_prompt() -> str:
-    from .refine_prompts import SYSTEM_PROMPT
-
-    return SYSTEM_PROMPT
 
 
 def register_refine_routes() -> None:

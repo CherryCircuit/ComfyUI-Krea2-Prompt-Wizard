@@ -161,6 +161,7 @@ class PresetParsingTests(unittest.TestCase):
                 "id": "x",
                 "name": "Name",
                 "category": "scene",
+                "collection": "Medieval",
                 "prompt": "P",
                 "negative": "N",
                 "description": "D",
@@ -174,6 +175,8 @@ class PresetParsingTests(unittest.TestCase):
         self.assertEqual(preset.tags, ["a", "b"])
         self.assertFalse(preset.enabled)
         self.assertEqual(preset.origin, "user")
+        self.assertEqual(preset.collection, "Medieval")
+        self.assertIn("collection", preset.to_dict())
 
     def test_from_dict_defaults(self):
         preset = studio_presets.preset_from_dict({"id": "x"}, "bundled")
@@ -189,6 +192,28 @@ class PresetParsingTests(unittest.TestCase):
         self.assertIsNone(studio_presets.preset_from_dict({"prompt": "p"}, "bundled"))
         self.assertIsNone(studio_presets.preset_from_dict({"id": "x", "prompt": 5}, "bundled"))
         self.assertIsNone(studio_presets.preset_from_dict("nope", "bundled"))
+
+
+class TitleCaseTests(unittest.TestCase):
+    def test_names_are_readable(self):
+        self.assertEqual(studio_presets.title_case_name("SEASIDE COTTAGE"), "Seaside Cottage")
+        self.assertEqual(studio_presets.title_case_name("CALM / CONTENT"), "Calm / Content")
+        self.assertEqual(studio_presets.title_case_name("1920S JAZZ CLUB"), "1920s Jazz Club")
+        self.assertEqual(studio_presets.title_case_name("POST-APOCALYPTIC SURVIVOR"), "Post-Apocalyptic Survivor")
+        self.assertEqual(studio_presets.title_case_name("ON THE VERGE OF TEARS"), "On the Verge of Tears")
+        self.assertEqual(studio_presets.title_case_name("1980S VHS"), "1980s VHS")
+        self.assertEqual(studio_presets.title_case_name("SERENA - TRAVELLING"), "Serena - Travelling")
+
+    def test_readable_name_preserves_deliberate_mixed_case(self):
+        self.assertEqual(studio_presets.readable_name("SEASIDE COTTAGE"), "Seaside Cottage")
+        self.assertEqual(studio_presets.readable_name("iPhone portrait"), "iPhone portrait")
+        self.assertEqual(studio_presets.readable_name("McDonald's"), "McDonald's")
+
+    def test_bundled_names_are_title_cased(self):
+        store = studio_presets.load_store()
+        self.assertEqual(store.get("scene_medieval_tavern_a").name, "Medieval Tavern A")
+        self.assertEqual(store.get("u_scene_1920s_jazz_club").name, "1920s Jazz Club")
+        self.assertEqual(store.get("emotion_happy").name, "Happy")
 
 
 class PresetStoreTests(unittest.TestCase):
@@ -226,7 +251,17 @@ class BundledPresetsTests(unittest.TestCase):
         self.assertIn("style", categories)
         self.assertIn("continuity", categories)
         self.assertIn("wardrobe", categories)
+        self.assertIn("hair", categories)
         self.assertIn("props", categories)
+        # The starter library is now a universal one: the universal block
+        # must be present, collected, and readable by the pool UI.
+        self.assertGreaterEqual(len(presets), 250)
+        universal = [p for p in presets if p.id.startswith(("u_scene_", "u_hair_", "u_lighting_"))]
+        self.assertGreaterEqual(len(universal), 80)
+        self.assertTrue(all(p.collection for p in universal))
+        self.assertTrue(
+            all(p.collection for p in presets if p.category in ("scene", "lighting", "camera", "style", "hair"))
+        )
 
     def test_expected_key_presets(self):
         store = studio_presets.load_store()
@@ -271,7 +306,7 @@ class UserPresetFileTests(unittest.TestCase):
             ]
         )
         store = studio_presets.load_store()
-        self.assertEqual(store.get("character_serena").name, "SERENA EDITED")
+        self.assertEqual(store.get("character_serena").name, "Serena Edited")
         self.assertIsNone(store.get("scene_medieval_tavern_a"))
         # Tombstones do not remove user-visible categories' other presets.
         self.assertIsNotNone(store.get("character_marcus"))
@@ -415,6 +450,35 @@ class MarkerFlagsTests(unittest.TestCase):
         raw = studio_tokens.raw_display(doc)
         self.assertEqual(raw, "[SERENA (OUTFIT) (HAPPY)] sits.")
 
+    def test_raw_display_nested_facets(self):
+        doc = (
+            "{{krea2:character_serena|Serena}}"
+            "{{krea2:u_hair_high_ponytail|High Ponytail|@character_serena}}"
+            "{{krea2:u_hair_color_honey_blonde|Honey Blonde|@u_hair_high_ponytail}}"
+            "{{krea2:u_wardrobe_leather_biker_jacket|Leather Biker Jacket|@character_serena}}"
+            "{{krea2:u_garment_color_crimson|Crimson|@u_wardrobe_leather_biker_jacket}}"
+        )
+        raw = studio_tokens.raw_display(doc)
+        self.assertEqual(
+            raw,
+            "[Serena (High Ponytail (Honey Blonde)) (Leather Biker Jacket (Crimson))]",
+        )
+
+    def test_compile_nested_facets(self):
+        store = studio_presets.load_store()
+        doc = (
+            "{{krea2:character_serena|Serena}}"
+            "{{krea2:u_hair_high_ponytail|High Ponytail|@character_serena}}"
+            "{{krea2:u_hair_color_honey_blonde|Honey Blonde|@u_hair_high_ponytail}}"
+        )
+        result = studio_compiler.compile_document(doc, store)
+        self.assertIn("ponytail", result.prompt.lower())
+        self.assertIn("honey-gold", result.prompt.lower())
+        self.assertEqual(
+            result.raw_prompt,
+            "[Serena (High Ponytail (Honey Blonde))]",
+        )
+
     def test_raw_display_orphan_attachment(self):
         doc = "{{krea2:emotion_happy|HAPPY|@character_ghost}} alone."
         self.assertEqual(
@@ -443,6 +507,14 @@ class RandomizeTests(unittest.TestCase):
                        prompt="TA.", exclusive_group="wardrobe_top"),
                 Preset(id="top_b", name="TOP B", category="wardrobe",
                        prompt="TB.", exclusive_group="wardrobe_top"),
+                Preset(id="hair_a", name="HAIR A", category="hair",
+                       prompt="HA.", exclusive_group="hair"),
+                Preset(id="hair_b", name="HAIR B", category="hair",
+                       prompt="HB.", exclusive_group="hair"),
+                Preset(id="hair_color_a", name="COLOR A", category="hair_color",
+                       prompt="CA.", exclusive_group="hair_color"),
+                Preset(id="hair_color_b", name="COLOR B", category="hair_color",
+                       prompt="CB.", exclusive_group="hair_color"),
             ]
         )
 
@@ -455,6 +527,53 @@ class RandomizeTests(unittest.TestCase):
         top = self.store.get("top_a")
         ids = {p.id for p in studio_compiler.random_candidates(self.store, top, exclude_id="top_a")}
         self.assertEqual(ids, {"top_b"})
+
+    def test_pool_narrows_candidates(self):
+        preset = self.store.get("camera_a")
+        pools = {studio_compiler.slot_key("camera", "camera"): {"camera_c"}}
+        ids = {
+            p.id
+            for p in studio_compiler.random_candidates(
+                self.store, preset, exclude_id="camera_a", pools=pools
+            )
+        }
+        self.assertEqual(ids, {"camera_c"})
+
+    def test_empty_pool_has_no_candidates(self):
+        preset = self.store.get("camera_a")
+        pools = {studio_compiler.slot_key("camera", "camera"): set()}
+        self.assertEqual(
+            studio_compiler.random_candidates(
+                self.store, preset, exclude_id="camera_a", pools=pools
+            ),
+            [],
+        )
+
+    def test_parse_pools_is_tolerant(self):
+        self.assertEqual(studio_compiler.parse_pools(""), {})
+        self.assertEqual(studio_compiler.parse_pools("not json"), {})
+        parsed = studio_compiler.parse_pools(
+            json.dumps(
+                {
+                    "pools": {
+                        "camera|camera": ["camera_b", 3, "", "camera_c"],
+                        "bad": "not a list",
+                        4: ["camera_a"],
+                    }
+                }
+            )
+        )
+        self.assertEqual(parsed["camera|camera"], {"camera_b", "camera_c"})
+        self.assertNotIn("bad", parsed)
+
+    def test_randomize_document_respects_pool(self):
+        doc = "{{krea2:camera_a|CAM A|~}}"
+        pools = {studio_compiler.slot_key("camera", "camera"): {"camera_c"}}
+        new_doc, choices = studio_compiler.randomize_document(
+            doc, self.store, rng=random.Random(1), pools=pools
+        )
+        self.assertEqual(choices[0]["chosen_id"], "camera_c")
+        self.assertIn("camera_c", new_doc)
 
     def test_randomize_document_swaps_flagged_tokens(self):
         doc = "{{krea2:camera_a|CAM A|~}} stable {{krea2:light_x|LIGHT}}"
@@ -477,6 +596,44 @@ class RandomizeTests(unittest.TestCase):
         token = [s for s in studio_tokens.parse_document(new_doc) if s.host][0]
         self.assertEqual(token.host, "character_serena")
         self.assertEqual(token.preset_id, choices[0]["chosen_id"])
+
+    def test_randomize_rehosts_nested_facets(self):
+        doc = (
+            "{{krea2:character_serena|SERENA}}"
+            "{{krea2:hair_a|HAIR A|@character_serena|~}}"
+            "{{krea2:hair_color_a|COLOR A|@hair_a|~}}"
+        )
+        new_doc, choices = studio_compiler.randomize_document(
+            doc, self.store, rng=random.Random(5)
+        )
+        self.assertEqual([c["chosen_id"] for c in choices], ["hair_b", "hair_color_b"])
+        parsed = studio_tokens.parse_document(new_doc)
+        hair = [s for s in parsed if s.preset_id == "hair_b"][0]
+        color = [s for s in parsed if s.preset_id == "hair_color_b"][0]
+        self.assertEqual(hair.host, "character_serena")
+        self.assertEqual(color.host, "hair_b", "facet follows the randomized parent")
+        self.assertEqual(
+            studio_tokens.raw_display(new_doc),
+            "[SERENA (HAIR B (COLOR B))]",
+        )
+
+    def test_randomize_scopes_facet_rehost_to_one_subtree(self):
+        doc = (
+            "{{krea2:hair_a|HAIR A}}"
+            "{{krea2:hair_color_a|COLOR A|@hair_a}} "
+            "{{krea2:hair_a|HAIR A|~}}"
+            "{{krea2:hair_color_a|COLOR A|@hair_a}}"
+        )
+        new_doc, _choices = studio_compiler.randomize_document(
+            doc, self.store, rng=random.Random(1)
+        )
+        parsed = studio_tokens.parse_document(new_doc)
+        colors = [s for s in parsed if s.host in ("hair_a", "hair_b")]
+        self.assertEqual(
+            [s.host for s in colors],
+            ["hair_a", "hair_b"],
+            "only the randomized subtree is re-hosted",
+        )
 
     def test_randomize_skips_missing_and_slotless(self):
         doc = "{{krea2:ghost|G|~}} {{krea2:light_x|LIGHT|~}}"
@@ -518,22 +675,45 @@ class ExclusiveGroupSchemaTests(unittest.TestCase):
 
     def test_bundled_groups_present(self):
         store = studio_presets.load_store()
-        self.assertEqual(store.get("camera_close_up").exclusive_group, "camera")
-        self.assertEqual(store.get("lighting_candlelight").exclusive_group, "lighting")
+        self.assertEqual(store.get("camera_close_up").exclusive_group, "framing")
+        self.assertEqual(store.get("lighting_candlelight").exclusive_group, "lighting_source")
         self.assertEqual(store.get("scene_medieval_tavern_a").exclusive_group, "scene")
         self.assertEqual(store.get("style_cinematic_fantasy").exclusive_group, "style")
         self.assertEqual(store.get("emotion_happy").exclusive_group, "emotion")
         self.assertEqual(store.get("wardrobe_serena_travelling").exclusive_group, "wardrobe_full")
-        self.assertEqual(store.get("wardrobe_top_silk_blouse").exclusive_group, "wardrobe_top")
+        self.assertEqual(store.get("wardrobe_top_silk_blouse").exclusive_group, "wardrobe_base")
         self.assertEqual(store.get("wardrobe_bottom_skinny_jeans").exclusive_group, "wardrobe_bottom")
         # Characters and continuity stay stackable.
         self.assertEqual(store.get("character_serena").exclusive_group, "")
         self.assertEqual(store.get("continuity_strict_scene_continuity").exclusive_group, "")
 
+    def test_split_camera_and_lighting_slots(self):
+        store = studio_presets.load_store()
+        self.assertEqual(store.get("camera_locked_medium_shot").exclusive_group, "framing")
+        self.assertEqual(store.get("u_camera_low_angle").exclusive_group, "angle")
+        self.assertEqual(store.get("u_camera_85mm_portrait").exclusive_group, "lens")
+        self.assertEqual(store.get("u_camera_orbit").exclusive_group, "movement")
+        self.assertEqual(store.get("lighting_golden_hour").exclusive_group, "lighting_time")
+        self.assertEqual(store.get("lighting_candlelight").exclusive_group, "lighting_source")
+        self.assertEqual(store.get("u_lighting_softbox_studio").exclusive_group, "lighting_quality")
+        self.assertEqual(store.get("u_lighting_side_light").exclusive_group, "lighting_direction")
+        self.assertEqual(store.get("u_style_teal_and_orange").exclusive_group, "color_grade")
+        self.assertEqual(store.get("u_style_anime_cel").exclusive_group, "style")
+        self.assertEqual(store.get("u_wardrobe_leather_biker_jacket").exclusive_group, "wardrobe_outer")
+        self.assertEqual(store.get("u_wardrobe_cable_knit_sweater").exclusive_group, "wardrobe_mid")
+        self.assertEqual(store.get("u_wardrobe_collared_shirt").exclusive_group, "wardrobe_base")
+        self.assertEqual(store.get("u_wardrobe_knee_high_socks").exclusive_group, "wardrobe_legwear")
+        self.assertEqual(store.get("u_hair_color_honey_blonde").exclusive_group, "hair_color")
+        self.assertEqual(store.get("u_garment_pattern_plaid").exclusive_group, "garment_pattern")
+
     def test_bundled_new_categories_load(self):
         store = studio_presets.load_store()
-        self.assertEqual(len(store.by_category("emotion")), 17)
-        self.assertEqual(len(store.by_category("wardrobe")), 34)
+        # Counts grow as the universal library expands; assert the categories
+        # exist and the shipped starter content is present.
+        self.assertGreaterEqual(len(store.by_category("emotion")), 17)
+        self.assertGreaterEqual(len(store.by_category("wardrobe")), 34)
+        self.assertGreaterEqual(len(store.by_category("hair")), 20)
+        self.assertGreaterEqual(len(store.by_category("scene")), 40)
 
 
 class RandomizeNodeTests(unittest.TestCase):
@@ -558,9 +738,14 @@ class RandomizeNodeTests(unittest.TestCase):
             | set(schema.get("optional", {}))
             | set(schema.get("hidden", {}))
         )
-        candidates = {"prompt_doc": "plain", "refined_doc": "{}"}
+        candidates = {
+            "prompt_doc": "plain",
+            "refined_doc": "{}",
+            "randomizer_doc": "{}",
+        }
+        self.assertIn("randomizer_doc", declared)
         values = {key: value for key, value in candidates.items() if key in declared}
-        self.assertEqual(set(values), {"prompt_doc", "refined_doc"})
+        self.assertEqual(set(values), set(candidates) & declared)
         self.assertEqual(Krea2PromptWizardV2.IS_CHANGED(**values), "plain")
         values["prompt_doc"] = "{{krea2:camera_locked_medium_shot|A|~}}"
         self.assertTrue(
@@ -574,13 +759,44 @@ class RandomizeNodeTests(unittest.TestCase):
             "{{krea2:camera_locked_medium_shot|LOCKED MEDIUM SHOT|~}}"
         )
         camera_names = {
-            "LOCKED MEDIUM SHOT", "MEDIUM CLOSE-UP", "CLOSE-UP",
-            "WIDE ESTABLISHING SHOT", "OVER THE SHOULDER",
+            preset.name
+            for preset in studio_presets.load_store().by_category("camera")
+            if preset.enabled
         }
         self.assertIn(raw.strip("[]"), camera_names - {"LOCKED MEDIUM SHOT"})
         self.assertNotEqual(prompt, locked)
         # The randomized negative set still comes from the chosen preset's group.
         self.assertIsInstance(negative, str)
+
+    def test_build_ui_returns_resolved_document(self):
+        node = Krea2PromptWizardV2()
+        payload = node.build_ui(
+            "{{krea2:camera_locked_medium_shot|Locked Medium Shot|~}}",
+            "",
+            json.dumps({"schema_version": 1, "pools": {"camera|framing": ["camera_close_up"]}}),
+        )
+        self.assertIn("result", payload)
+        self.assertIn("ui", payload)
+        ui = payload["ui"]
+        self.assertIn("camera_close_up", ui["krea2_studio_doc"][0])
+        self.assertIn("|~", ui["krea2_studio_doc"][0])
+        picks = json.loads(ui["krea2_studio_picks"][0])
+        self.assertEqual(picks[0]["chosen_id"], "camera_close_up")
+        self.assertEqual(Krea2PromptWizardV2.FUNCTION, "build_ui")
+
+    def test_build_respects_randomizer_pools(self):
+        node = Krea2PromptWizardV2()
+        pools = {
+            "camera|framing": ["camera_close_up"],
+        }
+        for _ in range(8):
+            prompt, negative, raw, _, _ = node.build(
+                "{{krea2:camera_locked_medium_shot|LOCKED MEDIUM SHOT|~}}",
+                "",
+                json.dumps({"schema_version": 1, "pools": pools}),
+            )
+            self.assertIn("close-up", prompt.lower())
+            self.assertEqual(raw.strip("[]"), "Close-Up")
 
 
 class BundleTests(unittest.TestCase):
@@ -636,9 +852,9 @@ class BundleTests(unittest.TestCase):
 
     def test_new_bundled_categories_load(self):
         store = studio_presets.load_store()
-        self.assertEqual(len(store.by_category("look")), 6)
-        self.assertEqual(len(store.by_category("performance")), 6)
-        self.assertEqual(len(store.by_category("state")), 6)
+        self.assertGreaterEqual(len(store.by_category("look")), 6)
+        self.assertGreaterEqual(len(store.by_category("performance")), 6)
+        self.assertGreaterEqual(len(store.by_category("state")), 6)
         pilot = store.get("look_pilot")
         self.assertEqual(pilot.exclusive_group, "look")
         self.assertIn("wardrobe_futuristic_flight_suit", pilot.included_presets)
@@ -793,6 +1009,7 @@ class NodeTests(unittest.TestCase):
         spec = Krea2PromptWizardV2.INPUT_TYPES()
         self.assertIn("prompt_doc", spec["required"])
         self.assertEqual(spec["required"]["prompt_doc"][0], "STRING")
+        self.assertIn("randomizer_doc", spec["required"])
 
     def test_return_signature(self):
         self.assertEqual(
@@ -812,7 +1029,7 @@ class NodeTests(unittest.TestCase):
             self.assertIsInstance(value, str)
         self.assertIn("young adult woman", prompt)
         self.assertIn("short hair", negative)
-        self.assertEqual(raw, "[SERENA] plain")
+        self.assertEqual(raw, "[Serena] plain")
         self.assertEqual((last_prompt, last_negative), ("", ""))
 
     def test_build_empty(self):

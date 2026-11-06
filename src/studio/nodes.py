@@ -23,14 +23,16 @@ import logging
 import random
 from typing import Any, Dict, Tuple
 
-from .compiler import compile_document
+from .compiler import compile_document, parse_pools
 from .presets import get_store
 from .tokens import has_randomize
 
 logger = logging.getLogger("krea2.studio.nodes")
 
 NODE_NAME = "Krea2PromptWizardV2"
-NODE_DISPLAY_NAME = "Krea2 Prompt Wizard v2"
+# The class name stays for workflow compatibility; the display name is the
+# product surface, and the product is now model-agnostic.
+NODE_DISPLAY_NAME = "Prompt Wizard v2 — Universal"
 
 
 def parse_refined(raw: str) -> Dict[str, Dict[str, Any]]:
@@ -93,31 +95,53 @@ class Krea2PromptWizardV2:
                         ),
                     },
                 ),
+                "randomizer_doc": (
+                    "STRING",
+                    {
+                        "default": "",
+                        "multiline": True,
+                        "advanced": True,
+                        "tooltip": (
+                            "Randomizer pool selections as JSON (one checked "
+                            "set of preset ids per slot). Written and read by "
+                            "the node's randomizer board."
+                        ),
+                    },
+                ),
             },
             "hidden": {},
         }
 
     RETURN_TYPES = ("STRING", "STRING", "STRING", "STRING", "STRING")
     RETURN_NAMES = ("prompt", "negative", "raw_prompt", "last_prompt", "last_negative")
-    FUNCTION = "build"
+    FUNCTION = "build_ui"
     CATEGORY = "_Krea2 Prompt Wizard"
     DESCRIPTION = (
-        "Write naturally and insert preset tokens; each token expands into its "
-        "stored prompt at run time. Outputs the expanded positive prompt, the "
-        "combined negative prompt from used presets, and the unexpanded raw view. "
-        "With frame sections, prompt/negative/raw cover the FIRST frame and "
-        "last_prompt/last_negative carry the shared+last-frame text for H3-style "
-        "first/last-frame image pairs."
+        "A universal prompt builder: write naturally and insert preset tokens; "
+        "each token expands into its stored prompt at run time. Randomizer "
+        "pools narrow every dice roll to the options you checked. Outputs the "
+        "expanded positive prompt, the combined negative prompt from used "
+        "presets, and the unexpanded raw view. With frame sections, "
+        "prompt/negative/raw cover the FIRST frame and last_prompt/"
+        "last_negative carry the shared+last-frame text for first/last-frame "
+        "image pairs."
     )
     SEARCH_ALIASES = [
-        "krea2 prompt studio",
         "prompt wizard v2",
+        "prompt studio",
+        "universal prompt builder",
         "token prompt editor",
+        "random prompt builder",
         "krea2 prompt builder",
     ]
 
     @classmethod
-    def IS_CHANGED(cls, prompt_doc: str = "", refined_doc: str = "") -> object:
+    def IS_CHANGED(
+        cls,
+        prompt_doc: str = "",
+        refined_doc: str = "",
+        randomizer_doc: str = "",
+    ) -> object:
         # Randomized documents must run fresh for every queue item so a
         # 10-15 image batch yields different picks each time (NaN is never
         # equal to itself, defeating the execution cache).
@@ -125,15 +149,20 @@ class Krea2PromptWizardV2:
             return float("nan")
         return prompt_doc
 
-    def build(
-        self, prompt_doc: str = "", refined_doc: str = ""
-    ) -> Tuple[str, str, str, str, str]:
+    def _execute(
+        self,
+        prompt_doc: str = "",
+        refined_doc: str = "",
+        randomizer_doc: str = "",
+    ) -> Tuple[Tuple[str, str, str, str, str], Dict[str, Any]]:
+        """Compile one run and collect both socket values and UI feedback."""
         store = get_store()
         doc = prompt_doc or ""
         # Randomized tokens (flag ~) draw a fresh same-slot preset per
         # execution; IS_CHANGED returns NaN so ComfyUI never caches a run.
         rng = random.Random() if has_randomize(doc) else None
-        result = compile_document(doc, store, rng=rng)
+        pools = parse_pools(randomizer_doc)
+        result = compile_document(doc, store, rng=rng, pools=pools)
         if result.missing_preset_ids:
             logger.warning(
                 "Krea2 Prompt Wizard v2: unresolved preset token(s): %s",
@@ -167,13 +196,44 @@ class Krea2PromptWizardV2:
                 f" by {last_draft['model']}" if last_draft["model"] else "",
             )
 
-        return (
+        outputs = (
             result.prompt,
             result.negative,
             result.raw_prompt,
             result.last_prompt,
             result.last_negative,
         )
+        # Only randomized runs send the resolved document back. The
+        # frontend uses it to show the presets that actually ran, while the
+        # stored document keeps its dice for the next queue item.
+        ui: Dict[str, Any] = {}
+        if result.random_choices:
+            ui = {
+                "krea2_studio_doc": [result.randomized_doc],
+                "krea2_studio_picks": [json.dumps(result.random_choices)],
+                "krea2_studio_prompt": [result.prompt],
+            }
+        return outputs, ui
+
+    def build(
+        self,
+        prompt_doc: str = "",
+        refined_doc: str = "",
+        randomizer_doc: str = "",
+    ) -> Tuple[str, str, str, str, str]:
+        """The five STRING outputs (also the direct unit-test entry point)."""
+        outputs, _ui = self._execute(prompt_doc, refined_doc, randomizer_doc)
+        return outputs
+
+    def build_ui(
+        self,
+        prompt_doc: str = "",
+        refined_doc: str = "",
+        randomizer_doc: str = "",
+    ) -> Dict[str, Any]:
+        """ComfyUI entry point: values plus the last-run UI payload."""
+        outputs, ui = self._execute(prompt_doc, refined_doc, randomizer_doc)
+        return {"ui": ui, "result": outputs}
 
 
 NODE_CLASS_MAPPINGS: Dict[str, Any] = {NODE_NAME: Krea2PromptWizardV2}

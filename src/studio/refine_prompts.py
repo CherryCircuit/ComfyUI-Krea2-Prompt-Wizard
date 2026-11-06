@@ -76,10 +76,13 @@ def chatml(system: str, message: str, prefill: str = PREFILL) -> str:
 
 
 # ---- the instruction ---------------------------------------------------------
-
-# What Krea's own prompting guide asks for, distilled: natural language,
-# long detailed descriptions, and quoted text for anything that must be
-# rendered. See docs/KREA2_PROMPT_RESEARCH.md.
+#
+# One prompt engineer, several dialects. The studio is not a Krea 2-only
+# tool any more: the same expanded document can be aimed at a generic
+# image model, Krea 2's long prose, Flux/SDXL, a tag-based SDXL model, or
+# a video model that needs a continuous action rather than a still.
+#
+# The fidelity rules are shared; only the shape of the answer changes.
 
 SYSTEM_PROMPT = """\
 You are a prompt engineer for the Krea 2 image model. You rewrite short or \
@@ -109,13 +112,140 @@ Reply with one JSON object in exactly this form:
 Write the rewritten prompt as the value of "prompt" and nothing else.\
 """
 
-_USER_LEDE = "Rewrite this Krea 2 image prompt.\n\nTHE PROMPT:\n{body}"
+GENERIC_PROMPT = """\
+You are a prompt engineer for modern image models (Flux, SDXL, Krea 2 and \
+similar). Rewrite short or rough requests into a clear, concrete visual \
+description that any of them can follow.
+
+Rules:
+1. Keep everything the request names. Every subject, character, action, \
+emotion, garment, place, lighting setup, camera choice and style stays in \
+the rewrite. Never swap the user's choices for your own ideas.
+2. Expand with concrete visual detail: materials, textures, color, light, \
+atmosphere, composition, expression. Add only what a photograph or frame \
+of the described scene could show. Never invent new people, objects or events.
+3. Write natural, continuous prose, strongest elements first. No keyword \
+lists, no weights, no parentheses, no markdown, no headings, no commentary.
+4. Text inside "quotation marks" is words the finished image must render. \
+Keep it exactly as written, still inside its quotation marks.
+5. Quotation marks may appear ONLY around renderable on-image text such as \
+signs or captions. Never quote ordinary description words.
+6. Output plain prompt text only. Do not describe what you did, do not \
+offer alternatives, do not ask questions.
+
+Reply with one JSON object in exactly this form:
+{"prompt": "<the rewritten prompt>"}
+
+Write the rewritten prompt as the value of "prompt" and nothing else.\
+"""
+
+FLUX_PROMPT = """\
+You are a prompt engineer for Flux and modern SDXL checkpoints. Rewrite \
+short or rough requests into a dense, concrete visual description in \
+natural language.
+
+Rules:
+1. Keep everything the request names. Every subject, character, action, \
+emotion, garment, place, lighting setup, camera choice and style stays in \
+the rewrite. Never swap the user's choices for your own ideas.
+2. Expand with concrete visual detail: materials, textures, color, light, \
+atmosphere, composition, expression. Add only what a photograph or frame \
+of the described scene could show. Never invent new people, objects or events.
+3. Write two to four flowing sentences. Do not use tag lists, weights, \
+parentheses, markdown or headings.
+4. Text inside "quotation marks" is words the finished image must render. \
+Keep it exactly as written.
+5. Quotation marks may appear ONLY around renderable on-image text.
+6. Output plain prompt text only.
+
+Reply with one JSON object in exactly this form:
+{"prompt": "<the rewritten prompt>"}
+
+Write the rewritten prompt as the value of "prompt" and nothing else.\
+"""
+
+TAG_PROMPT = """\
+You are a prompt engineer for tag-based SDXL and Illustrious-family models. \
+Rewrite the request as a comma-separated list of clear visual tags.
+
+Rules:
+1. Keep every subject, character, action, emotion, garment, place, lighting \
+setup, camera choice and style the request names. Never swap the user's \
+choices for your own ideas.
+2. Use short concrete tags, not sentences: subject tags first, then clothing, \
+expression, environment, lighting, camera and style. No weights, parentheses, \
+markdown or commentary.
+3. Text inside "quotation marks" is words the finished image must render. \
+Keep it exactly as written, still inside its quotation marks.
+4. Output plain prompt text only.
+
+Reply with one JSON object in exactly this form:
+{"prompt": "<the rewritten prompt>"}
+
+Write the rewritten prompt as the value of "prompt" and nothing else.\
+"""
+
+VIDEO_PROMPT = """\
+You are a prompt engineer for video models such as Wan, LTX and MiniMax H3. \
+Rewrite short or rough requests into a clear shot description with a single \
+continuous action.
+
+Rules:
+1. Keep everything the request names. Every subject, character, action, \
+emotion, garment, place, lighting setup, camera choice and style stays in \
+the rewrite. Never swap the user's choices for your own ideas.
+2. Describe how the shot unfolds in time: the starting pose or framing, one \
+continuous movement or action, and the ending state. Keep the subject, \
+clothing and environment consistent from first frame to last.
+3. Include the camera behaviour explicitly (static, push-in, orbit, handheld) \
+when the request names or implies one.
+4. Write natural prose, not a shot list. No weights, parentheses, markdown or \
+commentary.
+5. Text inside "quotation marks" is words the finished frame must render. \
+Keep it exactly as written.
+6. Output plain prompt text only.
+
+Reply with one JSON object in exactly this form:
+{"prompt": "<the rewritten prompt>"}
+
+Write the rewritten prompt as the value of "prompt" and nothing else.\
+"""
+
+#: Target id -> (user-facing label, system prompt).
+TARGETS = {
+    "generic": ("Any image model", GENERIC_PROMPT),
+    "krea2": ("Krea 2 (long prose)", SYSTEM_PROMPT),
+    "flux": ("Flux / SDXL prose", FLUX_PROMPT),
+    "tags": ("SDXL / Illustrious tags", TAG_PROMPT),
+    "video": ("Video (Wan / LTX / H3)", VIDEO_PROMPT),
+}
+
+DEFAULT_TARGET = "generic"
 
 
-def user_message(section_label: str, body: str) -> str:
+def normalize_target(value: object) -> str:
+    """A stored or requested target, mapped to a known one."""
+    target = str(value or "").strip().lower()
+    return target if target in TARGETS else DEFAULT_TARGET
+
+
+def system_prompt(target: object = DEFAULT_TARGET) -> str:
+    """The instruction text for one target dialect."""
+    return TARGETS[normalize_target(target)][1]
+
+
+def target_label(target: object = DEFAULT_TARGET) -> str:
+    return TARGETS[normalize_target(target)][0]
+
+
+_USER_LEDE = "Rewrite this prompt.\n\nTHE PROMPT:\n{body}"
+
+
+def user_message(section_label: str, body: str, target: object = DEFAULT_TARGET) -> str:
     """What to rewrite: which output it feeds, and the expanded text itself."""
     return (
-        f"This text feeds the node's {section_label} output.\n\n"
+        f"This text feeds the node's {section_label} output, for "
+        f"{target_label(target)}.\n\n"
         + _USER_LEDE.format(body=(body or "").strip())
     )
 

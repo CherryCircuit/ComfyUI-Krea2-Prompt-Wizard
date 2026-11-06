@@ -47,6 +47,9 @@ class FrontendPackagingTests(unittest.TestCase):
             "preview.mjs",
             "ui.mjs",
             "refine.mjs",
+            "randomizer.mjs",
+            "recipe_store.mjs",
+            "recipe_panel.mjs",
         )
         for helper in helpers:
             self.assertTrue(
@@ -61,10 +64,16 @@ class FrontendPackagingTests(unittest.TestCase):
         self.assertIn("RefinePanel", source)
         self.assertIn("requestRefine", source)
         self.assertIn('widget.name === "refined_doc"', source)
+        self.assertIn('widget.name === "randomizer_doc"', source)
+        self.assertIn("Randomize", source)
+        self.assertIn('"hair"', source)
+        self.assertIn("TOOLBAR_ICONS", source)
+        self.assertIn("kpw2-compact", source)
+        self.assertIn("openRecipePanel", source)
 
     def test_studio_refine_cache_busters_match_entry_version(self):
         entry = (ROOT / "web" / "prompt_studio_v2.js").read_text(encoding="utf-8")
-        self.assertIn('const VERSION = "v=4"', entry)
+        self.assertIn('const VERSION = "v=26"', entry)
         for path in (ROOT / "web" / "studio").glob("*.mjs"):
             source = path.read_text(encoding="utf-8")
             for needle in ('?v=3"', "?v=3`"):

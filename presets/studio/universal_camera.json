@@ -1,0 +1,369 @@
+{
+  "schema_version": 1,
+  "presets": [
+    {
+      "id": "u_camera_extreme_close_up",
+      "name": "Extreme Close-Up",
+      "category": "camera",
+      "collection": "Framing",
+      "prompt": "an extreme close-up framing the eyes and part of the face, with fine skin texture and a very shallow depth of field",
+      "negative": "",
+      "description": "Eyes and face detail, very shallow focus.",
+      "tags": [
+        "camera",
+        "close-up",
+        "framing"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "framing"
+    },
+    {
+      "id": "u_camera_close_up",
+      "name": "Close-Up",
+      "category": "camera",
+      "collection": "Framing",
+      "prompt": "a close-up from the chest up, with the face filling most of the frame",
+      "negative": "",
+      "description": "Chest-up close framing.",
+      "tags": [
+        "camera",
+        "close-up",
+        "framing"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "framing"
+    },
+    {
+      "id": "u_camera_medium_shot",
+      "name": "Medium Shot",
+      "category": "camera",
+      "collection": "Framing",
+      "prompt": "a medium shot from the waist up, showing posture and hand gestures",
+      "negative": "",
+      "description": "Waist-up framing.",
+      "tags": [
+        "camera",
+        "medium",
+        "framing"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "framing"
+    },
+    {
+      "id": "u_camera_full_body_shot",
+      "name": "Full-Body Shot",
+      "category": "camera",
+      "collection": "Framing",
+      "prompt": "a full-body shot with the subject head to toe and a little space above and below",
+      "negative": "",
+      "description": "Head-to-toe framing.",
+      "tags": [
+        "camera",
+        "full body",
+        "framing"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "framing"
+    },
+    {
+      "id": "u_camera_wide_establishing_shot",
+      "name": "Wide Establishing Shot",
+      "category": "camera",
+      "collection": "Framing",
+      "prompt": "a wide establishing shot with the subject small in the frame and the environment dominating",
+      "negative": "",
+      "description": "Small subject in a wide environment.",
+      "tags": [
+        "camera",
+        "wide",
+        "establishing"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "framing"
+    },
+    {
+      "id": "u_camera_overhead_top_down",
+      "name": "Overhead Top-Down",
+      "category": "camera",
+      "collection": "Angle",
+      "prompt": "a top-down overhead angle looking straight down at the subject and the floor around them",
+      "negative": "",
+      "description": "Straight-down overhead view.",
+      "tags": [
+        "camera",
+        "overhead",
+        "angle"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "angle"
+    },
+    {
+      "id": "u_camera_low_angle",
+      "name": "Low Angle",
+      "category": "camera",
+      "collection": "Angle",
+      "prompt": "a low angle looking up at the subject, making them feel imposing against the space above",
+      "negative": "",
+      "description": "Upward angle with the subject looming.",
+      "tags": [
+        "camera",
+        "low angle",
+        "angle"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "angle"
+    },
+    {
+      "id": "u_camera_high_angle",
+      "name": "High Angle",
+      "category": "camera",
+      "collection": "Angle",
+      "prompt": "a high angle looking down at the subject, compressing the space around them",
+      "negative": "",
+      "description": "Downward angle compressing the space.",
+      "tags": [
+        "camera",
+        "high angle",
+        "angle"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "angle"
+    },
+    {
+      "id": "u_camera_dutch_tilt",
+      "name": "Dutch Tilt",
+      "category": "camera",
+      "collection": "Angle",
+      "prompt": "a subtle Dutch tilt with the horizon off-level, adding unease to the composition",
+      "negative": "",
+      "description": "Off-level horizon for unease.",
+      "tags": [
+        "camera",
+        "dutch",
+        "angle"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "angle"
+    },
+    {
+      "id": "u_camera_eye_level",
+      "name": "Eye Level",
+      "category": "camera",
+      "collection": "Angle",
+      "prompt": "a neutral eye-level angle that meets the subject directly",
+      "negative": "",
+      "description": "Neutral eye-level framing.",
+      "tags": [
+        "camera",
+        "eye level",
+        "angle"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "angle"
+    },
+    {
+      "id": "u_camera_24mm_wide",
+      "name": "24mm Wide",
+      "category": "camera",
+      "collection": "Lens",
+      "prompt": "a 24mm wide lens with strong perspective, a deep field and slight edge distortion",
+      "negative": "",
+      "description": "24mm wide perspective.",
+      "tags": [
+        "camera",
+        "24mm",
+        "lens"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lens"
+    },
+    {
+      "id": "u_camera_35mm_natural",
+      "name": "35mm Natural",
+      "category": "camera",
+      "collection": "Lens",
+      "prompt": "a 35mm lens with a natural documentary feel and moderate depth of field",
+      "negative": "",
+      "description": "35mm documentary feel.",
+      "tags": [
+        "camera",
+        "35mm",
+        "lens"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lens"
+    },
+    {
+      "id": "u_camera_50mm_standard",
+      "name": "50mm Standard",
+      "category": "camera",
+      "collection": "Lens",
+      "prompt": "a 50mm standard lens with a balanced perspective and gentle background separation",
+      "negative": "",
+      "description": "50mm balanced perspective.",
+      "tags": [
+        "camera",
+        "50mm",
+        "lens"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lens"
+    },
+    {
+      "id": "u_camera_85mm_portrait",
+      "name": "85mm Portrait",
+      "category": "camera",
+      "collection": "Lens",
+      "prompt": "an 85mm portrait lens with a flattering compression and a soft, blurred background",
+      "negative": "",
+      "description": "85mm compression and soft background.",
+      "tags": [
+        "camera",
+        "85mm",
+        "portrait"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lens"
+    },
+    {
+      "id": "u_camera_200mm_telephoto",
+      "name": "200mm Telephoto",
+      "category": "camera",
+      "collection": "Lens",
+      "prompt": "a 200mm telephoto lens compressing the background into a tight, layered frame",
+      "negative": "",
+      "description": "200mm compression and layered background.",
+      "tags": [
+        "camera",
+        "200mm",
+        "telephoto"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lens"
+    },
+    {
+      "id": "u_camera_macro_detail",
+      "name": "Macro Detail",
+      "category": "camera",
+      "collection": "Lens",
+      "prompt": "a macro lens at close range, with a razor-thin plane of focus and extreme surface detail",
+      "negative": "",
+      "description": "Macro focus and extreme detail.",
+      "tags": [
+        "camera",
+        "macro",
+        "detail"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "lens"
+    },
+    {
+      "id": "u_camera_slow_push_in",
+      "name": "Slow Push-In",
+      "category": "camera",
+      "collection": "Movement",
+      "prompt": "a slow, steady push-in toward the subject, tightening the frame with intent",
+      "negative": "",
+      "description": "Slow dolly push toward the subject.",
+      "tags": [
+        "camera",
+        "movement",
+        "push-in",
+        "video"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "movement"
+    },
+    {
+      "id": "u_camera_handheld_follow",
+      "name": "Handheld Follow",
+      "category": "camera",
+      "collection": "Movement",
+      "prompt": "a loose handheld follow with natural sway and micro-corrections",
+      "negative": "",
+      "description": "Handheld follow with natural sway.",
+      "tags": [
+        "camera",
+        "movement",
+        "handheld",
+        "video"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "movement"
+    },
+    {
+      "id": "u_camera_orbit",
+      "name": "Orbit",
+      "category": "camera",
+      "collection": "Movement",
+      "prompt": "a smooth orbit around the subject, keeping them centred as the background shifts",
+      "negative": "",
+      "description": "Smooth orbit around the subject.",
+      "tags": [
+        "camera",
+        "movement",
+        "orbit",
+        "video"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "movement"
+    },
+    {
+      "id": "u_camera_locked_static",
+      "name": "Locked Static",
+      "category": "camera",
+      "collection": "Movement",
+      "prompt": "a completely locked static frame with no camera movement",
+      "negative": "",
+      "description": "Locked static frame.",
+      "tags": [
+        "camera",
+        "movement",
+        "static",
+        "video"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "movement"
+    }
+  ]
+}

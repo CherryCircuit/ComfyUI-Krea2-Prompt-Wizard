@@ -1,0 +1,473 @@
+{
+  "schema_version": 1,
+  "presets": [
+    {
+      "id": "u_hair_short_pixie_cut",
+      "name": "Short Pixie Cut",
+      "category": "hair",
+      "collection": "Short",
+      "prompt": "a short textured pixie cut with soft side-swept bangs",
+      "negative": "",
+      "description": "Textured pixie with side-swept bangs.",
+      "tags": [
+        "hair",
+        "short",
+        "pixie"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair"
+    },
+    {
+      "id": "u_hair_buzz_cut",
+      "name": "Buzz Cut",
+      "category": "hair",
+      "collection": "Short",
+      "prompt": "a close-cropped buzz cut with clean edges",
+      "negative": "",
+      "description": "Close-cropped buzz cut.",
+      "tags": [
+        "hair",
+        "short",
+        "buzz"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair"
+    },
+    {
+      "id": "u_hair_classic_bob",
+      "name": "Classic Bob",
+      "category": "hair",
+      "collection": "Short",
+      "prompt": "a sleek chin-length bob with a blunt fringe",
+      "negative": "",
+      "description": "Sleek chin-length bob with blunt fringe.",
+      "tags": [
+        "hair",
+        "short",
+        "bob"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair"
+    },
+    {
+      "id": "u_hair_curly_crop",
+      "name": "Curly Crop",
+      "category": "hair",
+      "collection": "Short",
+      "prompt": "a short crop of tight natural curls, softly defined and full",
+      "negative": "",
+      "description": "Short, full natural curls.",
+      "tags": [
+        "hair",
+        "short",
+        "curly"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair"
+    },
+    {
+      "id": "u_hair_undercut",
+      "name": "Undercut",
+      "category": "hair",
+      "collection": "Short",
+      "prompt": "a disconnected undercut with longer swept-back hair on top and closely shaved sides",
+      "negative": "",
+      "description": "Shaved sides with longer swept-back top.",
+      "tags": [
+        "hair",
+        "short",
+        "undercut"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair"
+    },
+    {
+      "id": "u_hair_shoulder_length_waves",
+      "name": "Shoulder-Length Waves",
+      "category": "hair",
+      "collection": "Medium",
+      "prompt": "soft shoulder-length waves with a natural centre part",
+      "negative": "",
+      "description": "Soft shoulder-length waves, centre part.",
+      "tags": [
+        "hair",
+        "medium",
+        "waves"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair"
+    },
+    {
+      "id": "u_hair_layered_shag",
+      "name": "Layered Shag",
+      "category": "hair",
+      "collection": "Medium",
+      "prompt": "a choppy layered shag with curtain bangs and lived-in texture",
+      "negative": "",
+      "description": "Choppy shag with curtain bangs.",
+      "tags": [
+        "hair",
+        "medium",
+        "shag"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair"
+    },
+    {
+      "id": "u_hair_slicked_back",
+      "name": "Slicked Back",
+      "category": "hair",
+      "collection": "Medium",
+      "prompt": "medium-length hair slicked back cleanly with a slight wet shine",
+      "negative": "",
+      "description": "Medium hair slicked back with a wet shine.",
+      "tags": [
+        "hair",
+        "medium",
+        "slick"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair"
+    },
+    {
+      "id": "u_hair_long_straight_hair",
+      "name": "Long Straight Hair",
+      "category": "hair",
+      "collection": "Long",
+      "prompt": "long straight hair falling well past the shoulders with a glossy finish",
+      "negative": "",
+      "description": "Long glossy straight hair.",
+      "tags": [
+        "hair",
+        "long",
+        "straight"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair"
+    },
+    {
+      "id": "u_hair_beach_waves",
+      "name": "Beach Waves",
+      "category": "hair",
+      "collection": "Long",
+      "prompt": "long loose beach waves with a salt-tousled texture",
+      "negative": "",
+      "description": "Long, salt-tousled beach waves.",
+      "tags": [
+        "hair",
+        "long",
+        "waves"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair"
+    },
+    {
+      "id": "u_hair_high_ponytail",
+      "name": "High Ponytail",
+      "category": "hair",
+      "collection": "Long",
+      "prompt": "a sleek high ponytail with a few loose strands framing the face",
+      "negative": "",
+      "description": "Sleek high ponytail with loose strands.",
+      "tags": [
+        "hair",
+        "long",
+        "ponytail"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair"
+    },
+    {
+      "id": "u_hair_half_up_knot",
+      "name": "Half-Up Knot",
+      "category": "hair",
+      "collection": "Long",
+      "prompt": "long hair gathered into a small half-up knot with the rest falling loose",
+      "negative": "",
+      "description": "Half-up knot with loose length.",
+      "tags": [
+        "hair",
+        "long",
+        "updo"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair"
+    },
+    {
+      "id": "u_hair_single_braid",
+      "name": "Single Braid",
+      "category": "hair",
+      "collection": "Long",
+      "prompt": "a thick single braid falling over one shoulder",
+      "negative": "",
+      "description": "Thick single braid over one shoulder.",
+      "tags": [
+        "hair",
+        "long",
+        "braid"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair"
+    },
+    {
+      "id": "u_hair_messy_bun",
+      "name": "Messy Bun",
+      "category": "hair",
+      "collection": "Updo",
+      "prompt": "a relaxed messy bun with soft tendrils escaping at the temples",
+      "negative": "",
+      "description": "Relaxed messy bun with loose tendrils.",
+      "tags": [
+        "hair",
+        "updo",
+        "bun"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair"
+    },
+    {
+      "id": "u_hair_sleek_chignon",
+      "name": "Sleek Chignon",
+      "category": "hair",
+      "collection": "Updo",
+      "prompt": "a polished low chignon with a smooth centre part",
+      "negative": "",
+      "description": "Polished low chignon.",
+      "tags": [
+        "hair",
+        "updo",
+        "chignon"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair"
+    },
+    {
+      "id": "u_hair_french_twist",
+      "name": "French Twist",
+      "category": "hair",
+      "collection": "Updo",
+      "prompt": "an elegant French twist pinned close to the head",
+      "negative": "",
+      "description": "Elegant pinned French twist.",
+      "tags": [
+        "hair",
+        "updo",
+        "french twist"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair"
+    },
+    {
+      "id": "u_hair_space_buns",
+      "name": "Space Buns",
+      "category": "hair",
+      "collection": "Updo",
+      "prompt": "two high space buns with a few loose front strands",
+      "negative": "",
+      "description": "Two high buns with loose strands.",
+      "tags": [
+        "hair",
+        "updo",
+        "buns"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair"
+    },
+    {
+      "id": "u_hair_platinum_blonde",
+      "name": "Platinum Blonde",
+      "category": "hair",
+      "collection": "Colored",
+      "prompt": "long platinum blonde hair with visible darker roots",
+      "negative": "",
+      "description": "Long platinum blonde with dark roots.",
+      "tags": [
+        "hair",
+        "colored",
+        "blonde"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair"
+    },
+    {
+      "id": "u_hair_jet_black",
+      "name": "Jet Black",
+      "category": "hair",
+      "collection": "Colored",
+      "prompt": "glossy jet-black hair with a deep blue sheen in the light",
+      "negative": "",
+      "description": "Glossy jet-black hair with a blue sheen.",
+      "tags": [
+        "hair",
+        "colored",
+        "black"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair"
+    },
+    {
+      "id": "u_hair_copper_red",
+      "name": "Copper Red",
+      "category": "hair",
+      "collection": "Colored",
+      "prompt": "vivid copper-red hair with loose waves and a warm shine",
+      "negative": "",
+      "description": "Vivid copper-red loose waves.",
+      "tags": [
+        "hair",
+        "colored",
+        "red"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair"
+    },
+    {
+      "id": "u_hair_pastel_pink",
+      "name": "Pastel Pink",
+      "category": "hair",
+      "collection": "Colored",
+      "prompt": "soft pastel pink hair with a faded, chalky texture",
+      "negative": "",
+      "description": "Soft faded pastel pink hair.",
+      "tags": [
+        "hair",
+        "colored",
+        "pink"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair"
+    },
+    {
+      "id": "u_hair_silver_white",
+      "name": "Silver White",
+      "category": "hair",
+      "collection": "Colored",
+      "prompt": "long silver-white hair with a cool metallic sheen",
+      "negative": "",
+      "description": "Long silver-white hair with metallic sheen.",
+      "tags": [
+        "hair",
+        "colored",
+        "silver"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair"
+    },
+    {
+      "id": "u_hair_elven_braids",
+      "name": "Elven Braids",
+      "category": "hair",
+      "collection": "Fantasy",
+      "prompt": "intricate elven braids woven with thin silver thread and small leaves",
+      "negative": "",
+      "description": "Intricate braids with silver thread and leaves.",
+      "tags": [
+        "hair",
+        "fantasy",
+        "braids"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair"
+    },
+    {
+      "id": "u_hair_viking_braids",
+      "name": "Viking Braids",
+      "category": "hair",
+      "collection": "Historical",
+      "prompt": "tight Norse braids pulled back from the temples, with the rest of the hair loose and wind-tousled",
+      "negative": "",
+      "description": "Tight Norse temple braids with loose hair.",
+      "tags": [
+        "hair",
+        "historical",
+        "braids"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair"
+    },
+    {
+      "id": "u_hair_victorian_ringlets",
+      "name": "Victorian Ringlets",
+      "category": "hair",
+      "collection": "Historical",
+      "prompt": "carefully formed Victorian ringlets falling from a centre part",
+      "negative": "",
+      "description": "Formed Victorian ringlets.",
+      "tags": [
+        "hair",
+        "historical",
+        "ringlets"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair"
+    },
+    {
+      "id": "u_hair_1940s_waves",
+      "name": "1940s Waves",
+      "category": "hair",
+      "collection": "Historical",
+      "prompt": "sculpted 1940s finger waves with a defined side part",
+      "negative": "",
+      "description": "Sculpted 1940s finger waves.",
+      "tags": [
+        "hair",
+        "historical",
+        "waves"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "hair"
+    }
+  ]
+}

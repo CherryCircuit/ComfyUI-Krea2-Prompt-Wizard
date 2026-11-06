@@ -8,9 +8,10 @@ into its stored preset expansion at execution time.
 Modules:
 
     presets.py         preset schema, bundled + user loading, tolerant validation
-    compiler.py        document tokenizer and prompt compiler (pure logic)
+    recipes.py         randomizer recipes (slot pools + saved picks)
+    compiler.py        pooled randomization and prompt compilation
     nodes.py           ComfyUI node registration
-    api.py             HTTP routes for preset CRUD
+    api.py             HTTP routes for preset and recipe CRUD
     refine_prompts.py  refiner harness: Krea 2 system prompt, ChatML, reply parser
     refine_local.py    refiner backend: in-process text-encoder LLM (comfy.sd)
     refine_remote.py   refiner backend: OpenAI-compatible server client

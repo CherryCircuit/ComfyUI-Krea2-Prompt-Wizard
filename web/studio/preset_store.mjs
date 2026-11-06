@@ -18,22 +18,80 @@ export const CATEGORY_ORDER = [
   "continuity",
   "emotion",
   "wardrobe",
+  "hair",
+  "hair_color",
+  "hair_color_style",
+  "garment_color",
+  "garment_pattern",
   "props",
   "other",
 ];
+
+/** Symbols used in pills and the compact toolbar. */
+export const CATEGORY_ICONS = {
+  character: "👤",
+  more: "⋯",
+  look: "🖼️",
+  performance: "🎭",
+  state: "💧",
+  scene: "🏞️",
+  lighting: "💡",
+  camera: "📷",
+  style: "🎨",
+  continuity: "🔗",
+  emotion: "😊",
+  wardrobe: "👕",
+  hair: "💇",
+  hair_color: "🖌️",
+  hair_color_style: "✨",
+  garment_color: "🎨",
+  garment_pattern: "🧵",
+  props: "🎒",
+  other: "✦",
+};
+
+export function categoryIcon(category) {
+  return CATEGORY_ICONS[category] || CATEGORY_ICONS.other;
+}
+
+/** Nested option groups that hang underneath a hair/garment token. */
+export const FACET_DEFINITIONS = {
+  hair: [
+    { id: "hair_color", label: "Color", category: "hair_color", group: "hair_color" },
+    { id: "hair_color_style", label: "Color Style", category: "hair_color_style", group: "hair_color_style" },
+  ],
+};
+
+for (const group of [
+  "wardrobe_full",
+  "wardrobe_outer",
+  "wardrobe_mid",
+  "wardrobe_base",
+  "wardrobe_bottom",
+]) {
+  FACET_DEFINITIONS[group] = [
+    { id: "garment_color", label: "Color", category: "garment_color", group: "garment_color" },
+    { id: "garment_pattern", label: "Pattern", category: "garment_pattern", group: "garment_pattern" },
+  ];
+}
 
 export const CATEGORY_LABELS = {
   character: "Character",
   look: "Look",
   performance: "Performance",
   state: "State",
-  scene: "Scene",
+  scene: "Environment",
   lighting: "Lighting",
   camera: "Camera",
   style: "Style",
   continuity: "Continuity",
   emotion: "Emotion",
   wardrobe: "Wardrobe",
+  hair: "Hair",
+  hair_color: "Hair Color",
+  hair_color_style: "Color Style",
+  garment_color: "Garment Color",
+  garment_pattern: "Garment Pattern",
   props: "Props",
   other: "Other",
 };
@@ -65,6 +123,7 @@ export const TOOLBAR_CATEGORIES = [
 export const ATTACHABLE_CATEGORIES = [
   "emotion",
   "wardrobe",
+  "hair",
   "look",
   "performance",
   "state",
@@ -78,7 +137,16 @@ export const ATTACHABLE_CATEGORIES = [
  */
 export const EXCLUSIVE_GROUPS = [
   "camera",
+  "framing",
+  "angle",
+  "lens",
+  "movement",
   "lighting",
+  "lighting_time",
+  "lighting_source",
+  "lighting_quality",
+  "lighting_direction",
+  "color_grade",
   "style",
   "scene",
   "emotion",
@@ -87,12 +155,31 @@ export const EXCLUSIVE_GROUPS = [
   "wardrobe_full",
   "wardrobe_top",
   "wardrobe_bottom",
+  "wardrobe_outer",
+  "wardrobe_mid",
+  "wardrobe_base",
+  "wardrobe_accessory",
+  "wardrobe_legwear",
+  "hair",
+  "hair_color",
+  "hair_color_style",
+  "garment_color",
+  "garment_pattern",
 ];
 
 export const EXCLUSIVE_GROUP_LABELS = {
   "": "None (can stack freely)",
-  camera: "Camera (one per prompt)",
-  lighting: "Lighting (one per prompt)",
+  camera: "Camera (legacy full setup)",
+  framing: "Framing (one per prompt)",
+  angle: "Angle (one per prompt)",
+  lens: "Lens (one per prompt)",
+  movement: "Movement (one per prompt)",
+  lighting: "Lighting (legacy combined setup)",
+  lighting_time: "Time of day (one per prompt)",
+  lighting_source: "Light source (one per prompt)",
+  lighting_quality: "Light quality (one per prompt)",
+  lighting_direction: "Light direction (one per prompt)",
+  color_grade: "Color grade (one per prompt)",
   style: "Style (one per prompt)",
   scene: "Scene (one per prompt)",
   emotion: "Emotion (one per character)",
@@ -101,6 +188,16 @@ export const EXCLUSIVE_GROUP_LABELS = {
   wardrobe_full: "Full outfit (one per character)",
   wardrobe_top: "Upper body (one per character)",
   wardrobe_bottom: "Lower body (one per character)",
+  wardrobe_outer: "Outer layer (one per character)",
+  wardrobe_mid: "Mid layer (one per character)",
+  wardrobe_base: "Base layer (one per character)",
+  wardrobe_accessory: "Accessory (one per character)",
+  wardrobe_legwear: "Legwear (one per character)",
+  hair: "Hair (one per character)",
+  hair_color: "Hair color (one per hair style)",
+  hair_color_style: "Color treatment (one per hair style)",
+  garment_color: "Garment color (one per garment)",
+  garment_pattern: "Garment pattern (one per garment)",
 };
 
 /** Sensible member categories for the bundle editor, per bundle type. */
@@ -109,20 +206,93 @@ export const BUNDLE_MEMBER_CATEGORIES = {
   performance: ["emotion", "performance"],
 };
 
+const SMALL_WORDS = new Set([
+  "a", "an", "and", "as", "at", "but", "by", "for", "from", "in",
+  "into", "nor", "of", "on", "onto", "or", "over", "per", "the",
+  "to", "up", "via", "vs", "with",
+]);
+
+const ACRONYMS = new Set([
+  "3D", "4K", "8K", "AI", "CCTV", "DSLR", "FPV", "HDR", "IMAX", "LED",
+  "POV", "RPG", "SLR", "TV", "UV", "VHS", "VR",
+]);
+
+/**
+ * Title-case one preset name, keeping acronyms and numeric decades sane.
+ * Mirrors src/studio/presets.py::title_case_name.
+ */
+export function titleCaseName(value) {
+  const text = String(value ?? "").trim().replace(/\s+/g, " ");
+  if (!text) return "";
+  const words = text.split(" ");
+  return words
+    .map((word, index) => {
+      const match = word.match(/^([^A-Za-z0-9]*)(.*?)([^A-Za-z0-9]*)$/);
+      if (!match) return word;
+      const [, lead, core, trail] = match;
+      if (!core) return word;
+      let cleaned;
+      if (ACRONYMS.has(core.toUpperCase())) {
+        cleaned = core.toUpperCase();
+      } else if (/^\d+[A-Za-z]?$/.test(core)) {
+        cleaned = core.toLowerCase();
+      } else if (index > 0 && index < words.length - 1 && SMALL_WORDS.has(core.toLowerCase())) {
+        cleaned = core.toLowerCase();
+      } else {
+        cleaned = core
+          .toLowerCase()
+          .replace(/(^|[-/])([a-z])/g, (_, sep, ch) => sep + ch.toUpperCase());
+      }
+      return lead + cleaned + trail;
+    })
+    .join(" ");
+}
+
+/** Title-case only all-caps names; preserve deliberate mixed casing. */
+export function readableName(value) {
+  const text = String(value ?? "").trim().replace(/\s+/g, " ");
+  if (!text) return "";
+  if (/[a-z]/.test(text)) return text;
+  return titleCaseName(text);
+}
+
 export function categoryLabel(category) {
   return CATEGORY_LABELS[category] || CATEGORY_LABELS.other;
+}
+
+/**
+ * Group presets into the collections the user sees in the chooser and the
+ * randomizer pool tree. Unfiled presets land in "General"; groups keep the
+ * store's order so a category reads the same everywhere.
+ */
+export function groupByCollection(presets) {
+  const groups = new Map();
+  for (const preset of presets) {
+    const key = preset.collection || "General";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(preset);
+  }
+  return [...groups.entries()].map(([name, items]) => ({ name, items }));
 }
 
 export function exclusiveGroupLabel(group) {
   return EXCLUSIVE_GROUP_LABELS[group] || group || EXCLUSIVE_GROUP_LABELS[""];
 }
 
+/** The same label without the "one per character" explanation. */
+export function exclusiveGroupShortLabel(group) {
+  const label = EXCLUSIVE_GROUP_LABELS[group];
+  if (label) return label.replace(/\s*\(.*\)$/, "");
+  return titleCaseName(String(group || "").replace(/_/g, " "));
+}
+
 /** Compute derived fields for one preset dict from the backend. */
 function normalizePreset(raw) {
   const preset = {
     id: String(raw?.id ?? "").trim(),
-    name: String(raw?.name ?? "").trim() || "Unnamed",
+    name: readableName(String(raw?.name ?? "").trim() || "Unnamed"),
     category: CATEGORY_LABELS[raw?.category] ? raw.category : "other",
+    collection: String(raw?.collection ?? "").trim(),
     prompt: String(raw?.prompt ?? ""),
     negative: String(raw?.negative ?? ""),
     description: String(raw?.description ?? ""),
@@ -328,6 +498,7 @@ export const presetStore = new PresetStore();
 export function tokenTooltip(preset) {
   if (!preset) return "";
   const lines = [preset.name, categoryLabel(preset.category)];
+  if (preset.collection) lines.push(preset.collection);
   if (preset.description) lines.push("", preset.description);
   if (preset.included_presets?.length) {
     lines.push("", "Bundle contains:");

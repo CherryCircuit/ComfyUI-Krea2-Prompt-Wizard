@@ -238,19 +238,27 @@ export function replaceTokenFields(
  * @param {string} presetId
  * @param {string} label
  */
-export function attachToken(doc, hostRange, presetId, label) {
+export function attachToken(doc, hostRange, presetId, label, { randomize = false } = {}) {
   const hostToken = tokenRanges(doc).find(
-    (token) => token.start === hostRange.start && !token.host
+    (token) => token.start === hostRange.start
   );
-  const marker = tokenMarkup(presetId, label, { host: hostToken ? hostToken.id : "" });
+  const marker = tokenMarkup(presetId, label, {
+    host: hostToken ? hostToken.id : "",
+    randomize,
+  });
   return doc.slice(0, hostRange.end) + marker + doc.slice(hostRange.end);
 }
 
 /** Rewrite every attachment pointing at oldHostId to point at newHostId. */
-export function remapHosts(doc, oldHostId, newHostId) {
+export function remapHosts(doc, oldHostId, newHostId, scope = null) {
   let out = doc;
-  for (const token of tokenRanges(doc)) {
+  const tokens = tokenRanges(doc);
+  // Work backwards: a new id may be longer or shorter, and changing one
+  // marker shifts every later offset.
+  for (let index = tokens.length - 1; index >= 0; index -= 1) {
+    const token = tokens[index];
     if (token.host !== oldHostId) continue;
+    if (scope && (token.start < scope.start || token.end > scope.end)) continue;
     out = replaceTokenFields(out, token.start, token.end, { host: newHostId });
   }
   return out;
@@ -264,9 +272,7 @@ export function remapHosts(doc, oldHostId, newHostId) {
  * @param {(id: string) => string | null | undefined} [resolveLabel]
  */
 export function rawDisplay(doc, resolveLabel) {
-  const tokens = tokenRanges(doc);
-  const hostsPresent = new Set(tokens.filter((t) => !t.host).map((t) => t.id));
-
+  const segments = parseDocument(doc);
   const labelFor = (id, fallback) => {
     if (resolveLabel) {
       const resolved = resolveLabel(id);
@@ -275,39 +281,52 @@ export function rawDisplay(doc, resolveLabel) {
     return fallback;
   };
 
+  function parse(index) {
+    const segment = segments[index];
+    const children = [];
+    let end = segment.end;
+    let next = index + 1;
+    while (
+      next < segments.length &&
+      segments[next].type === "token" &&
+      segments[next].host === segment.id &&
+      segments[next].start === end
+    ) {
+      const child = parse(next);
+      children.push(child);
+      end = child.end;
+      next = child.next;
+    }
+    return { segment, children, end, next };
+  }
+
+  function render(node, child = false) {
+    const segment = node.segment;
+    const label = labelFor(segment.id, segment.label);
+    let body = label || `MISSING: ${segment.id}`;
+    const inner = node.children.map((attached) => `(${render(attached, true)})`);
+    if (inner.length) body += ` ${inner.join(" ")}`;
+    if (child) return body;
+    if (segment.host) return `[MISSING: ${segment.host}] (${body})`;
+    return `[${body}]`;
+  }
+
   let out = "";
-  for (const segment of parseDocument(doc)) {
+  let index = 0;
+  while (index < segments.length) {
+    const segment = segments[index];
     if (segment.type === "text") {
       out += segment.value;
+      index += 1;
       continue;
     }
-    if (segment.type === "frame") continue; // structural; labeled by the caller
-    if (segment.host && hostsPresent.has(segment.host)) continue; // nested below
-    const label = labelFor(segment.id, segment.label);
-    if (!label) {
-      out += segment.host
-        ? `[MISSING: ${segment.host}] (MISSING: ${segment.id})`
-        : `[MISSING: ${segment.id}]`;
+    if (segment.type === "frame") {
+      index += 1; // structural; labeled by the caller
       continue;
     }
-    if (segment.host) {
-      out += `[MISSING: ${segment.host}] (${label})`;
-      continue;
-    }
-    const attachments = tokens.filter(
-      (t) => t.host === segment.id
-    );
-    if (attachments.length) {
-      const inner = attachments
-        .map((t) => {
-          const attLabel = labelFor(t.id, t.label);
-          return attLabel ? `(${attLabel})` : `(MISSING: ${t.id})`;
-        })
-        .join(" ");
-      out += `[${label} ${inner}]`;
-    } else {
-      out += `[${label}]`;
-    }
+    const node = parse(index);
+    out += render(node);
+    index = node.next;
   }
   return out;
 }

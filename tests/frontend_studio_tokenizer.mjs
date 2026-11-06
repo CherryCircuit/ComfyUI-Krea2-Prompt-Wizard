@@ -211,6 +211,24 @@ assert.deepEqual(
   );
 }
 
+{
+  // A length-changing remap must not corrupt later tokens, and a scope
+  // must leave the same parent id on another character alone.
+  const doc =
+    "{{krea2:hair_a|A}}{{krea2:color|C|@hair_a}}" +
+    "{{krea2:hair_a|A}}{{krea2:color|C|@hair_a}}";
+  const firstEnd = doc.indexOf("{{krea2:hair_a|A}}", 1);
+  const out = tokenizer.remapHosts(doc, "hair_a", "hair_b", {
+    start: 0,
+    end: firstEnd,
+  });
+  assert.equal(
+    out,
+    "{{krea2:hair_a|A}}{{krea2:color|C|@hair_b}}" +
+      "{{krea2:hair_a|A}}{{krea2:color|C|@hair_a}}"
+  );
+}
+
 // --- rawDisplay with attachments ---------------------------------------------
 
 {
@@ -219,6 +237,15 @@ assert.deepEqual(
     "{{krea2:wardrobe_x|OUTFIT|@character_serena}}" +
     "{{krea2:emotion_happy|HAPPY|@character_serena}} sits.";
   assert.equal(tokenizer.rawDisplay(doc), "[SERENA (OUTFIT) (HAPPY)] sits.");
+}
+
+{
+  // Facets recurse one level deeper than the character.
+  const doc =
+    "{{krea2:character_serena|SERENA}}" +
+    "{{krea2:hair|PONYTAIL|@character_serena}}" +
+    "{{krea2:hair_color|BLONDE|@hair}}";
+  assert.equal(tokenizer.rawDisplay(doc), "[SERENA (PONYTAIL (BLONDE))]");
 }
 
 {

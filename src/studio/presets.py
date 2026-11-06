@@ -42,6 +42,11 @@ CATEGORIES = (
     "continuity",
     "emotion",
     "wardrobe",
+    "hair",
+    "hair_color",
+    "hair_color_style",
+    "garment_color",
+    "garment_pattern",
     "props",
     "other",
 )
@@ -59,7 +64,16 @@ BUNDLE_CATEGORIES = ("look", "performance")
 #: are per character. Custom group strings are allowed for user presets.
 EXCLUSIVE_GROUPS = (
     "camera",
+    "framing",
+    "angle",
+    "lens",
+    "movement",
     "lighting",
+    "lighting_time",
+    "lighting_source",
+    "lighting_quality",
+    "lighting_direction",
+    "color_grade",
     "style",
     "scene",
     "emotion",
@@ -68,9 +82,86 @@ EXCLUSIVE_GROUPS = (
     "wardrobe_full",
     "wardrobe_top",
     "wardrobe_bottom",
+    "wardrobe_outer",
+    "wardrobe_mid",
+    "wardrobe_base",
+    "wardrobe_accessory",
+    "wardrobe_legwear",
+    "hair",
+    "hair_color",
+    "hair_color_style",
+    "garment_color",
+    "garment_pattern",
 )
 
 _REQUIRED_STRING_FIELDS = ("id", "prompt")
+
+#: Words kept lowercase inside a title-cased name, unless first or last.
+_SMALL_WORDS = frozenset(
+    {
+        "a", "an", "and", "as", "at", "but", "by", "for", "from", "in",
+        "into", "nor", "of", "on", "onto", "or", "over", "per", "the",
+        "to", "up", "via", "vs", "with",
+    }
+)
+
+#: Initialisms that should stay uppercase rather than becoming "Vhs".
+_ACRONYMS = frozenset(
+    {"3D", "4K", "8K", "AI", "CCTV", "DSLR", "FPV", "HDR", "IMAX", "LED",
+     "POV", "RPG", "SLR", "TV", "UV", "VHS", "VR"}
+)
+
+
+def readable_name(value: object) -> str:
+    """Title-case all-caps authored names, leave deliberate mixed case alone.
+
+    ``SEASIDE COTTAGE`` becomes ``Seaside Cottage``; ``iPhone`` and
+    ``McDonald's`` keep their author's casing.
+    """
+    text = " ".join(str(value or "").split())
+    if not text:
+        return ""
+    if any(character.islower() for character in text):
+        return text
+    return title_case_name(text)
+
+
+def title_case_name(value: object) -> str:
+    """A preset name in title case, preserving acronyms and numbers.
+
+    ``SEASIDE COTTAGE`` -> ``Seaside Cottage``;
+    ``CALM / CONTENT`` -> ``Calm / Content``;
+    ``1920S JAZZ CLUB`` -> ``1920s Jazz Club``;
+    ``VHS`` -> ``VHS``.
+    """
+    text = " ".join(str(value or "").split())
+    if not text:
+        return ""
+    words = text.split(" ")
+    out = []
+    for index, word in enumerate(words):
+        match = re.match(r"^([^A-Za-z0-9]*)(.*?)([^A-Za-z0-9]*)$", word)
+        if not match:
+            out.append(word)
+            continue
+        lead, core, trail = match.groups()
+        if not core:
+            out.append(word)
+            continue
+        if core.upper() in _ACRONYMS:
+            cleaned = core.upper()
+        elif re.fullmatch(r"\d+[A-Za-z]?", core):
+            cleaned = core.lower()
+        elif 0 < index < len(words) - 1 and core.lower() in _SMALL_WORDS:
+            cleaned = core.lower()
+        else:
+            cleaned = re.sub(
+                r"(^|[-/])([a-z])",
+                lambda m: m.group(1) + m.group(2).upper(),
+                core.lower(),
+            )
+        out.append(lead + cleaned + trail)
+    return " ".join(out)
 
 
 @dataclass
@@ -87,6 +178,9 @@ class Preset:
     id: str
     name: str
     category: str = DEFAULT_CATEGORY
+    #: User-facing group inside the category ("Medieval", "Sci-Fi",
+    #: "School"). Drives the chooser headers and randomizer pool tree.
+    collection: str = ""
     prompt: str = ""
     negative: str = ""
     description: str = ""
@@ -104,6 +198,7 @@ class Preset:
             "id": self.id,
             "name": self.name,
             "category": self.category,
+            "collection": self.collection,
             "prompt": self.prompt,
             "negative": self.negative,
             "description": self.description,
@@ -162,10 +257,15 @@ def preset_from_dict(data: Any, origin: str) -> Optional[Preset]:
         return None
     category = str(data.get("category", DEFAULT_CATEGORY)).strip().lower() or DEFAULT_CATEGORY
     name = str(data.get("name", "")).strip() or preset_id
+    if data.get("name"):
+        name = readable_name(name)
+    collection = data.get("collection", "")
+    collection = str(collection).strip()[:80] if isinstance(collection, str) else ""
     return Preset(
         id=preset_id,
         name=name,
         category=category if category in CATEGORIES else DEFAULT_CATEGORY,
+        collection=collection,
         prompt=prompt,
         negative=data.get("negative", "") if isinstance(data.get("negative", ""), str) else "",
         description=data.get("description", "") if isinstance(data.get("description", ""), str) else "",

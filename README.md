@@ -7,7 +7,7 @@ The wizard ships with seven nodes:
 
 | Node | Purpose |
 |---|---|
-| `Krea2 Prompt Wizard v2` | **New** token-based prompt editor — write naturally, insert preset pills, get fully expanded prompts. See `docs/STUDIO_V2.md`. |
+| `Prompt Wizard v2 — Universal` | **New** token-based prompt builder for any image or video model - write naturally, insert preset pills, or roll a randomizer with checkbox pools. See `docs/STUDIO_V2.md`. |
 | `Krea2 Prompt Wizard` | The V1 single-workspace visual prompt builder. |
 | `Krea2 Save Image` | Saves images with the exact prompt embedded as PNG metadata. |
 | `Krea2 Prompt Saver` | Records every generated prompt to a JSONL history file. |
@@ -19,20 +19,33 @@ The wizard never calls an LLM, never contacts external services, and
 never downloads models. It generates a transparent, well-formatted
 prompt plus a structured trace JSON you can inspect.
 
-## Krea2 Prompt Wizard v2 (token editor)
+## Prompt Wizard v2 (universal token builder)
 
-The v2 node is a text-editor-first rewrite: type your prompt normally and
-insert reusable presets as color-coded tokens — `[SERENA]`,
-`[MEDIEVAL TAVERN A]`, `[CANDLELIGHT]`, `[LOCKED MEDIUM SHOT]` — each of
-which expands into its full stored prompt (character bibles, scene
-"mini bibles" with fixed landmarks, lighting, camera, style and continuity
-instructions) in the node's `prompt` output. Character-bound concepts —
-Looks (saved appearance bundles like PILOT or RANGER), Performances
+The v2 node is a text-editor-first prompt builder that works with any image
+or video model. Type your prompt normally and insert reusable presets as
+color-coded tokens - `[Serena]`, `[Medieval Tavern A]`, `[Candlelight]`,
+`[Locked Medium Shot]` - each of which expands into its full stored prompt
+in the node's `prompt` output. The starter library ships 406 presets across
+73 collections (environments, wardrobe, hair, lighting, camera, film looks,
+emotions, states and props), and the **Randomize** board can roll any slot
+now or on every queue item, drawing only from the checkbox pool you choose.
+**Recipes** save a whole board (picks plus pools) as a reusable starting
+point. Details nest: a hairstyle can own its own colour and colour treatment,
+and each garment can own its colour and pattern, so the small decisions roll
+independently without losing the parent look. Wardrobe is layered (outer,
+mid, base, lower body, legwear, accessory) and lighting is stackable (time of
+day, source, quality, direction, colour grade), so a blue hour, torchlight,
+soft overcast and underlight can coexist. Camera is split into framing,
+angle, lens and movement. The node shows the presets that actually ran after
+each queue item, and unused output dongles can be trimmed. The refiner can
+rewrite the result for Krea 2, Flux/SDXL, tag-based SDXL or a video model.
+Character-bound concepts - Looks (saved appearance bundles like Pilot or
+Ranger), Performances
 ("hiding something"), emotions and physical states — attach directly to a
 character's pill, and the toolbar speaks in filmmaking ideas rather than
 prompt parameters. A **Frames** mode splits the prompt into shared /
 first-frame / last-frame sections and emits both frame prompts for
-H3-style keyframe pairs. Per-token 🎲 randomization reshuffles flagged
+H3-style keyframe pairs. Per-token dice randomization reshuffles flagged
 presets (same slot) on every queued image. Presets ship with a starter
 library and are fully editable in the built-in Preset Manager; edits are
 stored in `<user>/Krea2PromptWizard/studio_presets.json` and survive

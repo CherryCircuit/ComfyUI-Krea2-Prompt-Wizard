@@ -3,7 +3,7 @@
   "presets": [
     {
       "id": "emotion_calm_content",
-      "name": "CALM / CONTENT",
+      "name": "Calm / Content",
       "category": "emotion",
       "prompt": "The character appears calm, comfortable, and emotionally settled. Their facial muscles are relaxed, with a soft neutral mouth or faint natural smile, relaxed brows, and steady attentive eyes. Their shoulders sit naturally, posture is open and unguarded, and there is no visible tension in the jaw, hands, or neck. The expression should feel genuine and understated rather than posed or exaggerated. Preserve the character's established facial structure and identity while changing only the emotional expression and body language.",
       "negative": "",
@@ -15,11 +15,12 @@
       "notes": "",
       "enabled": true,
       "exclusive_group": "emotion",
-      "reference_images": []
+      "reference_images": [],
+      "collection": "Positive"
     },
     {
       "id": "emotion_happy",
-      "name": "HAPPY",
+      "name": "Happy",
       "category": "emotion",
       "prompt": "The character displays genuine happiness with a natural smile that reaches the eyes, subtly lifted cheeks, slightly narrowed lower eyelids, relaxed eyebrows, and an open friendly expression. Their posture is light and energetic without appearing exaggerated, and their body language feels comfortable and engaged. Avoid an oversized artificial grin. Preserve the character's established facial proportions and identity while expressing believable happiness.",
       "negative": "",
@@ -31,11 +32,12 @@
       "notes": "",
       "enabled": true,
       "exclusive_group": "emotion",
-      "reference_images": []
+      "reference_images": [],
+      "collection": "Positive"
     },
     {
       "id": "emotion_excited",
-      "name": "EXCITED",
+      "name": "Excited",
       "category": "emotion",
       "prompt": "The character appears visibly excited and energized, with bright attentive eyes, slightly raised eyebrows, an animated natural smile, increased facial engagement, and subtly elevated posture. Their body language suggests anticipation and enthusiasm, with a slight forward lean or increased alertness. Keep the excitement believable and human rather than cartoonishly exaggerated. Preserve the character's identity and facial structure.",
       "negative": "",
@@ -47,11 +49,12 @@
       "notes": "",
       "enabled": true,
       "exclusive_group": "emotion",
-      "reference_images": []
+      "reference_images": [],
+      "collection": "Positive"
     },
     {
       "id": "emotion_amused",
-      "name": "AMUSED",
+      "name": "Amused",
       "category": "emotion",
       "prompt": "The character appears genuinely amused, with a restrained smile or emerging grin, subtly raised cheeks, slightly narrowed eyes, and an expression suggesting they are trying not to laugh. Their eyebrows may lift slightly and their posture remains relaxed. The emotion should feel spontaneous and conversational rather than staged. Preserve the character's established appearance and facial proportions.",
       "negative": "",
@@ -63,11 +66,12 @@
       "notes": "",
       "enabled": true,
       "exclusive_group": "emotion",
-      "reference_images": []
+      "reference_images": [],
+      "collection": "Positive"
     },
     {
       "id": "emotion_sad",
-      "name": "SAD",
+      "name": "Sad",
       "category": "emotion",
       "prompt": "The character displays quiet believable sadness. The inner eyebrows are subtly raised and drawn together, the eyes appear heavier and less focused, the mouth rests slightly downward or neutrally with reduced tension, and the overall face appears emotionally subdued. Their posture is slightly lowered or withdrawn, with reduced energy in the shoulders and body. Avoid melodramatic crying unless explicitly requested. Preserve the character's identity while changing only expression and body language.",
       "negative": "",
@@ -79,11 +83,12 @@
       "notes": "",
       "enabled": true,
       "exclusive_group": "emotion",
-      "reference_images": []
+      "reference_images": [],
+      "collection": "Negative"
     },
     {
       "id": "emotion_verge_of_tears",
-      "name": "ON THE VERGE OF TEARS",
+      "name": "On the Verge of Tears",
       "category": "emotion",
       "prompt": "The character is visibly struggling to contain strong emotion. Their eyes are glossy with moisture, lower eyelids slightly tense, brows gently drawn upward toward the center, lips subtly pressed together or trembling, and the jaw carries restrained tension. Their breathing and posture suggest an effort to remain composed. Tears may gather along the lower eyelids without necessarily falling. Keep the expression realistic and restrained rather than theatrical.",
       "negative": "",
@@ -95,11 +100,12 @@
       "notes": "",
       "enabled": true,
       "exclusive_group": "emotion",
-      "reference_images": []
+      "reference_images": [],
+      "collection": "Negative"
     },
     {
       "id": "emotion_angry",
-      "name": "ANGRY",
+      "name": "Angry",
       "category": "emotion",
       "prompt": "The character displays controlled anger with brows lowered and drawn slightly inward, focused intense eyes, subtle tension through the jaw and mouth, and firmer facial muscles. Their posture becomes more rigid and grounded, with restrained physical tension in the shoulders and neck. Avoid exaggerated snarling, screaming, or distorted facial features unless explicitly requested. Preserve the character's identity and natural facial structure.",
       "negative": "",
@@ -111,11 +117,12 @@
       "notes": "",
       "enabled": true,
       "exclusive_group": "emotion",
-      "reference_images": []
+      "reference_images": [],
+      "collection": "Negative"
     },
     {
       "id": "emotion_furious",
-      "name": "FURIOUS",
+      "name": "Furious",
       "category": "emotion",
       "prompt": "The character appears intensely angry, with strongly focused eyes, deeply lowered brows, visibly tense jaw muscles, compressed or partially parted lips, and pronounced tension across the face and neck. Their posture is rigid and confrontational, with tightly controlled body language suggesting they are close to losing restraint. Keep the expression realistic and anatomically natural rather than monstrous or cartoonish.",
       "negative": "",
@@ -127,11 +134,12 @@
       "notes": "",
       "enabled": true,
       "exclusive_group": "emotion",
-      "reference_images": []
+      "reference_images": [],
+      "collection": "Negative"
     },
     {
       "id": "emotion_afraid",
-      "name": "AFRAID",
+      "name": "Afraid",
       "category": "emotion",
       "prompt": "The character displays genuine fear with widened alert eyes, raised and slightly drawn-together brows, mild tension around the mouth and jaw, and a guarded posture. Their shoulders may rise slightly, body weight may shift backward, and their gaze is fixed intensely on the perceived threat. The expression should communicate alarm and vulnerability without exaggerated screaming or distorted facial anatomy.",
       "negative": "",
@@ -143,11 +151,12 @@
       "notes": "",
       "enabled": true,
       "exclusive_group": "emotion",
-      "reference_images": []
+      "reference_images": [],
+      "collection": "Negative"
     },
     {
       "id": "emotion_terrified",
-      "name": "TERRIFIED",
+      "name": "Terrified",
       "category": "emotion",
       "prompt": "The character displays intense fear, with widened eyes, strongly raised brows, visibly tense facial muscles, slightly parted lips, and an instinctive defensive posture. Their body may recoil or tense as though preparing to flee, with raised shoulders and heightened physical alertness. Keep the reaction physically believable and preserve the character's established facial proportions.",
       "negative": "",
@@ -159,11 +168,12 @@
       "notes": "",
       "enabled": true,
       "exclusive_group": "emotion",
-      "reference_images": []
+      "reference_images": [],
+      "collection": "Negative"
     },
     {
       "id": "emotion_suspicious",
-      "name": "SUSPICIOUS",
+      "name": "Suspicious",
       "category": "emotion",
       "prompt": "The character appears wary and suspicious, with slightly narrowed eyes, subtly lowered or uneven brows, a restrained mouth, and an assessing sideways or direct gaze. Their head may tilt slightly while their posture remains guarded and attentive. The emotion should suggest careful evaluation and mistrust rather than overt hostility. Preserve the character's identity and facial structure.",
       "negative": "",
@@ -175,11 +185,12 @@
       "notes": "",
       "enabled": true,
       "exclusive_group": "emotion",
-      "reference_images": []
+      "reference_images": [],
+      "collection": "Complex"
     },
     {
       "id": "emotion_confused",
-      "name": "CONFUSED",
+      "name": "Confused",
       "category": "emotion",
       "prompt": "The character appears genuinely confused, with one or both eyebrows slightly raised, subtle tension or asymmetry around the eyes, a lightly parted or uncertain mouth, and a questioning expression. Their head may tilt slightly as they attempt to understand what they are seeing or hearing. Keep the reaction understated and natural rather than comedic.",
       "negative": "",
@@ -191,11 +202,12 @@
       "notes": "",
       "enabled": true,
       "exclusive_group": "emotion",
-      "reference_images": []
+      "reference_images": [],
+      "collection": "Complex"
     },
     {
       "id": "emotion_surprised",
-      "name": "SURPRISED",
+      "name": "Surprised",
       "category": "emotion",
       "prompt": "The character displays sudden believable surprise with widened eyes, raised eyebrows, slightly parted lips, and a brief increase in facial tension and posture. The expression should look like a spontaneous reaction to unexpected information rather than exaggerated shock. Preserve normal facial anatomy and the character's established identity.",
       "negative": "",
@@ -207,11 +219,12 @@
       "notes": "",
       "enabled": true,
       "exclusive_group": "emotion",
-      "reference_images": []
+      "reference_images": [],
+      "collection": "Complex"
     },
     {
       "id": "emotion_shocked",
-      "name": "SHOCKED",
+      "name": "Shocked",
       "category": "emotion",
       "prompt": "The character appears deeply shocked, with widened fixed eyes, significantly raised brows, parted lips, and momentarily frozen body language. Their posture suggests an abrupt interruption of normal movement, as though they have just witnessed or learned something deeply unexpected. Keep the reaction realistic and avoid cartoonishly exaggerated facial distortion.",
       "negative": "",
@@ -223,11 +236,12 @@
       "notes": "",
       "enabled": true,
       "exclusive_group": "emotion",
-      "reference_images": []
+      "reference_images": [],
+      "collection": "Complex"
     },
     {
       "id": "emotion_embarrassed",
-      "name": "EMBARRASSED",
+      "name": "Embarrassed",
       "category": "emotion",
       "prompt": "The character appears visibly embarrassed, with a restrained awkward smile or compressed lips, slightly averted gaze, mild tension around the eyes, and subtly withdrawn posture. Their head may dip or turn slightly away and their shoulders may draw inward. A faint natural flush may be visible across the cheeks if appropriate. The emotion should feel socially uncomfortable rather than exaggerated.",
       "negative": "",
@@ -239,11 +253,12 @@
       "notes": "",
       "enabled": true,
       "exclusive_group": "emotion",
-      "reference_images": []
+      "reference_images": [],
+      "collection": "Complex"
     },
     {
       "id": "emotion_confident",
-      "name": "CONFIDENT",
+      "name": "Confident",
       "category": "emotion",
       "prompt": "The character displays calm self-assurance with steady direct eyes, relaxed brows, a neutral or faintly knowing smile, upright posture, relaxed shoulders, and controlled body language. Their expression communicates certainty without arrogance or exaggerated posing. Preserve the character's natural appearance while conveying composed confidence.",
       "negative": "",
@@ -255,11 +270,12 @@
       "notes": "",
       "enabled": true,
       "exclusive_group": "emotion",
-      "reference_images": []
+      "reference_images": [],
+      "collection": "Positive"
     },
     {
       "id": "emotion_determined",
-      "name": "DETERMINED",
+      "name": "Determined",
       "category": "emotion",
       "prompt": "The character appears focused and resolute, with steady eyes, slightly lowered brows, a firm but relaxed mouth, upright posture, and controlled physical tension. Their gaze is directed clearly toward their goal or subject of attention. The emotion should communicate commitment and resolve without appearing angry unless separately specified.",
       "negative": "",
@@ -271,7 +287,8 @@
       "notes": "",
       "enabled": true,
       "exclusive_group": "emotion",
-      "reference_images": []
+      "reference_images": [],
+      "collection": "Positive"
     }
   ]
 }

@@ -7,8 +7,13 @@
  * Recent sections first. Presets with a preview image render as visual
  * cards; every row has a star toggle for favoriting.
  */
-import { el, anchoredPanel } from "./ui.mjs?v=4";
-import { categoryLabel, presetStore, previewImageUrl } from "./preset_store.mjs?v=4";
+import { el, anchoredPanel } from "./ui.mjs?v=26";
+import {
+  categoryLabel,
+  groupByCollection,
+  presetStore,
+  previewImageUrl,
+} from "./preset_store.mjs?v=26";
 
 function matchesQuery(preset, query) {
   if (!query) return true;
@@ -29,11 +34,17 @@ function matchesQuery(preset, query) {
  *   onManage: () => void,
  * }} options
  */
-export function createPresetChooser({ store, onInsert, onManage }) {
+export function createPresetChooser({
+  store,
+  onInsert,
+  onManage,
+  hiddenCategories = [],
+}) {
   let activeCategory = null;
   let results = []; // flat list of {preset, rowElement}
   let highlightIndex = 0;
   let panel = null; // { destroy } while open
+  let insertHandler = onInsert;
 
   const title = el("div", "kpw2-panel-title", "Insert preset");
   const search = el("input", "kpw2-chooser-search");
@@ -93,7 +104,11 @@ export function createPresetChooser({ store, onInsert, onManage }) {
 
   function renderList() {
     const query = search.value.trim();
-    const enabled = store.presets.filter((preset) => preset.enabled);
+    const enabled = store.presets.filter(
+      (preset) =>
+        preset.enabled &&
+        (activeCategory || !hiddenCategories.includes(preset.category))
+    );
     const inCategory = enabled.filter(
       (preset) => !activeCategory || preset.category === activeCategory
     );
@@ -123,12 +138,21 @@ export function createPresetChooser({ store, onInsert, onManage }) {
 
     const filtered = inCategory
       .filter((preset) => matchesQuery(preset, query))
-      .slice(0, 60);
-    if (!results.length && !filtered.length) {
-      list.append(el("div", "kpw2-chooser-empty", query ? "No matching presets." : "No presets available."));
+      .slice(0, 80);
+    if (!filtered.length) {
+      if (!results.length) {
+        list.append(el("div", "kpw2-chooser-empty", query ? "No matching presets." : "No presets available."));
+      }
       return;
     }
-    for (const preset of filtered) appendRow(preset);
+    // Browse by collection inside a category ("Medieval", "Sci-Fi", …)
+    // instead of one undifferentiated row of scene tokens.
+    const groups = groupByCollection(filtered);
+    const showHeaders = groups.length > 1 || (groups[0] && groups[0].name !== "General");
+    for (const group of groups) {
+      if (showHeaders) list.append(sectionLabel(group.name));
+      for (const preset of group.items) appendRow(preset);
+    }
     highlightIndex = Math.min(highlightIndex, Math.max(0, results.length - 1));
     updateHighlight();
   }
@@ -158,7 +182,7 @@ export function createPresetChooser({ store, onInsert, onManage }) {
   function choose(preset) {
     close();
     void store.pushRecent(preset.id);
-    onInsert(preset);
+    insertHandler(preset);
   }
 
   search.addEventListener("input", () => {
@@ -193,14 +217,15 @@ export function createPresetChooser({ store, onInsert, onManage }) {
   /**
    * @param {{category?: string|null, anchorRect: DOMRect}} options
    */
-  function open({ category = null, anchorRect } = {}) {
+  function open({ category = null, anchorRect, onInsert: override = null } = {}) {
     close();
+    insertHandler = override || onInsert;
     activeCategory = category || null;
     highlightIndex = 0;
     search.value = "";
     title.textContent = category ? `${categoryLabel(category)} presets` : "Insert preset";
     renderList();
-    panel = anchoredPanel("chooser", anchorRect, () => panelBody, { width: 340 });
+    panel = anchoredPanel("chooser", anchorRect, () => panelBody, { width: 660 });
     search.focus();
   }
 

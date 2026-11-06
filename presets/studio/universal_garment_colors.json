@@ -1,0 +1,437 @@
+{
+  "schema_version": 1,
+  "presets": [
+    {
+      "id": "u_garment_color_ivory_white",
+      "name": "Ivory White",
+      "category": "garment_color",
+      "collection": "Neutrals",
+      "prompt": "the garment is coloured ivory white, with the colour covering the main fabric and seams",
+      "negative": "",
+      "description": "Ivory white.",
+      "tags": [
+        "garment",
+        "color",
+        "neutral"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_color"
+    },
+    {
+      "id": "u_garment_color_cream",
+      "name": "Cream",
+      "category": "garment_color",
+      "collection": "Neutrals",
+      "prompt": "the garment is coloured soft cream, warm without turning yellow",
+      "negative": "",
+      "description": "Soft warm cream.",
+      "tags": [
+        "garment",
+        "color",
+        "neutral"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_color"
+    },
+    {
+      "id": "u_garment_color_charcoal_black",
+      "name": "Charcoal Black",
+      "category": "garment_color",
+      "collection": "Neutrals",
+      "prompt": "the garment is coloured charcoal black with a matte finish",
+      "negative": "",
+      "description": "Matte charcoal black.",
+      "tags": [
+        "garment",
+        "color",
+        "neutral"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_color"
+    },
+    {
+      "id": "u_garment_color_slate_grey",
+      "name": "Slate Grey",
+      "category": "garment_color",
+      "collection": "Neutrals",
+      "prompt": "the garment is coloured cool slate grey with a soft textured surface",
+      "negative": "",
+      "description": "Cool slate grey.",
+      "tags": [
+        "garment",
+        "color",
+        "neutral"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_color"
+    },
+    {
+      "id": "u_garment_color_taupe",
+      "name": "Taupe",
+      "category": "garment_color",
+      "collection": "Neutrals",
+      "prompt": "the garment is coloured muted taupe with a warm grey undertone",
+      "negative": "",
+      "description": "Muted warm taupe.",
+      "tags": [
+        "garment",
+        "color",
+        "neutral"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_color"
+    },
+    {
+      "id": "u_garment_color_crimson",
+      "name": "Crimson",
+      "category": "garment_color",
+      "collection": "Warm",
+      "prompt": "the garment is coloured deep crimson, rich and slightly dark at the folds",
+      "negative": "",
+      "description": "Deep crimson.",
+      "tags": [
+        "garment",
+        "color",
+        "warm"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_color"
+    },
+    {
+      "id": "u_garment_color_scarlet",
+      "name": "Scarlet",
+      "category": "garment_color",
+      "collection": "Warm",
+      "prompt": "the garment is coloured bright scarlet with a clean saturated finish",
+      "negative": "",
+      "description": "Bright scarlet.",
+      "tags": [
+        "garment",
+        "color",
+        "warm"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_color"
+    },
+    {
+      "id": "u_garment_color_burnt_orange",
+      "name": "Burnt Orange",
+      "category": "garment_color",
+      "collection": "Warm",
+      "prompt": "the garment is coloured burnt orange with a earthy, faded richness",
+      "negative": "",
+      "description": "Earthy burnt orange.",
+      "tags": [
+        "garment",
+        "color",
+        "warm"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_color"
+    },
+    {
+      "id": "u_garment_color_mustard",
+      "name": "Mustard",
+      "category": "garment_color",
+      "collection": "Warm",
+      "prompt": "the garment is coloured deep mustard yellow with a soft matte weave",
+      "negative": "",
+      "description": "Deep mustard yellow.",
+      "tags": [
+        "garment",
+        "color",
+        "warm"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_color"
+    },
+    {
+      "id": "u_garment_color_chocolate_brown",
+      "name": "Chocolate Brown",
+      "category": "garment_color",
+      "collection": "Warm",
+      "prompt": "the garment is coloured chocolate brown with a subtle warm sheen",
+      "negative": "",
+      "description": "Warm chocolate brown.",
+      "tags": [
+        "garment",
+        "color",
+        "warm"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_color"
+    },
+    {
+      "id": "u_garment_color_camel",
+      "name": "Camel",
+      "category": "garment_color",
+      "collection": "Warm",
+      "prompt": "the garment is coloured camel tan with a soft natural texture",
+      "negative": "",
+      "description": "Natural camel tan.",
+      "tags": [
+        "garment",
+        "color",
+        "warm"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_color"
+    },
+    {
+      "id": "u_garment_color_navy_blue",
+      "name": "Navy Blue",
+      "category": "garment_color",
+      "collection": "Cool",
+      "prompt": "the garment is coloured deep navy blue with a clean matte finish",
+      "negative": "",
+      "description": "Deep navy blue.",
+      "tags": [
+        "garment",
+        "color",
+        "cool"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_color"
+    },
+    {
+      "id": "u_garment_color_cobalt_blue",
+      "name": "Cobalt Blue",
+      "category": "garment_color",
+      "collection": "Cool",
+      "prompt": "the garment is coloured vivid cobalt blue with a saturated surface",
+      "negative": "",
+      "description": "Vivid cobalt blue.",
+      "tags": [
+        "garment",
+        "color",
+        "cool"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_color"
+    },
+    {
+      "id": "u_garment_color_teal",
+      "name": "Teal",
+      "category": "garment_color",
+      "collection": "Cool",
+      "prompt": "the garment is coloured deep teal with a subtle blue-green shift",
+      "negative": "",
+      "description": "Deep blue-green teal.",
+      "tags": [
+        "garment",
+        "color",
+        "cool"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_color"
+    },
+    {
+      "id": "u_garment_color_forest_green",
+      "name": "Forest Green",
+      "category": "garment_color",
+      "collection": "Cool",
+      "prompt": "the garment is coloured dark forest green with a quiet, natural depth",
+      "negative": "",
+      "description": "Dark forest green.",
+      "tags": [
+        "garment",
+        "color",
+        "cool"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_color"
+    },
+    {
+      "id": "u_garment_color_sage_green",
+      "name": "Sage Green",
+      "category": "garment_color",
+      "collection": "Cool",
+      "prompt": "the garment is coloured soft sage green with a muted grey undertone",
+      "negative": "",
+      "description": "Soft muted sage.",
+      "tags": [
+        "garment",
+        "color",
+        "cool"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_color"
+    },
+    {
+      "id": "u_garment_color_dusty_lavender",
+      "name": "Dusty Lavender",
+      "category": "garment_color",
+      "collection": "Cool",
+      "prompt": "the garment is coloured dusty lavender with a soft powdery finish",
+      "negative": "",
+      "description": "Dusty lavender.",
+      "tags": [
+        "garment",
+        "color",
+        "cool"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_color"
+    },
+    {
+      "id": "u_garment_color_emerald",
+      "name": "Emerald",
+      "category": "garment_color",
+      "collection": "Jewel",
+      "prompt": "the garment is coloured rich emerald green with a deep jewelled saturation",
+      "negative": "",
+      "description": "Rich emerald green.",
+      "tags": [
+        "garment",
+        "color",
+        "jewel"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_color"
+    },
+    {
+      "id": "u_garment_color_ruby",
+      "name": "Ruby",
+      "category": "garment_color",
+      "collection": "Jewel",
+      "prompt": "the garment is coloured deep ruby red with a saturated, velvety finish",
+      "negative": "",
+      "description": "Deep ruby red.",
+      "tags": [
+        "garment",
+        "color",
+        "jewel"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_color"
+    },
+    {
+      "id": "u_garment_color_sapphire",
+      "name": "Sapphire",
+      "category": "garment_color",
+      "collection": "Jewel",
+      "prompt": "the garment is coloured rich sapphire blue with cool saturated shadows",
+      "negative": "",
+      "description": "Rich sapphire blue.",
+      "tags": [
+        "garment",
+        "color",
+        "jewel"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_color"
+    },
+    {
+      "id": "u_garment_color_amethyst",
+      "name": "Amethyst",
+      "category": "garment_color",
+      "collection": "Jewel",
+      "prompt": "the garment is coloured deep amethyst purple with a soft jewel-like depth",
+      "negative": "",
+      "description": "Deep amethyst purple.",
+      "tags": [
+        "garment",
+        "color",
+        "jewel"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_color"
+    },
+    {
+      "id": "u_garment_color_antique_gold",
+      "name": "Antique Gold",
+      "category": "garment_color",
+      "collection": "Metallic",
+      "prompt": "the garment is coloured antique gold with a warm metallic sheen along the folds",
+      "negative": "",
+      "description": "Antique metallic gold.",
+      "tags": [
+        "garment",
+        "color",
+        "metallic"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_color"
+    },
+    {
+      "id": "u_garment_color_silver",
+      "name": "Silver",
+      "category": "garment_color",
+      "collection": "Metallic",
+      "prompt": "the garment is coloured cool silver with a soft metallic reflection",
+      "negative": "",
+      "description": "Cool metallic silver.",
+      "tags": [
+        "garment",
+        "color",
+        "metallic"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_color"
+    },
+    {
+      "id": "u_garment_color_bronze",
+      "name": "Bronze",
+      "category": "garment_color",
+      "collection": "Metallic",
+      "prompt": "the garment is coloured warm bronze with a muted metallic finish",
+      "negative": "",
+      "description": "Warm metallic bronze.",
+      "tags": [
+        "garment",
+        "color",
+        "metallic"
+      ],
+      "notes": "",
+      "enabled": true,
+      "reference_images": [],
+      "exclusive_group": "garment_color"
+    }
+  ]
+}
